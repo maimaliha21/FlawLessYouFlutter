@@ -1,0 +1,50 @@
+name: projtry1
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.6.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  image_picker: ^0.8.5+3
+  google_sign_in: ^5.4.0
+  cupertino_icons: ^1.0.8
+
+  # Allowing updates for other dependencies
+  async: ^2.11.0
+  characters: ^1.3.0
+  collection: ^1.19.0
+  material_color_utilities: ^0.11.1
+  meta: ^1.15.0
+  font_awesome_flutter: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  boolean_selector: ^2.1.1
+  clock: ^1.1.1
+  fake_async: ^1.3.1
+  leak_tracker: ^10.0.7
+  leak_tracker_flutter_testing: ^3.0.8
+  matcher: ^0.12.16+1
+  path: ^1.9.0
+  source_span: ^1.10.0
+  stack_trace: ^1.12.0
+  stream_channel: ^2.1.2
+  string_scanner: ^1.3.0
+  term_glyph: ^1.2.1
+  test_api: ^0.7.3
+  vm_service: ^14.3.0
+
+flutter:
+  uses-material-design: true
+
+  # To add assets to your application, add an assets section, like this:
+  assets:
+    - assets/logoflutter.png
+    - assets/welcomelogo.png
