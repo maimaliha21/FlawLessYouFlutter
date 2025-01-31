@@ -118,7 +118,7 @@ class _ChooseGenderScreenState extends State<ChooseGenderScreen> {
                   // Action for Next button
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey.shade800,
+                  backgroundColor: Colors.blue,
                   padding: EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
