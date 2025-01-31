@@ -214,7 +214,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
                   SizedBox(height: 40),
                   Text(
                     'Create Profile',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.grey),
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
                   ),
                   SizedBox(height: 30),
                   Stack(
