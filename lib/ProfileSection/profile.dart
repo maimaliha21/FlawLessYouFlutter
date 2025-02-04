@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 void main() {
   runApp(MyApp());
@@ -14,7 +16,51 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
+  @override
+  _ProfileScreenState createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  File? _image;
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _image = File(pickedFile.path);
+      });
+    }
+  }
+
+  void _showProfileDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 20),
+              CircleAvatar(
+                radius: 100,
+                backgroundImage: _image != null ? FileImage(_image!) : AssetImage('assets/profile.jpg') as ImageProvider,
+              ),
+              SizedBox(height: 20),
+              TextButton(
+                onPressed: _pickImage,
+                child: Text("Choose from Gallery", style: TextStyle(fontSize: 16)),
+              ),
+              SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -34,24 +80,27 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
                 Positioned(
-                  top: 150,
+                  top: 130,
                   left: MediaQuery.of(context).size.width / 2 - 75,
-                  child: CircleAvatar(
-                    radius: 75,
-                    backgroundColor: Colors.white,
+                  child: GestureDetector(
+                    onTap: () => _showProfileDialog(context),
                     child: CircleAvatar(
-                      radius: 70,
+                      radius: 80,
                       backgroundColor: Colors.white,
                       child: CircleAvatar(
-                        radius: 65,
-                        backgroundImage: AssetImage('assets/profile.jpg'),
+                        radius: 75,
+                        backgroundColor: Colors.white,
+                        child: CircleAvatar(
+                          radius: 70,
+                          backgroundImage: _image != null ? FileImage(_image!) : AssetImage('assets/profile.jpg') as ImageProvider,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 60), // تقليل المسافة بين الصورة والاسم
+            SizedBox(height: 40),
             Text(
               'Melissa Peters',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
@@ -106,127 +155,47 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-class CustomBottomNavigationBar extends StatelessWidget {
+class TabBarSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        ClipPath(
-          clipper: BottomWaveClipper(),
-          child: Container(
-            height: 70,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                ),
-              ],
-            ),
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          TabBar(
+            labelColor: Colors.black,
+            unselectedLabelColor: Colors.grey,
+            tabs: [
+              Tab(text: 'My Products'),
+              Tab(text: 'Favorites'),
+            ],
           ),
-        ),
-        Positioned(
-          bottom: 25,
-          left: MediaQuery.of(context).size.width / 2 - 30,
-          child: FloatingActionButton(
-            backgroundColor: Colors.blue,
-            onPressed: () {},
-            child: Icon(Icons.face, color: Colors.white),
-          ),
-        ),
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            height: 70,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+          Container(
+            height: 200,
+            child: TabBarView(
               children: [
-                IconButton(
-                  icon: Icon(Icons.home, color: Colors.blue),
-                  onPressed: () {},
-                ),
-                IconButton(
-                  icon: Icon(Icons.chat, color: Colors.blue),
-                  onPressed: () {},
-                ),
-                SizedBox(width: 60),
-                IconButton(
-                  icon: Icon(Icons.settings, color: Colors.blue),
-                  onPressed: () {},
-                ),
-                IconButton(
-                  icon: Icon(Icons.person, color: Colors.blue),
-                  onPressed: () {},
-                ),
+                Center(child: Text('My Products Section')),
+                Center(child: Text('Favorites Section')),
               ],
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-class BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height - 20);
-    path.quadraticBezierTo(
-        size.width / 4, size.height, size.width / 2, size.height - 20);
-    path.quadraticBezierTo(
-        size.width * 3 / 4, size.height - 40, size.width, size.height - 20);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
-
-class TabBarSection extends StatefulWidget {
-  @override
-  _TabBarSectionState createState() => _TabBarSectionState();
-}
-
-class _TabBarSectionState extends State<TabBarSection> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
+class CustomBottomNavigationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        TabBar(
-          controller: _tabController,
-          labelColor: Colors.blue,
-          unselectedLabelColor: Colors.grey,
-          tabs: [
-            Tab(text: 'Saved'),
-            Tab(text: 'History'),
-          ],
-        ),
-        Container(
-          height: 200,
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              Center(child: Text('No saved items', style: TextStyle(color: Colors.black))),
-              Center(child: Text('No history available', style: TextStyle(color: Colors.black))),
-            ],
-          ),
-        ),
+    return BottomNavigationBar(
+      items: [
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
       ],
+      selectedItemColor: Colors.blue,
+      unselectedItemColor: Colors.grey,
     );
   }
 }
