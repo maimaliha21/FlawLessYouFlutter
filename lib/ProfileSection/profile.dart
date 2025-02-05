@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:projtry1/ProfileSection/editProfile.dart';
+
 import 'dart:io';
 
 void main() {
-  runApp(MyApp());
+  runApp(profile());
 }
 
-class MyApp extends StatelessWidget {
+class profile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -174,7 +176,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton(
-                  onPressed: _pickImage,
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => editProfile()),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
