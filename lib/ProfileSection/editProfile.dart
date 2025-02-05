@@ -1,27 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-
+import 'profile.dart';
+import 'package:projtry1/ProfileSection/profile.dart';
 void main() {
-  runApp(MyApp());
+  runApp(editProfile());
 }
 
-class MyApp extends StatelessWidget {
+class editProfile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: ProfileScreen(),
+      home: EditProfileScreen(),
     );
   }
 }
 
-class ProfileScreen extends StatefulWidget {
+class EditProfileScreen extends StatefulWidget {
   @override
-  _ProfileScreenState createState() => _ProfileScreenState();
+  _EditProfileScreenState createState() => _EditProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _EditProfileScreenState extends State<EditProfileScreen> {
   File? _profileImage;
   final ImagePicker _picker = ImagePicker();
 
@@ -54,7 +55,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             left: 10,
             child: GestureDetector(
               onTap: () {
-                print('Arrow clicked!');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ProfileScreen()),
+                );
               },
               child: Container(
                 padding: EdgeInsets.all(8),
