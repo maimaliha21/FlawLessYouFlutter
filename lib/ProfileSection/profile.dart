@@ -5,6 +5,8 @@ import 'package:projtry1/ProfileSection/aboutUs.dart';
 
 import 'dart:io';
 
+import 'package:projtry1/ProfileSection/supportTeam.dart';
+
 void main() {
   runApp(profile());
 }
@@ -63,8 +65,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: PopupMenuButton<String>(
                   onSelected: (value) {
     if (value == 'support') {
-    // Add support action
-    } else if (value == 'about_us') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => supportTeam()),
+      );
+    }else if (value == 'about_us') {
     Navigator.push(
     context,
     MaterialPageRoute(builder: (context) => aboutUs()),
