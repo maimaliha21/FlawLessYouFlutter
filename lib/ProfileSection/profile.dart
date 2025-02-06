@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:projtry1/ProfileSection/editProfile.dart';
+import 'package:projtry1/ProfileSection/aboutUs.dart';
 
 import 'dart:io';
 
@@ -60,15 +61,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   top: 30,
                   right: 20,
                   child: PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'support') {
-                        // Add support action
-                      } else if (value == 'about_us') {
-                        // Add about us action
-                      } else if (value == 'logout') {
-                        // Add log out action
-                      }
-                    },
+                  onSelected: (value) {
+    if (value == 'support') {
+    // Add support action
+    } else if (value == 'about_us') {
+    Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => aboutUs()),
+    );
+    } else if (value == 'logout') {
+    // Add log out action
+    }
+
+  },
                     itemBuilder: (BuildContext context) {
                       return [
                         PopupMenuItem<String>(
