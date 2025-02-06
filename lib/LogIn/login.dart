@@ -19,7 +19,8 @@ class LoginScreen extends StatelessWidget {
 
   Future<void> loginWithCredentials(
       BuildContext context, String username, String password) async {
-    final url = Uri.parse('http://localhost:8080/api/auth/signin'); // تأكد من صحة الرابط
+    // تغيير الرابط إلى المنفذ 3000
+    final url = Uri.parse('http://localhost:8080/api/auth/signin'); // هنا تم تعديل المنفذ
 
     try {
       final response = await http.post(
@@ -30,8 +31,8 @@ class LoginScreen extends StatelessWidget {
 
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
-        final token = responseBody['token']; // استخراج التوكن
-        print('JWT Token: $token');
+        final token = responseBody['accessToken']; // استخراج التوكن
+        // print('JWT Token: $token');
 
         Navigator.push(
           context,
