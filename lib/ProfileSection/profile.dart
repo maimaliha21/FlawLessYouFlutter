@@ -6,6 +6,7 @@ import 'package:projtry1/ProfileSection/aboutUs.dart';
 import 'dart:io';
 
 import 'package:projtry1/ProfileSection/supportTeam.dart';
+import 'package:projtry1/Routinebar/routinescreen.dart';
 
 void main() {
   runApp(profile());
@@ -227,70 +228,79 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-class CustomBottomNavigationBar extends StatelessWidget {
+class CustomBottomNavigationBar extends StatefulWidget {
+  @override
+  _CustomBottomNavigationBarState createState() => _CustomBottomNavigationBarState();
+}
+
+class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
+  int _selectedIndex = 0;
+
+  void _onItemTapped(int index) {
+    if (index == 4) {
+      // الانتقال إلى صفحة البروفايل عند الضغط على الأيقونة
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => profile()), // فتح الصفحة من ملف profile.dart
+      );
+    } else if(index == 3) {
+      setState(() {
+        _selectedIndex = index;
+      });
+    } else if(index == 2){
+      //camera
+    } else if(index == 1){ Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => RoutineScreen()), // فتح الصفحة من ملف profile.dart
+    );
+    } else {
+      // Navigator.push(
+      // context,
+      // MaterialPageRoute(builder: (context) => home()) // فتح الصفحة من ملف profile.dart
+
+    }}
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        ClipPath(
-          clipper: BottomWaveClipper(),
+        ClipRRect(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: Colors.white,
+            selectedItemColor: Colors.blue.shade900,
+            unselectedItemColor: Colors.grey,
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            items: [
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: ""),
+              BottomNavigationBarItem(icon: Icon(Icons.article), label: ""),
+              BottomNavigationBarItem(icon: SizedBox.shrink(), label: ""),
+              BottomNavigationBarItem(icon: Icon(Icons.settings), label: ""),
+              BottomNavigationBarItem(icon: Icon(Icons.person), label: ""),
+            ],
+          ),
+        ),
+        Positioned(
+          top: -30,
+          left: MediaQuery.of(context).size.width / 2 - 32,
           child: Container(
-            height: 70,
+            padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                ),
-              ],
+              color: Colors.blue.shade900,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 4),
             ),
-          ),
-        ),
-        Positioned(
-          bottom: 25,
-          left: MediaQuery.of(context).size.width / 2 - 30,
-          child: FloatingActionButton(
-            backgroundColor: Colors.blue,
-            onPressed: () {},
-            child: Icon(Icons.face, color: Colors.white),
-          ),
-        ),
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            height: 70,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.home, color: Colors.blue),
-                  onPressed: () {},
-                ),
-                IconButton(
-                  icon: Icon(Icons.chat, color: Colors.blue),
-                  onPressed: () {},
-                ),
-                SizedBox(width: 60),
-                IconButton(
-                  icon: Icon(Icons.settings, color: Colors.blue),
-                  onPressed: () {},
-                ),
-                IconButton(
-                  icon: Icon(Icons.person, color: Colors.blue),
-                  onPressed: () {},
-                ),
-              ],
-            ),
+            child: Icon(Icons.face, color: Colors.white, size: 32),
           ),
         ),
       ],
     );
   }
 }
+
 
 class BottomWaveClipper extends CustomClipper<Path> {
   @override
