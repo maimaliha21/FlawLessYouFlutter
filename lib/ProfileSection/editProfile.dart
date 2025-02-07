@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'profile.dart';
-import 'package:projtry1/ProfileSection/profile.dart';
+import 'profile.dart'; // تأكد من وجود هذا الملف
+import 'package:projtry1/Routinebar/routinescreen.dart';
+
+
+
 void main() {
   runApp(editProfile());
 }
@@ -40,6 +43,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Scaffold(
       body: Stack(
         children: [
+          // صورة الخلفية
           Container(
             width: double.infinity,
             height: 200,
@@ -63,11 +67,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               child: Container(
                 padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.grey[700], // لون رمادي غامق
+                  color: Colors.grey[700],
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black26, // تأثير ضبابي خفيف
+                      color: Colors.black26,
                       blurRadius: 8,
                       spreadRadius: 2,
                       offset: Offset(2, 2),
@@ -76,7 +80,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 child: Icon(
                   Icons.arrow_back,
-                  color: Colors.white, // أيقونة بيضاء
+                  color: Colors.white,
                   size: 28,
                 ),
               ),
@@ -144,65 +148,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          ClipPath(
-            clipper: BottomWaveClipper(),
-            child: Container(
-              height: 70,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 10,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 25,
-            left: MediaQuery.of(context).size.width / 2 - 30,
-            child: FloatingActionButton(
-              backgroundColor: Colors.blue,
-              onPressed: () {},
-              child: Icon(Icons.face, color: Colors.white),
-            ),
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 70,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.home, color: Colors.blue),
-                    onPressed: () {},
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.chat, color: Colors.blue),
-                    onPressed: () {},
-                  ),
-                  SizedBox(width: 60),
-                  IconButton(
-                    icon: Icon(Icons.settings, color: Colors.blue),
-                    onPressed: () {},
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.person, color: Colors.blue),
-                    onPressed: () {},
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+      bottomNavigationBar: CustomBottomNavigationBar(),
     );
   }
 
@@ -225,20 +171,78 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 }
 
-class BottomWaveClipper extends CustomClipper<Path> {
+class CustomBottomNavigationBar extends StatefulWidget {
   @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height - 20);
-    path.quadraticBezierTo(
-        size.width / 4, size.height, size.width / 2, size.height - 20);
-    path.quadraticBezierTo(
-        size.width * 3 / 4, size.height - 40, size.width, size.height - 20);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
+  _CustomBottomNavigationBarState createState() =>
+      _CustomBottomNavigationBarState();
+}
+
+class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
+  int _selectedIndex = 0;
+
+  void _onItemTapped(int index) {
+    if (index == 4) {
+      // الانتقال إلى صفحة البروفايل
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => ProfileScreen()),
+      );
+    } else if (index == 3) {
+      setState(() {
+        _selectedIndex = index;
+      });
+    } else if (index == 2) {
+      // الكاميرا
+    } else if (index == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => RoutineScreen()),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => HomeScreen()),
+      );
+    }
   }
 
   @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: Colors.white,
+            selectedItemColor: Colors.blue.shade900,
+            unselectedItemColor: Colors.grey,
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            items: [
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: ""),
+              BottomNavigationBarItem(icon: Icon(Icons.article), label: ""),
+              BottomNavigationBarItem(icon: SizedBox.shrink(), label: ""),
+              BottomNavigationBarItem(icon: Icon(Icons.settings), label: ""),
+              BottomNavigationBarItem(icon: Icon(Icons.person), label: ""),
+            ],
+          ),
+        ),
+        Positioned(
+          top: -30,
+          left: MediaQuery.of(context).size.width / 2 - 32,
+          child: Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade900,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 4),
+            ),
+            child: Icon(Icons.face, color: Colors.white, size: 32),
+          ),
+        ),
+      ],
+    );
+  }
 }
