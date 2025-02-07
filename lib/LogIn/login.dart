@@ -8,7 +8,7 @@ import 'dart:convert';
 void main() {
   runApp(
     MaterialApp(
-      debugShowCheckedModeBanner: false, // إخفاء شريط "debug"
+      debugShowCheckedModeBanner: false,
       home: LoginScreen(),
     ),
   );
@@ -19,8 +19,7 @@ class LoginScreen extends StatelessWidget {
 
   Future<void> loginWithCredentials(
       BuildContext context, String username, String password) async {
-    // تغيير الرابط إلى المنفذ 3000
-    final url = Uri.parse('http://localhost:8080/api/auth/signin'); // هنا تم تعديل المنفذ
+    final url = Uri.parse('http://localhost:8080/api/auth/signin');
 
     try {
       final response = await http.post(
@@ -32,7 +31,7 @@ class LoginScreen extends StatelessWidget {
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         final token = responseBody['accessToken']; // استخراج التوكن
-        // print('JWT Token: $token');
+        print('JWT Token: $token');
 
         Navigator.push(
           context,
@@ -45,6 +44,45 @@ class LoginScreen extends StatelessWidget {
       }
     } catch (e) {
       print('Error during login: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to connect to server')),
+      );
+    }
+  }
+
+  Future<void> loginWithGoogle(BuildContext context) async {
+    final idToken = await GoogleSignInApi.login();
+    if (idToken == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Google Sign-In failed or canceled')),
+      );
+      return;
+    }
+
+    final url = Uri.parse('http://localhost:8080/api/auth/google');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'idToken': idToken}),
+      );
+
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+        final token = responseBody['accessToken']; // استخراج JWT
+        print('JWT Token: $token');
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => profile()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to authenticate with Google')),
+        );
+      }
+    } catch (e) {
+      print('Error during Google authentication: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to connect to server')),
       );
@@ -143,7 +181,7 @@ class LoginScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: () => GoogleSignInApi.login(context),
+                      onPressed: () => loginWithGoogle(context),
                       icon: Image.asset(
                         'assets/google_logo.png',
                         height: 24,
