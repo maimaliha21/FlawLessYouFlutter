@@ -24,7 +24,10 @@ class LoginScreen extends StatelessWidget {
     try {
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',  // إضافة الترويسة لـ CORS
+        },
         body: jsonEncode({'username': username, 'password': password}),
       );
 
@@ -63,7 +66,10 @@ class LoginScreen extends StatelessWidget {
     try {
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',  // إضافة الترويسة لـ CORS
+        },
         body: jsonEncode({'idToken': idToken}),
       );
 
