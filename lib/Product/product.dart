@@ -71,7 +71,7 @@ class ProductTabScreen extends StatelessWidget {
       id: 1,
       name: "Face Cleanser",
       description: "Gentle cleanser for all skin types.",
-      rating: 3.5,
+      rating: 4.5,
       imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924453/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.28.05%20PM.jpeg_20250207123410.jpg",
     ),
     ];
