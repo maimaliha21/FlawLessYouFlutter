@@ -13,6 +13,11 @@ dependencies:
   image_picker: ^0.8.5+3
   google_sign_in: ^5.4.0
   cupertino_icons: ^1.0.8
+  carousel_slider: ^4.2.1
+  table_calendar: ^3.0.8
+
+  google_fonts: ^4.0.3
+
 
   # Allowing updates for other dependencies
   async: ^2.11.0
@@ -45,6 +50,9 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  assets:
-    - assets/logoflutter.png
-    - assets/welcomelogo.png
+assets:
+  - assets/logoflutter.png
+  - assets/welcomelogo.png
+  - assets/background.png
+  - assets/HI.png
+  - skincare.png
