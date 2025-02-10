@@ -62,7 +62,7 @@ class _SupportTeamScreenState extends State<SupportTeamScreen> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(Duration(seconds: 8), (timer) {
+    _timer = Timer.periodic(Duration(seconds: 6), (timer) {
       setState(() {
         _currentIndex = (_currentIndex + 1) % cards.length;
       });
@@ -120,11 +120,18 @@ class _SupportTeamScreenState extends State<SupportTeamScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: Image.asset(
-              'assets/supportTeambg.jpg',
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity,
+            child: Stack(
+              children: [
+                Image.asset(
+                  'assets/supbg.jpg',
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                ),
+                Container(
+                  color: Colors.black.withOpacity(0.5), // Adjust opacity here
+                ),
+              ],
             ),
           ),
           PageView.builder(
@@ -148,7 +155,7 @@ class _SupportTeamScreenState extends State<SupportTeamScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20.0),
                       ),
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withOpacity(0.6),
                       child: Padding(
                         padding: const EdgeInsets.all(20.0),
                         child: SingleChildScrollView(
@@ -204,7 +211,7 @@ class _SupportTeamScreenState extends State<SupportTeamScreen> {
                                     cards[index]['email'],
                                     style: TextStyle(
                                       fontSize: 16,
-                                      color: Colors.blue,
+                                      color: Color(0xFF0D1698),
                                       decoration: TextDecoration.underline,
                                     ),
                                     textAlign: TextAlign.center,

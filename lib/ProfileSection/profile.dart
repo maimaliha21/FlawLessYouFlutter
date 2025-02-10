@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:projtry1/ProfileSection/editProfile.dart';
 import 'package:projtry1/ProfileSection/aboutUs.dart';
-
 import 'dart:io';
-
 import 'package:projtry1/ProfileSection/supportTeam.dart';
 import 'package:projtry1/Routinebar/routinescreen.dart';
 
@@ -64,22 +62,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   top: 30,
                   right: 20,
                   child: PopupMenuButton<String>(
-                  onSelected: (value) {
-    if (value == 'support') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => supportTeam()),
-      );
-    }else if (value == 'about_us') {
-    Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => aboutUs()),
-    );
-    } else if (value == 'logout') {
-    // Add log out action
-    }
-
-  },
+                    onSelected: (value) {
+                      if (value == 'support') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => supportTeam()),
+                        );
+                      } else if (value == 'about_us') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => aboutUs()),
+                        );
+                      } else if (value == 'logout') {
+                        // Add log out action
+                      }
+                    },
                     itemBuilder: (BuildContext context) {
                       return [
                         PopupMenuItem<String>(
@@ -194,27 +191,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
+                    backgroundColor: Color(0xB3F2C4).withOpacity(0.3),
+                    foregroundColor: Color(0xFF2A5E38),
                     padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: Text('Edit profile'),
+                  child: Text(
+                    'Edit profile',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
                 SizedBox(width: 10),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => RoutineScreen()), // الانتقال إلى شاشة RoutineScreen
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
+                    backgroundColor: Color(0xB3F2C4).withOpacity(0.3),
+                    foregroundColor: Color(0xFF2A5E38),
                     padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: Text('View Routine'),
+                  child: Text(
+                    'View Routine',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -234,7 +246,7 @@ class CustomBottomNavigationBar extends StatefulWidget {
 }
 
 class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
-  int _selectedIndex = 0;
+  int _selectedIndex = 4;
 
   void _onItemTapped(int index) {
     if (index == 4) {
@@ -249,16 +261,17 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
       });
     } else if(index == 2){
       //camera
-    } else if(index == 1){ Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => RoutineScreen()), // فتح الصفحة من ملف profile.dart
-    );
+    } else if(index == 1){
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => RoutineScreen()), // فتح الصفحة من ملف RoutineScreen.dart
+      );
     } else {
       // Navigator.push(
       // context,
       // MaterialPageRoute(builder: (context) => home()) // فتح الصفحة من ملف profile.dart
-
-    }}
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -270,7 +283,7 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
           child: BottomNavigationBar(
             type: BottomNavigationBarType.fixed,
             backgroundColor: Colors.white,
-            selectedItemColor: Colors.blue.shade900,
+            selectedItemColor: Color(0xFF2A5E38),
             unselectedItemColor: Colors.grey,
             currentIndex: _selectedIndex,
             onTap: _onItemTapped,
@@ -279,7 +292,7 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
               BottomNavigationBarItem(icon: Icon(Icons.article), label: ""),
               BottomNavigationBarItem(icon: SizedBox.shrink(), label: ""),
               BottomNavigationBarItem(icon: Icon(Icons.settings), label: ""),
-              BottomNavigationBarItem(icon: Icon(Icons.person), label: ""),
+              BottomNavigationBarItem(icon: Icon(Icons.person), label: "profile"),
             ],
           ),
         ),
@@ -289,7 +302,7 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
           child: Container(
             padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue.shade900,
+              color: Color(0xFF8A794D),
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white, width: 4),
             ),
@@ -299,25 +312,6 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
       ],
     );
   }
-}
-
-
-class BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height - 20);
-    path.quadraticBezierTo(
-        size.width / 4, size.height, size.width / 2, size.height - 20);
-    path.quadraticBezierTo(
-        size.width * 3 / 4, size.height - 40, size.width, size.height - 20);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
 class TabBarSection extends StatefulWidget {
