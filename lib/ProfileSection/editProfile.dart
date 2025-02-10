@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'profile.dart';
-import 'package:projtry1/ProfileSection/profile.dart';
+import 'package:http/http.dart' as http;
+
 void main() {
   runApp(editProfile());
 }
@@ -12,12 +13,21 @@ class editProfile extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: EditProfileScreen(),
+      home: EditProfileScreen(token: 'your_token_here', userInfo: {}),
     );
   }
 }
 
 class EditProfileScreen extends StatefulWidget {
+  final String token;
+  final Map<String, dynamic> userInfo;
+
+  const EditProfileScreen({
+    Key? key,
+    required this.token,
+    required this.userInfo,
+  }) : super(key: key);
+
   @override
   _EditProfileScreenState createState() => _EditProfileScreenState();
 }
@@ -25,6 +35,10 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   File? _profileImage;
   final ImagePicker _picker = ImagePicker();
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
@@ -33,6 +47,55 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _profileImage = File(image.path);
       });
     }
+  }
+
+  Future<void> _saveChanges() async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('http://localhost:8080/api/users/update-profile'),
+      );
+
+      request.headers.addAll({
+        'Authorization': 'Bearer ${widget.token}',
+      });
+
+      if (_profileImage != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'file',
+            _profileImage!.path,
+          ),
+        );
+      }
+
+      request.fields['firstName'] = _firstNameController.text;
+      request.fields['lastName'] = _lastNameController.text;
+      request.fields['dob'] = _dobController.text;
+      request.fields['password'] = _passwordController.text;
+
+      var response = await request.send();
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully')),
+        );
+      } else {
+        throw Exception('Failed to update profile');
+      }
+    } catch (e) {
+      print('Error updating profile: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update profile')),
+      );
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _firstNameController.text = widget.userInfo['firstName'] ?? '';
+    _lastNameController.text = widget.userInfo['lastName'] ?? '';
+    _dobController.text = widget.userInfo['dob'] ?? '';
   }
 
   @override
@@ -57,17 +120,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ProfileScreen()),
+                  MaterialPageRoute(builder: (context) => ProfileScreen(token: widget.token, userInfo: widget.userInfo)),
                 );
               },
               child: Container(
                 padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.grey[700], // لون رمادي غامق
+                  color: Colors.grey[700],
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black26, // تأثير ضبابي خفيف
+                      color: Colors.black26,
                       blurRadius: 8,
                       spreadRadius: 2,
                       offset: Offset(2, 2),
@@ -76,7 +139,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 child: Icon(
                   Icons.arrow_back,
-                  color: Colors.white, // أيقونة بيضاء
+                  color: Colors.white,
                   size: 28,
                 ),
               ),
@@ -119,16 +182,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 SizedBox(height: 20),
                 Row(
                   children: [
-                    Expanded(child: _buildTextField('First Name', 'Satria')),
+                    Expanded(child: _buildTextField('First Name', _firstNameController)),
                     SizedBox(width: 10),
-                    Expanded(child: _buildTextField('Last Name', 'Fattan')),
+                    Expanded(child: _buildTextField('Last Name', _lastNameController)),
                   ],
                 ),
-                _buildTextField('Date of Birth', '21/8/2003'),
-                _buildTextField('Change Password', '********'),
+                _buildTextField('Date of Birth', _dobController),
+                _buildTextField('Change Password', _passwordController, isPassword: true),
                 SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: _saveChanges,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
@@ -206,16 +269,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildTextField(String label, String value) {
+  Widget _buildTextField(String label, TextEditingController controller, {bool isPassword = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
         SizedBox(height: 5),
         TextField(
-          obscureText: label == 'Change Password',
+          controller: controller,
+          obscureText: isPassword,
           decoration: InputDecoration(
-            hintText: value,
+            hintText: label,
             border: OutlineInputBorder(),
           ),
         ),
