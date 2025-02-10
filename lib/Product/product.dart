@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
-  runApp(MyApp());
+  runApp(const ProductApp());
 }
 
-class MyApp extends StatelessWidget {
+class ProductApp extends StatelessWidget {
+  const ProductApp({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -15,6 +19,8 @@ class MyApp extends StatelessWidget {
 }
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -29,11 +35,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   final List<Widget> _pages = [
-    Center(child: Text("Home")),
-    ProductTabScreen(),
-    Center(child: Text("Camera")),
-    Center(child: Text("Settings")),
-    Center(child: Text("Profile")),
+    const Center(child: Text("Home")),
+    const ProductTabScreen(),
+    const Center(child: Text("Search")),
+    const Center(child: Text("Settings")),
   ];
 
   @override
@@ -42,16 +47,16 @@ class _HomeScreenState extends State<HomeScreen> {
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
         selectedItemColor: Colors.blue.shade900,
         unselectedItemColor: Colors.grey,
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: ""),
-          BottomNavigationBarItem(icon: Icon(Icons.article), label: ""),
-          BottomNavigationBarItem(icon: Icon(Icons.camera), label: ""),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: ""),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: ""),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Products"),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Settings"),
         ],
       ),
     );
@@ -59,103 +64,207 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class ProductTabScreen extends StatelessWidget {
-  final List<Product> products = [
+  const ProductTabScreen({Key? key}) : super(key: key);
+
+  static final List<Product> products = [
     Product(
-      name: "Unicorn Sprinkles",
-      imageUrl: "https://example.com/unicorn_sprinkles.jpg",
-      details: "A fluffy fresh cooked donut covered by a creamy strawberry flavour with rainbow sprinkles.",
+      id: 1,
+      name: "Face Cleanser",
+      description: "Gentle cleanser for all skin types.",
       rating: 4.5,
+      imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924453/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.28.05%20PM.jpeg_20250207123410.jpg",
     ),
     Product(
-      name: "Dark Sprinkles",
-      imageUrl: "https://example.com/dark_sprinkles.jpg",
-      details: "Chocolate donut with sprinkles.",
-      rating: 4.2,
+      id: 2,
+      name: "Moisturizer",
+      description: "Hydrates and nourishes the skin.",
+      rating: 4.7,
+      imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924475/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.27.29%20PM.jpeg_20250207123434.jpg",
     ),
+    Product(
+      id: 3,
+      name: "Sunscreen",
+      description: "SPF 50+ protection from UV rays.",
+      rating: 4.8,
+      imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924453/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.28.05%20PM.jpeg_20250207123410.jpg",
+    ),
+    // Add more products here
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
-      appBar: AppBar(title: Text("Sweets"), centerTitle: true),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView.builder(
-          itemCount: products.length,
-          itemBuilder: (context, index) {
-            return ProductCard(product: products[index]);
-          },
-        ),
+      appBar: AppBar(
+        title: const Text("Products"),
+        centerTitle: true,
       ),
+      body: ProductList(products: products),
     );
   }
 }
 
 class Product {
+  final int id;
   final String name;
-  final String imageUrl;
-  final String details;
+  final String description;
   final double rating;
+  final String imageUrl;
 
-  Product({required this.name, required this.imageUrl, required this.details, required this.rating});
+  const Product({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.rating,
+    required this.imageUrl,
+  });
 }
 
-class ProductCard extends StatelessWidget {
+class ProductList extends StatelessWidget {
+  final List<Product> products;
+
+  const ProductList({Key? key, required this.products}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 0.8,
+        ),
+        itemCount: products.length,
+        itemBuilder: (context, index) {
+          return ProductCard(product: products[index]);
+        },
+      ),
+    );
+  }
+}
+
+class ProductCard extends StatefulWidget {
   final Product product;
 
-  ProductCard({required this.product});
+  const ProductCard({Key? key, required this.product}) : super(key: key);
+
+  @override
+  _ProductCardState createState() => _ProductCardState();
+}
+
+class _ProductCardState extends State<ProductCard> {
+  bool isSaved = false;
+
+  Future<void> saveProduct(int productId) async {
+    final url = Uri.parse('https://your-backend-api.com/save'); // استبدل ب URL الباكند
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'productId': productId}),
+    );
+
+    if (response.statusCode == 200) {
+      setState(() {
+        isSaved = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Product saved successfully!')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save product.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Column(
+        borderRadius: BorderRadius.circular(15),
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            Image.network(product.imageUrl, width: double.infinity, height: 200, fit: BoxFit.cover),
-            Container(
-              padding: EdgeInsets.all(12),
-              color: Colors.white,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(product.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                  SizedBox(height: 5),
-                  Text(product.details, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
-                  SizedBox(height: 5),
-                  Row(
-                    children: List.generate(5, (index) {
-                      return Icon(
-                        index < product.rating.round()
-                            ? Icons.star
-                            : Icons.star_border,
-                        color: Colors.yellow,
-                        size: 18,
-                      );
-                    }),
-                  ),
-                  SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.favorite_border),
-                        onPressed: () {},
-                      ),
-                      ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.yellow),
-                        child: Icon(Icons.add),
-                      ),
+            Image.network(
+              widget.product.imageUrl,
+              fit: BoxFit.cover,
+            ),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.8),
+                      Colors.transparent,
                     ],
                   ),
-                ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.product.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      widget.product.description,
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        ...List.generate(
+                          5,
+                              (index) => Icon(
+                            Icons.star,
+                            color: index < widget.product.rating.floor()
+                                ? Colors.yellow
+                                : Colors.grey,
+                            size: 16,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          widget.product.rating.toString(),
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                icon: Icon(
+                  isSaved ? Icons.bookmark : Icons.bookmark_border,
+                  color: isSaved ? Colors.red : Colors.white,
+                ),
+                onPressed: () {
+                  saveProduct(widget.product.id); // إرسال طلب حفظ المنتج
+                },
               ),
             ),
           ],
