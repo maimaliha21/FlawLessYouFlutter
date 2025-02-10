@@ -69,13 +69,13 @@ class _HomeScreenState extends State<HomeScreen> {
             child: BottomNavigationBar(
               type: BottomNavigationBarType.fixed,
               backgroundColor: Colors.white,
-              selectedItemColor: Colors.blue.shade900,
+              selectedItemColor: Color(0xFF2A5E38),
               unselectedItemColor: Colors.grey,
               currentIndex: _selectedIndex,
               onTap: _onItemTapped,
               items: [
                 BottomNavigationBarItem(icon: Icon(Icons.home), label: ""),
-                BottomNavigationBarItem(icon: Icon(Icons.article), label: ""),
+                BottomNavigationBarItem(icon: Icon(Icons.article), label: "routine"),
                 BottomNavigationBarItem(icon: SizedBox.shrink(), label: ""),
                 BottomNavigationBarItem(icon: Icon(Icons.settings), label: ""),
                 BottomNavigationBarItem(icon: Icon(Icons.person), label: ""),
@@ -88,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.shade900,
+                color: Color(0xFF8A794D),
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 4),
               ),

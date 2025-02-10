@@ -134,8 +134,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ElevatedButton(
                   onPressed: () {},
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
+                    backgroundColor: Color(0xB3F2C4).withOpacity(0.3),
+                    foregroundColor: Color(0xFF2A5E38),
                     padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
