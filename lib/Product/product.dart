@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
 
 void main() {
   runApp(const ProductApp());
@@ -45,19 +46,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: Colors.blue.shade900,
-        unselectedItemColor: Colors.grey,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Products"),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Settings"),
-        ],
+      bottomNavigationBar: CustomBottomNavigationBar(
+        onItemTapped: _onItemTapped,
+        selectedIndex: _selectedIndex,
       ),
     );
   }
@@ -66,30 +57,50 @@ class _HomeScreenState extends State<HomeScreen> {
 class ProductTabScreen extends StatelessWidget {
   const ProductTabScreen({Key? key}) : super(key: key);
 
-  static final List<Product> products = [
+  Future<List<Product>> fetchProducts() async {
+    // final response = await http.get(
+    //   Uri.parse('https://your-backend-api.com/products'),
+    //
+    // );
+    //
+    // if (response.statusCode == 200) {
+    //   List<dynamic> data = json.decode(response.body);
+    //   return data.map((json) => Product.fromJson(json)).toList();
+    return [
     Product(
       id: 1,
       name: "Face Cleanser",
       description: "Gentle cleanser for all skin types.",
-      rating: 4.5,
+      rating: 3.5,
       imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924453/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.28.05%20PM.jpeg_20250207123410.jpg",
     ),
-    Product(
-      id: 2,
-      name: "Moisturizer",
-      description: "Hydrates and nourishes the skin.",
-      rating: 4.7,
-      imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924475/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.27.29%20PM.jpeg_20250207123434.jpg",
-    ),
-    Product(
-      id: 3,
-      name: "Sunscreen",
-      description: "SPF 50+ protection from UV rays.",
-      rating: 4.8,
-      imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924453/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.28.05%20PM.jpeg_20250207123410.jpg",
-    ),
-    // Add more products here
-  ];
+    ];
+  }
+    // else {  return [
+    //   Product(
+    //     id: 1,
+    //     name: "Face Cleanser",
+    //     description: "Gentle cleanser for all skin types.",
+    //     rating: 4.5,
+    //     imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924453/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.28.05%20PM.jpeg_20250207123410.jpg",
+    //   ),
+    //   Product(
+    //     id: 2,
+    //     name: "Moisturizer",
+    //     description: "Hydrates and nourishes the skin.",
+    //     rating: 4.7,
+    //     imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924475/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.27.29%20PM.jpeg_20250207123434.jpg",
+    //   ),
+    //   Product(
+    //     id: 3,
+    //     name: "Sunscreen",
+    //     description: "SPF 50+ protection from UV rays.",
+    //     rating: 4.8,
+    //     imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924453/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.28.05%20PM.jpeg_20250207123410.jpg",
+    //   ),
+    // ];
+    //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -99,7 +110,20 @@ class ProductTabScreen extends StatelessWidget {
         title: const Text("Products"),
         centerTitle: true,
       ),
-      body: ProductList(products: products),
+      body: FutureBuilder<List<Product>>(
+        future: fetchProducts(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return ProductList(products: snapshot.data!);
+        },
+      ),
     );
   }
 }
@@ -118,6 +142,16 @@ class Product {
     required this.rating,
     required this.imageUrl,
   });
+
+  factory Product.fromJson(Map<String, dynamic> json) {
+    return Product(
+      id: json['id'],
+      name: json['name'],
+      description: json['description'],
+      rating: json['rating'].toDouble(),
+      imageUrl: json['imageUrl'],
+    );
+  }
 }
 
 class ProductList extends StatelessWidget {
@@ -158,7 +192,7 @@ class _ProductCardState extends State<ProductCard> {
   bool isSaved = false;
 
   Future<void> saveProduct(int productId) async {
-    final url = Uri.parse('https://your-backend-api.com/save'); // استبدل ب URL الباكند
+    final url = Uri.parse('https://your-backend-api.com/save');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -166,25 +200,23 @@ class _ProductCardState extends State<ProductCard> {
     );
 
     if (response.statusCode == 200) {
-      setState(() {
-        isSaved = true;
-      });
+      setState(() => isSaved = true);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Product saved successfully!')),
+        const SnackBar(content: Text('Product saved successfully!')),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save product.')),
+        const SnackBar(content: Text('Failed to save product.')),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
-        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(15),
@@ -194,6 +226,18 @@ class _ProductCardState extends State<ProductCard> {
             Image.network(
               widget.product.imageUrl,
               fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Center(
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                        : null,
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) => const Icon(Icons.error),
             ),
             Positioned(
               bottom: 0,
@@ -233,19 +277,31 @@ class _ProductCardState extends State<ProductCard> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        ...List.generate(
-                          5,
-                              (index) => Icon(
-                            Icons.star,
-                            color: index < widget.product.rating.floor()
-                                ? Colors.yellow
-                                : Colors.grey,
-                            size: 16,
-                          ),
-                        ),
+                        ...List.generate(5, (index) {
+                          double starPosition = index + 1.0;
+                          if (widget.product.rating >= starPosition) {
+                            return const Icon(
+                              Icons.star,
+                              color: Colors.yellow,
+                              size: 16,
+                            );
+                          } else if (widget.product.rating >= starPosition - 0.5) {
+                            return const Icon(
+                              Icons.star_half,
+                              color: Colors.yellow,
+                              size: 16,
+                            );
+                          } else {
+                            return const Icon(
+                              Icons.star_border,
+                              color: Colors.grey,
+                              size: 16,
+                            );
+                          }
+                        }),
                         const SizedBox(width: 4),
                         Text(
-                          widget.product.rating.toString(),
+                          widget.product.rating.toStringAsFixed(1),
                           style: const TextStyle(color: Colors.white, fontSize: 12),
                         ),
                       ],
@@ -260,11 +316,9 @@ class _ProductCardState extends State<ProductCard> {
               child: IconButton(
                 icon: Icon(
                   isSaved ? Icons.bookmark : Icons.bookmark_border,
-                  color: isSaved ? Colors.red : Colors.white,
+                  color: isSaved ? Colors.yellow : Colors.white,
                 ),
-                onPressed: () {
-                  saveProduct(widget.product.id); // إرسال طلب حفظ المنتج
-                },
+                onPressed: () => saveProduct(widget.product.id),
               ),
             ),
           ],
@@ -272,4 +326,104 @@ class _ProductCardState extends State<ProductCard> {
       ),
     );
   }
+}
+
+// CustomBottomNavigationBar و BottomWaveClipper يبقى نفس الكود السابق دون تغيير
+class CustomBottomNavigationBar extends StatelessWidget {
+  final Function(int) onItemTapped;
+  final int selectedIndex;
+
+  const CustomBottomNavigationBar({
+    super.key,
+    required this.onItemTapped,
+    required this.selectedIndex,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        ClipPath(
+          clipper: BottomWaveClipper(),
+          child: Container(
+            height: 70,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 10,
+                ),
+              ],
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 25,
+          left: MediaQuery.of(context).size.width / 2 - 30,
+          child: FloatingActionButton(
+            backgroundColor: Colors.blue,
+            onPressed: () {},
+            child: const Icon(Icons.face, color: Colors.white),
+          ),
+        ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            height: 70,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.home, color: selectedIndex == 0 ? Colors.blue : Colors.grey),
+                  onPressed: () => onItemTapped(0),
+                ),
+                IconButton(
+                  icon: Icon(Icons.shopping_cart, color: selectedIndex == 1 ? Colors.blue : Colors.grey),
+                  onPressed: () => onItemTapped(1),
+                ),
+                const SizedBox(width: 60),
+                IconButton(
+                  icon: Icon(Icons.search, color: selectedIndex == 2 ? Colors.blue : Colors.grey),
+                  onPressed: () => onItemTapped(2),
+                ),
+                IconButton(
+                  icon: Icon(Icons.settings, color: selectedIndex == 3 ? Colors.blue : Colors.grey),
+                  onPressed: () => onItemTapped(3),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class BottomWaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    var path = Path();
+    path.lineTo(0, size.height - 20);
+
+    var firstControlPoint = Offset(size.width / 4, size.height);
+    var firstEndPoint = Offset(size.width / 2, size.height - 30);
+    path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy, firstEndPoint.dx, firstEndPoint.dy);
+
+    var secondControlPoint = Offset(size.width - (size.width / 4), size.height - 60);
+    var secondEndPoint = Offset(size.width, size.height - 30);
+    path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy, secondEndPoint.dx, secondEndPoint.dy);
+
+    path.lineTo(size.width, size.height - 30);
+    path.lineTo(size.width, 0);
+
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
