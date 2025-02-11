@@ -101,33 +101,28 @@ class LoginScreen extends StatelessWidget {
       );
     }
   }
-
   Future<void> loginWithGoogle(BuildContext context) async {
     try {
       print('Starting Google Sign-In process');
       final idToken = await GoogleSignInApi.login();
 
       if (idToken == null) {
-        print('No ID token received from Google Sign-In');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Google Sign-In failed. Please try again.'),
+            content: Text('Failed to get Google ID token'),
             backgroundColor: Colors.red,
           ),
         );
         return;
       }
+      final response = await http.post(
+        Uri.parse('https://localhost:8080/api/auth/google'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'idToken': idToken}),
+      ); 
 
       print('Received ID token, authenticating with backend');
       final url = Uri.parse('http://localhost:8080/api/auth/google');
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({'idToken': idToken}),
-      );
 
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
