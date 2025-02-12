@@ -11,7 +11,9 @@
         content="default-src 'self' https:;
                 script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://apis.google.com https://www.gstatic.com https://accounts.google.com;
                 style-src 'self' 'unsafe-inline' https:;
-                frame-src 'self' https://accounts.google.com;">
+                frame-src 'self' https://accounts.google.com;
+                 connect-src http://localhost:8080 'self' ws://localhost:8080 https:;
+">
 
   <!-- Cross-Origin Policies -->
   <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">

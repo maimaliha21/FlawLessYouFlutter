@@ -51,7 +51,7 @@ class LoginScreen extends StatelessWidget {
 
   Future<void> loginWithCredentials(
       BuildContext context, String username, String password) async {
-    final url = Uri.parse('https://localhost:8080/api/auth/signin');
+    final url = Uri.parse('http://localhost:8080/api/auth/signin');
 
     try {
       print('Attempting login for user: $username');
@@ -67,7 +67,7 @@ class LoginScreen extends StatelessWidget {
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         final token = responseBody['accessToken'];
-        print('Login successful, JWT Token received');
+        print('Login successful, JWT Token received , $response.body');
 
         // Fetch user details
         final userInfo = await fetchUserInfo(token);
@@ -83,7 +83,7 @@ class LoginScreen extends StatelessWidget {
             ),
           );
         } else {
-          throw Exception('Failed to fetch user information');
+          throw Exception();
         }
       } else {
         final errorBody = jsonDecode(response.body);
@@ -127,7 +127,7 @@ class LoginScreen extends StatelessWidget {
 
         // Send the email to your backend
         final response = await http.post(
-          Uri.parse('https://localhost:8080/api/auth/google'),
+          Uri.parse('http://localhost:8080/api/auth/google'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({'email': email}),
         );
