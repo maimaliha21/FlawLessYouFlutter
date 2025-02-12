@@ -94,7 +94,7 @@ class LoginScreen extends StatelessWidget {
     } catch (e) {
       print('Error during login: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar( 
           content: Text(e.toString()),
           backgroundColor: Colors.red,
         ),
@@ -113,13 +113,13 @@ class LoginScreen extends StatelessWidget {
             backgroundColor: Colors.red,
           ),
         );
-        return;
+        return; 
       }
       final response = await http.post(
         Uri.parse('https://localhost:8080/api/auth/google'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'idToken': idToken}),
-      ); 
+      );
 
       print('Received ID token, authenticating with backend');
       final url = Uri.parse('http://localhost:8080/api/auth/google');
