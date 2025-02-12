@@ -51,7 +51,7 @@ class LoginScreen extends StatelessWidget {
 
   Future<void> loginWithCredentials(
       BuildContext context, String username, String password) async {
-    final url = Uri.parse('http://localhost:8080/api/auth/signin');
+    final url = Uri.parse('https://localhost:8080/api/auth/signin');
 
     try {
       print('Attempting login for user: $username');
@@ -113,40 +113,53 @@ class LoginScreen extends StatelessWidget {
             backgroundColor: Colors.red,
           ),
         );
-        return; 
+        return;
       }
-      final response = await http.post(
-        Uri.parse('https://localhost:8080/api/auth/google'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'idToken': idToken}),
+
+      // Fetch user info from Google using the ID token
+      final googleResponse = await http.post(
+        Uri.parse('https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=$idToken'),
       );
 
-      print('Received ID token, authenticating with backend');
-      final url = Uri.parse('http://localhost:8080/api/auth/google');
+      if (googleResponse.statusCode == 200) {
+        final googleUserInfo = jsonDecode(googleResponse.body);
+        final email = googleUserInfo['email'];
 
-      if (response.statusCode == 200) {
-        final responseBody = jsonDecode(response.body);
-        final token = responseBody['accessToken'];
-        print('Backend authentication successful');
+        // Send the email to your backend
+        final response = await http.post(
+          Uri.parse('https://localhost:8080/api/auth/google'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email}),
+        );
 
-        final userInfo = await fetchUserInfo(token);
-        if (userInfo != null) {
-          print('User info fetched successfully');
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => Profile(
-                token: token,
-                userInfo: userInfo,
+        print('Received email, authenticating with backend');
+
+        if (response.statusCode == 200) {
+          final responseBody = jsonDecode(response.body);
+          final token = responseBody['accessToken'];
+          print('Backend authentication successful');
+
+          final userInfo = await fetchUserInfo(token);
+          if (userInfo != null) {
+            print('User info fetched successfully');
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => Profile(
+                  token: token,
+                  userInfo: userInfo,
+                ),
               ),
-            ),
-          );
+            );
+          } else {
+            throw Exception('Failed to fetch user information');
+          }
         } else {
-          throw Exception('Failed to fetch user information');
+          final errorBody = jsonDecode(response.body);
+          throw Exception(errorBody['message'] ?? 'Failed to authenticate with server');
         }
       } else {
-        final errorBody = jsonDecode(response.body);
-        throw Exception(errorBody['message'] ?? 'Failed to authenticate with server');
+        throw Exception('Failed to fetch user info from Google');
       }
     } catch (e) {
       print('Error during Google authentication: $e');
@@ -158,7 +171,6 @@ class LoginScreen extends StatelessWidget {
       );
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final usernameController = TextEditingController();
