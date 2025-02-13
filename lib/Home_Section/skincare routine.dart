@@ -22,6 +22,7 @@ class SkincareRoutineScreen extends StatefulWidget {
 class _SkincareRoutineScreenState extends State<SkincareRoutineScreen> {
   int _currentStep = 0;
 
+  // قائمة الخطوات مع نفس الصورة لكل الخطوات
   final List<Map<String, String>> _routines = [
     {
       'title': 'Cleanse your face with an appropriate cleanser',
@@ -48,6 +49,10 @@ class _SkincareRoutineScreenState extends State<SkincareRoutineScreen> {
       'description': 'Don\'t forget sunscreen to protect your skin from UV rays.',
     },
   ];
+
+  // رابط الصورة الموحد
+  final String _imageUrl =
+      'https://res.cloudinary.com/davwgirjs/image/upload/v1738924453/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.28.05%20PM.jpeg_20250207123410.jpg';
 
   void _nextStep(BuildContext context) {
     if (_currentStep < _routines.length - 1) {
@@ -77,7 +82,7 @@ class _SkincareRoutineScreenState extends State<SkincareRoutineScreen> {
           onPressed: () {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => HomeScreen()), // العودة إلى الصفحة الرئيسية
+              MaterialPageRoute(builder: (context) => HomeScreen()),
             );
           },
         ),
@@ -97,7 +102,13 @@ class _SkincareRoutineScreenState extends State<SkincareRoutineScreen> {
               ),
             ),
             SizedBox(height: 16),
-            Image.asset('assets/skincare.png', height: 120),
+            // عرض الصورة من الرابط الموحد
+            Image.network(
+              _imageUrl,
+              height: 120,
+              errorBuilder: (context, error, stackTrace) =>
+                  Icon(Icons.error), // عرض أيقونة خطأ إذا فشل التحميل
+            ),
             SizedBox(height: 24),
             Text(
               _routines[_currentStep]['title']!,
@@ -148,7 +159,6 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // النصيحة التي تريد إضافتها
             Text(
               'لحظة عناية تُعيد لِبشرتكِ إشراقتها! 🌟 مع تطبيقنا، إطلالتكِ المشرقة بتكون أسهل وألطف من أي وقت!',
               style: TextStyle(
@@ -156,17 +166,14 @@ class HomeScreen extends StatelessWidget {
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
               ),
-              textAlign: TextAlign.center, // محاذاة النص في الوسط
+              textAlign: TextAlign.center,
             ),
             SizedBox(height: 30),
-
-            // الزر للعودة إلى الصفحة الرئيسية
             ElevatedButton(
               onPressed: () {
-                // العودة إلى الصفحة الرئيسية باستخدام pushReplacement
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => SkincareRoutineApp()), // استبدل بـ الصفحة الرئيسية
+                  MaterialPageRoute(builder: (context) => SkincareRoutineApp()),
                 );
               },
               style: ElevatedButton.styleFrom(
@@ -187,4 +194,3 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
-

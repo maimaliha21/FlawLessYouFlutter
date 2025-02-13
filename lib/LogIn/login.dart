@@ -67,7 +67,7 @@ class LoginScreen extends StatelessWidget {
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         final token = responseBody['accessToken'];
-        print('Login successful, JWT Token received');
+        print('Login successful, JWT Token received , $response.body');
 
         // Fetch user details
         final userInfo = await fetchUserInfo(token);
@@ -83,7 +83,7 @@ class LoginScreen extends StatelessWidget {
             ),
           );
         } else {
-          throw Exception('Failed to fetch user information');
+          throw Exception();
         }
       } else {
         final errorBody = jsonDecode(response.body);
@@ -94,64 +94,73 @@ class LoginScreen extends StatelessWidget {
     } catch (e) {
       print('Error during login: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar( 
           content: Text(e.toString()),
           backgroundColor: Colors.red,
         ),
       );
     }
   }
-
   Future<void> loginWithGoogle(BuildContext context) async {
     try {
       print('Starting Google Sign-In process');
       final idToken = await GoogleSignInApi.login();
 
       if (idToken == null) {
-        print('No ID token received from Google Sign-In');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Google Sign-In failed. Please try again.'),
+            content: Text('Failed to get Google ID token'),
             backgroundColor: Colors.red,
           ),
         );
         return;
       }
 
-      print('Received ID token, authenticating with backend');
-      final url = Uri.parse('http://localhost:8080/api/auth/google');
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({'idToken': idToken}),
+      // Fetch user info from Google using the ID token
+      final googleResponse = await http.post(
+        Uri.parse('https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=$idToken'),
       );
 
-      if (response.statusCode == 200) {
-        final responseBody = jsonDecode(response.body);
-        final token = responseBody['accessToken'];
-        print('Backend authentication successful');
+      if (googleResponse.statusCode == 200) {
+        final googleUserInfo = jsonDecode(googleResponse.body);
+        final email = googleUserInfo['email'];
 
-        final userInfo = await fetchUserInfo(token);
-        if (userInfo != null) {
-          print('User info fetched successfully');
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => Profile(
-                token: token,
-                userInfo: userInfo,
+        // Send the email to your backend
+        final response = await http.post(
+          Uri.parse('http://localhost:8080/api/auth/google'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email}),
+        );
+
+        print('Received email, authenticating with backend');
+        print('Received email, authenticating with backend');
+
+        if (response.statusCode == 200) {
+          final responseBody = jsonDecode(response.body);
+          final token = responseBody['accessToken'];
+          print('Backend authentication successful');
+
+          final userInfo = await fetchUserInfo(token);
+          if (userInfo != null) {
+            print('User info fetched successfully');
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => Profile(
+                  token: token,
+                  userInfo: userInfo,
+                ),
               ),
-            ),
-          );
+            );
+          } else {
+            throw Exception('Failed to fetch user information');
+          }
         } else {
-          throw Exception('Failed to fetch user information');
+          final errorBody = jsonDecode(response.body);
+          throw Exception(errorBody['message'] ?? 'Failed to authenticate with server');
         }
       } else {
-        final errorBody = jsonDecode(response.body);
-        throw Exception(errorBody['message'] ?? 'Failed to authenticate with server');
+        throw Exception('Failed to fetch user info from Google');
       }
     } catch (e) {
       print('Error during Google authentication: $e');
@@ -163,7 +172,6 @@ class LoginScreen extends StatelessWidget {
       );
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final usernameController = TextEditingController();
