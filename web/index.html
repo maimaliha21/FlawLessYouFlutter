@@ -1,40 +1,72 @@
 <!DOCTYPE html>
 <html>
-<!DOCTYPE html>
-<html>
 <head>
   <base href="$FLUTTER_BASE_HREF">
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="A new Flutter project.">
 
-  <!-- Add Google Sign-In meta and scripts -->
+  <!-- Consolidated and Corrected CSP Meta Tag -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' https:;
+                script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://apis.google.com https://www.gstatic.com https://accounts.google.com;
+                style-src 'self' 'unsafe-inline' https:;
+                frame-src 'self' https://accounts.google.com;
+                 connect-src http://localhost:8080 'self' ws://localhost:8080 https:;
+">
+
+  <!-- Cross-Origin Policies -->
+  <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
+  <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
+
+  <!-- Google Sign-In Meta and Scripts -->
   <meta name="google-signin-client_id" content="631393157394-glrev6a2q6oiquvv15a24minn0j93t51.apps.googleusercontent.com">
+  <script src="https://apis.google.com/js/api.js" async defer></script>
   <script src="https://apis.google.com/js/platform.js" async defer></script>
 
   <!-- Firebase Scripts -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth.js"></script>
+  <script>
+    window.global = window;
+    window.process = { env: {} };
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
 
   <!-- Firebase Init -->
   <script>
-    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyB4c0Fng6e_0eYj-fsTARN32LXbq5XrAL8",
-  authDomain: "flawlessyou.firebaseapp.com",
-  projectId: "flawlessyou",
-  storageBucket: "flawlessyou.firebasestorage.app",
-  messagingSenderId: "631393157394",
-  appId: "1:631393157394:web:2ba5b8b300fa6c3a5b33cb",
-  measurementId: "G-8PDB3KEJ3S"
-};
+    const firebaseConfig = {
+      apiKey: "AIzaSyB4c0Fng6e_0eYj-fsTARN32LXbq5XrAL8",
+      authDomain: "flawlessyou.firebaseapp.com",
+      projectId: "flawlessyou",
+      storageBucket: "flawlessyou.firebasestorage.app",
+      messagingSenderId: "631393157394",
+      appId: "1:631393157394:web:2ba5b8b300fa6c3a5b33cb",
+      measurementId: "G-8PDB3KEJ3S"
+    };
 
-       // Initialize Firebase
-       firebase.initializeApp(firebaseConfig);
+    if (firebase.apps.length === 0) {
+      firebase.initializeApp(firebaseConfig);
+    }
   </script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
-  <!-- iOS meta tags & icons -->
+
+  <!-- Initialize gapi.client -->
+  <script>
+    function initGapi() {
+      gapi.load('auth2', function() {
+        gapi.auth2.init({
+          client_id: '631393157394-glrev6a2q6oiquvv15a24minn0j93t51.apps.googleusercontent.com',
+        }).then(() => {
+          console.log('Google Auth initialized successfully');
+        }).catch((error) => {
+          console.error('Error initializing Google Auth:', error);
+        });
+      });
+    }
+
+    window.onload = initGapi;
+  </script>
+
+  <!-- iOS Meta Tags & Icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="projtry1">
@@ -44,25 +76,9 @@ const firebaseConfig = {
   <link rel="icon" type="image/png" href="favicon.png"/>
   <title>projtry1</title>
   <link rel="manifest" href="manifest.json">
-
-  <!-- COOP and COEP headers -->
-  <script>
-    // Set COOP and COEP headers
-    document.addEventListener('DOMContentLoaded', function() {
-      const meta = document.createElement('meta');
-      meta.httpEquiv = 'Cross-Origin-Opener-Policy';
-      meta.content = 'same-origin-allow-popups';
-      document.head.appendChild(meta);
-    });
-  </script>
 </head>
 <body>
 <script src="flutter_bootstrap.js" async></script>
-<!-- Add this line before flutter_bootstrap.js -->
-<script src="https://apis.google.com/js/api.js"></script>
-</body>
-</html>
-<body>
-  <script src="flutter_bootstrap.js" async></script>
+<script src="main.dart.js" type="application/javascript"></script>
 </body>
 </html>
