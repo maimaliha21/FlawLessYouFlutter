@@ -133,6 +133,7 @@ class LoginScreen extends StatelessWidget {
         );
 
         print('Received email, authenticating with backend');
+        print('Received email, authenticating with backend');
 
         if (response.statusCode == 200) {
           final responseBody = jsonDecode(response.body);
