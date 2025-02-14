@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../Product/product.dart';
+import 'package:projtry1/Home_Section/skincare%20routine.dart'as skincareroutine;
+
 
 void main() {
   runApp(FlawlessYouApp());
@@ -87,7 +89,11 @@ class HomeScreen extends StatelessWidget {
                           SizedBox(height: 10),
                           TextButton(
                             onPressed: () {
-                              // Navigate to skincare routine page
+    Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => skincareroutine.SkincareRoutineScreen()),
+    );
+
                             },
                             child: Text('Start Skincare Routine', style: TextStyle(color: Colors.white)),
                           ),
