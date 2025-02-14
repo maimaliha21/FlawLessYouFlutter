@@ -58,6 +58,7 @@ dev_dependencies:
   vm_service: ^14.3.0
   url_launcher: ^6.1.14
 flutter:
+
   uses-material-design: true
   assets:
     - assets/logoflutter.png
@@ -68,4 +69,4 @@ flutter:
     - assets/profile.jpg
     - assets/background.png
     - assets/HI.png
-    - skincare.png
+    - assets/skincare.png
