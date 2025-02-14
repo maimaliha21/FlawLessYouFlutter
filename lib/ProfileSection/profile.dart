@@ -5,6 +5,7 @@ import 'package:projtry1/api/google_signin_api.dart';
 import 'package:projtry1/LogIn/login.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:projtry1/Product/product.dart';
 
 class Profile extends StatelessWidget {
   final String token;
@@ -278,7 +279,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const CustomBottomNavigationBar(),
+      bottomNavigationBar: CustomBottomNavigationBar(token: widget.token),
     );
   }
 
@@ -292,7 +293,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 }
 
 class CustomBottomNavigationBar extends StatelessWidget {
-  const CustomBottomNavigationBar({super.key});
+  final String token;
+
+  const CustomBottomNavigationBar({super.key, required this.token});
 
   @override
   Widget build(BuildContext context) {
@@ -343,7 +346,14 @@ class CustomBottomNavigationBar extends StatelessWidget {
                 const SizedBox(width: 60),
                 IconButton(
                   icon: const Icon(Icons.settings, color: Colors.blue),
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProductTabScreen(token: token),
+                      ),
+                    );
+                  },
                 ),
                 IconButton(
                   icon: const Icon(Icons.person, color: Colors.blue),
