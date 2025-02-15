@@ -187,49 +187,47 @@ class _ProductCardState extends State<ProductCard> {
   @override
   void initState() {
     super.initState();
-    checkIsSaved();
+    checkIfProductIsSaved();
   }
 
-  Future<void> checkIsSaved() async {
-    try {
-      final response = await http.get(
-        Uri.parse('http://localhost:8080/product/${widget.product.productId}/isSaved'),
-        headers: {'Authorization': 'Bearer ${widget.token}'},
-      );
+  Future<void> checkIfProductIsSaved() async {
+    final response = await http.get(
+      Uri.parse('http://localhost:8080/product/${widget.product.productId}/isSaved'),
+      headers: {
+        'Authorization': 'Bearer ${widget.token}',
+        'Content-Type': 'application/json',
+      },
+    );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() => isSaved = data['isSaved'] ?? false);
-      }
-    } catch (e) {
-      print('Error checking saved status: $e');
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      setState(() {
+        isSaved = data['isSaved'] ?? false;
+      });
+    } else {
+      throw Exception('Failed to check if product is saved');
     }
   }
 
-  Future<void> toggleSave() async {
-    try {
-      final response = await http.post(
-        Uri.parse('http://localhost:8080/product/${widget.product.productId}/savedProduct'),
-        headers: {
-          'Authorization': 'Bearer ${widget.token}',
-          'Content-Type': 'application/json',
-        },
-      );
+  Future<void> saveProduct() async {
+    final response = await http.post(
+      Uri.parse('http://localhost:8080/product/${widget.product.productId}/savedProduct'),
+      headers: {
+        'Authorization': 'Bearer ${widget.token}',
+        'Content-Type': 'application/json',
+      },
+    );
 
-      if (response.statusCode == 200) {
-        await checkIsSaved(); // Refresh saved status
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(isSaved ? 'تم الحفظ بنجاح!' : 'تم إلغاء الحفظ')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('فشلت العملية')),
-        );
-      }
-    } catch (e) {
-      print('Error toggling save: $e');
+    if (response.statusCode == 200) {
+      setState(() {
+        isSaved = true;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('حدث خطأ أثناء المحاولة')),
+        const SnackBar(content: Text('Product saved successfully!')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to save product.')),
       );
     }
   }
@@ -244,8 +242,8 @@ class _ProductCardState extends State<ProductCard> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(15),
         child: Stack(
-            fit: StackFit.expand,
-            children: [
+          fit: StackFit.expand,
+          children: [
             if (widget.product.imageUrl != null)
               Image.network(
                 widget.product.imageUrl!,
@@ -345,18 +343,18 @@ class _ProductCardState extends State<ProductCard> {
                 ),
               ),
             ),
-    Positioned(
-    top: 8,
-    right: 8,
-    child: IconButton(
-    icon: Icon(
-    isSaved ? Icons.bookmark : Icons.bookmark_border,
-    color: isSaved ? Colors.yellow : Colors.white,
-    ),
-    onPressed: toggleSave,
-    ),
-    ),
-    ],
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                icon: Icon(
+                  isSaved ? Icons.bookmark : Icons.bookmark_border,
+                  color: isSaved ? Colors.yellow : Colors.white,
+                ),
+                onPressed: saveProduct,
+              ),
+            ),
+          ],
         ),
       ),
     );
