@@ -133,7 +133,7 @@ class ProductTabScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
-          return ProductList(products: snapshot.data!, token: token,);
+          return ProductList(products: snapshot.data!, token: token);
         },
       ),
     );
@@ -191,43 +191,57 @@ class _ProductCardState extends State<ProductCard> {
   }
 
   Future<void> checkIfProductIsSaved() async {
-    final response = await http.get(
-      Uri.parse('http://localhost:8080/product/${widget.product.productId}/isSaved'),
-      headers: {
-        'Authorization': 'Bearer ${widget.token}',
-        'Content-Type': 'application/json',
-      },
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('http://localhost:8080/product/${widget.product.productId}/isSaved'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = jsonDecode(response.body);
-      setState(() {
-        isSaved = data['isSaved'] ?? false;
-      });
-    } else {
-      throw Exception('Failed to check if product is saved');
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        setState(() {
+          isSaved = data['isSaved'] ?? false;
+        });
+      }
+    } catch (e) {
+      print('Error checking saved status: $e');
     }
   }
 
-  Future<void> saveProduct() async {
-    final response = await http.post(
-      Uri.parse('http://localhost:8080/product/${widget.product.productId}/savedProduct'),
-      headers: {
-        'Authorization': 'Bearer ${widget.token}',
-        'Content-Type': 'application/json',
-      },
-    );
+  Future<void> toggleSave() async {
+    final newState = !isSaved;
+    setState(() => isSaved = newState);
 
-    if (response.statusCode == 200) {
-      setState(() {
-        isSaved = true;
-      });
+    try {
+      final response = await (newState
+          ? http.post(
+        Uri.parse('http://localhost:8080/product/${widget.product.productId}/savedProduct'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+      )
+          : http.post(
+        Uri.parse('http://localhost:8080/product/${widget.product.productId}/savedProduct'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+      ));
+
+      if (response.statusCode != 200) {
+        setState(() => isSaved = !newState);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to ${newState ? 'save' : 'unsave'} product')),
+        );
+      }
+    } catch (e) {
+      setState(() => isSaved = !newState);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Product saved successfully!')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to save product.')),
+        const SnackBar(content: Text('Connection error')),
       );
     }
   }
@@ -351,7 +365,8 @@ class _ProductCardState extends State<ProductCard> {
                   isSaved ? Icons.bookmark : Icons.bookmark_border,
                   color: isSaved ? Colors.yellow : Colors.white,
                 ),
-                onPressed: saveProduct,
+                onPressed: toggleSave, // Updated to use new toggle method
+
               ),
             ),
           ],
