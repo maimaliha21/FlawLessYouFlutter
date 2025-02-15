@@ -3,37 +3,91 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 
+
+class ProductApp extends StatelessWidget {
+  const ProductApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: HomeScreen(),
+    );
+  }
+}
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _selectedIndex = 1;
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  final List<Widget> _pages = [
+    const Center(child: Text("Home")),
+    // const ProductTabScreen(),
+    const Center(child: Text("Search")),
+    const Center(child: Text("Settings")),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: CustomBottomNavigationBar(
+        onItemTapped: _onItemTapped,
+        selectedIndex: _selectedIndex,
+      ),
+    );
+  }
+}
+
 class Product {
   final String productId;
   final String? name;
-  final List<String>? skinType;
   final String? description;
-  final List<String>? ingredients;
-  final String adminId;
-  final List<String> photos;
-  final List<String>? reviewIds;
+  final double rating;
+  final String? imageUrl;
 
   const Product({
     required this.productId,
     this.name,
-    this.skinType,
     this.description,
-    this.ingredients,
-    required this.adminId,
-    required this.photos,
-    this.reviewIds,
+    required this.rating,
+    this.imageUrl,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
+    double avgRating = 0.0;
+    final reviews = json['reviews'];
+    if (reviews != null && reviews is Map<String, dynamic>) {
+      final ratings = reviews.values.whereType<int>().toList();
+      if (ratings.isNotEmpty) {
+        avgRating = ratings.reduce((a, b) => a + b) / ratings.length;
+      }
+    }
+
+    String? imageUrl;
+    final photos = json['photos'];
+    if (photos is List && photos.isNotEmpty) {
+      imageUrl = photos[0];
+    }
+
     return Product(
-      productId: json['productId'],
-      name: json['name'],
-      skinType: json['skinType'] != null ? List<String>.from(json['skinType']) : null,
-      description: json['description'],
-      ingredients: json['ingredients'] != null ? List<String>.from(json['ingredients']) : null,
-      adminId: json['adminId'],
-      photos: List<String>.from(json['photos']),
-      reviewIds: json['reviewIds'] != null ? List<String>.from(json['reviewIds']) : null,
+      productId: json['productId'] as String,
+      name: json['name'] as String?,
+      description: json['description'] as String?,
+      rating: avgRating,
+      imageUrl: imageUrl,
     );
   }
 }
@@ -44,26 +98,19 @@ class ProductTabScreen extends StatelessWidget {
   const ProductTabScreen({Key? key, required this.token}) : super(key: key);
 
   Future<List<Product>> fetchProducts() async {
-    try {
-      final response = await http.get(
-        Uri.parse('http://localhost:8080/product/random?limit=6'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
+    final response = await http.get(
+      Uri.parse('http://localhost:8080/product/random?limit=6'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
 
-      if (response.statusCode == 200) {
-        List<dynamic> data = json.decode(response.body);
-        return data.map((json) => Product.fromJson(json)).toList();
-      } else if (response.statusCode == 401) {
-        throw Exception('Unauthorized: Invalid or expired token');
-      } else {
-        throw Exception('Failed to load products: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Failed to fetch products: $e');
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((json) => Product.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load products');
     }
   }
 
@@ -86,7 +133,7 @@ class ProductTabScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
-          return ProductList(products: snapshot.data!);
+          return ProductList(products: snapshot.data!, token: token,);
         },
       ),
     );
@@ -96,7 +143,13 @@ class ProductTabScreen extends StatelessWidget {
 class ProductList extends StatelessWidget {
   final List<Product> products;
 
-  const ProductList({Key? key, required this.products}) : super(key: key);
+  final String token;
+
+  const ProductList({
+    Key? key,
+    required this.products,
+    required this.token,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -111,7 +164,7 @@ class ProductList extends StatelessWidget {
         ),
         itemCount: products.length,
         itemBuilder: (context, index) {
-          return ProductCard(product: products[index]);
+          return ProductCard(product: products[index],token: token);
         },
       ),
     );
@@ -120,8 +173,9 @@ class ProductList extends StatelessWidget {
 
 class ProductCard extends StatefulWidget {
   final Product product;
+  final String token;
 
-  const ProductCard({Key? key, required this.product}) : super(key: key);
+  const ProductCard({Key? key, required this.product, required this.token}) : super(key: key);
 
   @override
   _ProductCardState createState() => _ProductCardState();
@@ -130,94 +184,44 @@ class ProductCard extends StatefulWidget {
 class _ProductCardState extends State<ProductCard> {
   bool isSaved = false;
 
-  // Function to get the first 3 words of the description
-  String _getShortDescription(String? description) {
-    if (description == null || description.isEmpty) return 'No Description';
-    List<String> words = description.split(' ');
-    if (words.length > 3) {
-      return '${words.take(3).join(' ')}...';
-    }
-    return description;
-  }
-
-  // Show product details in a dialog
-  void _showProductDetails(BuildContext context) {
-    int currentImageIndex = 0;
-    Timer? _timer;
-
-    if (widget.product.photos.length > 1) {
-      _timer = Timer.periodic(Duration(seconds: 6), (timer) {
-        setState(() {
-          currentImageIndex = (currentImageIndex + 1) % widget.product.photos.length;
-        });
-      });
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          contentPadding: EdgeInsets.zero, // إزالة الحواف الداخلية للبوبر
-          content: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setState) {
-              return Container(
-                width: MediaQuery.of(context).size.width * 0.9, // عرض البوبر 90% من الشاشة
-                height: MediaQuery.of(context).size.height * 0.7, // ارتفاع البوبر 70% من الشاشة
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // عرض الصورة
-                    Expanded(
-                      child: Image.network(
-                        widget.product.photos[currentImageIndex],
-                        fit: BoxFit.cover, // تغطية المساحة المتاحة
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // عرض الوصف الكامل
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        widget.product.description ?? 'No Description',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                _timer?.cancel(); // إيقاف الـ Timer عند إغلاق البوبر
-                Navigator.pop(context);
-              },
-              child: Text('Close'),
-            ),
-          ],
-        );
+  Future<void> saveProduct(String productId) async {
+    final url = Uri.parse('https://your-backend-api.com/save');
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer ${widget.token}',
+        'Content-Type': 'application/json',
       },
+      body: jsonEncode({'productId': productId}),
     );
+
+    if (response.statusCode == 200) {
+      setState(() => isSaved = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product saved successfully!')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to save product.')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showProductDetails(context),
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(15),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Product Image
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (widget.product.imageUrl != null)
               Image.network(
-                widget.product.photos[0], // Always show the first image
+                widget.product.imageUrl!,
                 fit: BoxFit.cover,
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
@@ -230,97 +234,203 @@ class _ProductCardState extends State<ProductCard> {
                     ),
                   );
                 },
-                errorBuilder: (context, error, stackTrace) =>
-                const Icon(Icons.error),
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.error),
+                ),
+              )
+            else
+              Container(
+                color: Colors.grey[300],
+                child: const Center(
+                  child: Icon(Icons.image_not_supported, color: Colors.white),
+                ),
               ),
-              // Product Details Overlay
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [
-                        Colors.black.withOpacity(0.8),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Product Name
-                      Text(
-                        widget.product.name ?? 'No Name',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      // Short Description
-                      Text(
-                        _getShortDescription(widget.product.description),
-                        style: const TextStyle(color: Colors.white, fontSize: 12),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.8),
+                      Colors.transparent,
                     ],
                   ),
                 ),
-              ),
-              // Save Button
-              Positioned(
-                top: 8,
-                right: 8,
-                child: IconButton(
-                  icon: Icon(
-                    isSaved ? Icons.bookmark : Icons.bookmark_border,
-                    color: isSaved ? Colors.yellow : Colors.white,
-                  ),
-                  onPressed: () => saveProduct(widget.product.productId),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.product.name ?? 'No Name',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      widget.product.description ?? 'No description available',
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        ...List.generate(5, (index) {
+                          double starPosition = index + 1.0;
+                          if (widget.product.rating >= starPosition) {
+                            return const Icon(
+                              Icons.star,
+                              color: Colors.yellow,
+                              size: 16,
+                            );
+                          } else if (widget.product.rating >= starPosition - 0.5) {
+                            return const Icon(
+                              Icons.star_half,
+                              color: Colors.yellow,
+                              size: 16,
+                            );
+                          } else {
+                            return const Icon(
+                              Icons.star_border,
+                              color: Colors.grey,
+                              size: 16,
+                            );
+                          }
+                        }),
+                        const SizedBox(width: 4),
+                        Text(
+                          widget.product.rating.toStringAsFixed(1),
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                icon: Icon(
+                  isSaved ? Icons.bookmark : Icons.bookmark_border,
+                  color: isSaved ? Colors.yellow : Colors.white,
+                ),
+                onPressed: () => saveProduct(widget.product.productId),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
 
-  // Save product to the user's saved items
-  Future<void> saveProduct(String productId) async {
-    final url = Uri.parse('https://your-backend-api.com/save');
-    try {
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer YOUR_TOKEN_HERE', // Include token if needed
-        },
-        body: jsonEncode({'productId': productId}),
-      );
+class CustomBottomNavigationBar extends StatelessWidget {
+  final Function(int) onItemTapped;
+  final int selectedIndex;
 
-      if (response.statusCode == 200) {
-        setState(() => isSaved = true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product saved successfully!')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save product.')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    }
+  const CustomBottomNavigationBar({
+    super.key,
+    required this.onItemTapped,
+    required this.selectedIndex,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        ClipPath(
+          clipper: BottomWaveClipper(),
+          child: Container(
+            height: 70,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 10,
+                ),
+              ],
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 25,
+          left: MediaQuery.of(context).size.width / 2 - 30,
+          child: FloatingActionButton(
+            backgroundColor: Colors.blue,
+            onPressed: () {},
+            child: const Icon(Icons.face, color: Colors.white),
+          ),
+        ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            height: 70,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.home, color: selectedIndex == 0 ? Colors.blue : Colors.grey),
+                  onPressed: () => onItemTapped(0),
+                ),
+                IconButton(
+                  icon: Icon(Icons.shopping_cart, color: selectedIndex == 1 ? Colors.blue : Colors.grey),
+                  onPressed: () => onItemTapped(1),
+                ),
+                const SizedBox(width: 60),
+                IconButton(
+                  icon: Icon(Icons.search, color: selectedIndex == 2 ? Colors.blue : Colors.grey),
+                  onPressed: () => onItemTapped(2),
+                ),
+                IconButton(
+                  icon: Icon(Icons.settings, color: selectedIndex == 3 ? Colors.blue : Colors.grey),
+                  onPressed: () => onItemTapped(3),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
+}
+
+class BottomWaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    var path = Path();
+    path.lineTo(0, size.height - 20);
+
+    var firstControlPoint = Offset(size.width / 4, size.height);
+    var firstEndPoint = Offset(size.width / 2, size.height - 30);
+    path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy, firstEndPoint.dx, firstEndPoint.dy);
+
+    var secondControlPoint = Offset(size.width - (size.width / 4), size.height - 60);
+    var secondEndPoint = Offset(size.width, size.height - 30);
+    path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy, secondEndPoint.dx, secondEndPoint.dy);
+
+    path.lineTo(size.width, size.height - 30);
+    path.lineTo(size.width, 0);
+
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
