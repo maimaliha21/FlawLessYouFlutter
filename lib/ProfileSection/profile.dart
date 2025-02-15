@@ -279,9 +279,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(token: widget.token),
+      bottomNavigationBar: CustomBottomNavigationBar(
+        token: widget.token,
+        userInfo: widget.userInfo,
+      ),
     );
   }
+
 
   ImageProvider _getProfileImage() {
     if (_profileImage != null) return FileImage(_profileImage!);
@@ -294,8 +298,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
 class CustomBottomNavigationBar extends StatelessWidget {
   final String token;
+  final Map<String, dynamic> userInfo;
 
-  const CustomBottomNavigationBar({super.key, required this.token});
+  const CustomBottomNavigationBar({
+    super.key,
+    required this.token,
+    required this.userInfo,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -350,7 +359,9 @@ class CustomBottomNavigationBar extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ProductTabScreen(token: token),
+                        builder: (context) => ProductTabScreen(
+                        token: token,
+                        )
                       ),
                     );
                   },
