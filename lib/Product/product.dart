@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+
+
 
 class ProductApp extends StatelessWidget {
   const ProductApp({Key? key}) : super(key: key);
@@ -33,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _pages = [
     const Center(child: Text("Home")),
-    // ProductTabScreen(token: "your_token_here"), // قم بتغيير "your_token_here" إلى التوكن الفعلي
+    ProductTabScreen(token: "your_token_here"), // قم بتغيير "your_token_here" إلى التوكن الفعلي
     const Center(child: Text("Search")),
     const Center(child: Text("Settings")),
   ];
@@ -53,17 +56,21 @@ class _HomeScreenState extends State<HomeScreen> {
 class Product {
   final String productId;
   final String? name;
+  final List<String> skinType;
+  final List<String> ingredients;
   final String? description;
   final double rating;
-  final String? imageUrl;
+  final List<String>? photos;
   bool isSaved;
 
   Product({
     required this.productId,
     this.name,
+    required this.skinType,
+    required this.ingredients,
     this.description,
     required this.rating,
-    this.imageUrl,
+    this.photos,
     this.isSaved = false,
   });
 
@@ -77,18 +84,19 @@ class Product {
       }
     }
 
-    String? imageUrl;
-    final photos = json['photos'];
-    if (photos is List && photos.isNotEmpty) {
-      imageUrl = photos[0];
+    List<String>? photos;
+    if (json['photos'] is List) {
+      photos = List<String>.from(json['photos']);
     }
 
     return Product(
       productId: json['productId'] as String? ?? 'unknown',
       name: json['name'] as String?,
+      skinType: List<String>.from(json['skinType'] ?? []),
+      ingredients: List<String>.from(json['ingredients'] ?? []),
       description: json['description'] as String?,
       rating: avgRating,
-      imageUrl: imageUrl,
+      photos: photos,
       isSaved: json['isSaved'] is bool ? json['isSaved'] : false,
     );
   }
@@ -109,13 +117,11 @@ class ProductTabScreen extends StatelessWidget {
     );
 
     if (response.statusCode == 200) {
-      // Check if the response body is valid JSON
       try {
         final decodedBody = jsonDecode(response.body);
         if (decodedBody is List) {
           List<Product> products = decodedBody.map((json) => Product.fromJson(json)).toList();
 
-          // Fetch saved status for each product
           for (var product in products) {
             final savedResponse = await http.get(
               Uri.parse('http://localhost:8080/product/${product.productId}/isSaved'),
@@ -126,7 +132,6 @@ class ProductTabScreen extends StatelessWidget {
             );
 
             if (savedResponse.statusCode == 200) {
-              // Handle the case where the response is a bool directly
               if (savedResponse.body == 'true' || savedResponse.body == 'false') {
                 product.isSaved = savedResponse.body == 'true';
               } else {
@@ -258,130 +263,302 @@ class _ProductCardState extends State<ProductCard> {
     }
   }
 
+  void _showProductDetails(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          insetPadding: EdgeInsets.all(16),
+          child: ProductDetailsPopup(product: widget.product, token: widget.token),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(15),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (widget.product.imageUrl != null)
-              Image.network(
-                widget.product.imageUrl!,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Center(
-                    child: CircularProgressIndicator(
-                      value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded /
-                          loadingProgress.expectedTotalBytes!
-                          : null,
-                    ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) => Container(
+    return GestureDetector(
+      onTap: () => _showProductDetails(context),
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(15),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (widget.product.photos != null && widget.product.photos!.isNotEmpty)
+                Image.network(
+                  widget.product.photos![0],
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.error),
+                  ),
+                )
+              else
+                Container(
                   color: Colors.grey[300],
-                  child: const Icon(Icons.error),
+                  child: const Center(
+                    child: Icon(Icons.image_not_supported, color: Colors.white),
+                  ),
                 ),
-              )
-            else
-              Container(
-                color: Colors.grey[300],
-                child: const Center(
-                  child: Icon(Icons.image_not_supported, color: Colors.white),
-                ),
-              ),
 
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Colors.black.withOpacity(0.8),
-                      Colors.transparent,
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.8),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.product.name ?? 'No Name',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.product.description ?? 'No description available',
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          ...List.generate(5, (index) {
+                            double starPosition = index + 1.0;
+                            if (widget.product.rating >= starPosition) {
+                              return const Icon(
+                                Icons.star,
+                                color: Colors.yellow,
+                                size: 16,
+                              );
+                            } else if (widget.product.rating >= starPosition - 0.5) {
+                              return const Icon(
+                                Icons.star_half,
+                                color: Colors.yellow,
+                                size: 16,
+                              );
+                            } else {
+                              return const Icon(
+                                Icons.star_border,
+                                color: Colors.grey,
+                                size: 16,
+                              );
+                            }
+                          }),
+                          const SizedBox(width: 4),
+                          Text(
+                            widget.product.rating.toStringAsFixed(1),
+                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.product.name ?? 'No Name',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      widget.product.description ?? 'No description available',
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        ...List.generate(5, (index) {
-                          double starPosition = index + 1.0;
-                          if (widget.product.rating >= starPosition) {
-                            return const Icon(
-                              Icons.star,
-                              color: Colors.yellow,
-                              size: 16,
-                            );
-                          } else if (widget.product.rating >= starPosition - 0.5) {
-                            return const Icon(
-                              Icons.star_half,
-                              color: Colors.yellow,
-                              size: 16,
-                            );
-                          } else {
-                            return const Icon(
-                              Icons.star_border,
-                              color: Colors.grey,
-                              size: 16,
-                            );
-                          }
-                        }),
-                        const SizedBox(width: 4),
-                        Text(
-                          widget.product.rating.toStringAsFixed(1),
-                          style: const TextStyle(color: Colors.white, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ],
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: IconButton(
+                  icon: Icon(
+                    isSaved ? Icons.bookmark : Icons.bookmark_border,
+                    color: isSaved ? Colors.yellow : Colors.white,
+                  ),
+                  onPressed: toggleSave,
                 ),
               ),
-            ),
-            Positioned(
-              top: 8,
-              right: 8,
-              child: IconButton(
-                icon: Icon(
-                  isSaved ? Icons.bookmark : Icons.bookmark_border,
-                  color: isSaved ? Colors.yellow : Colors.white,
-                ),
-                onPressed: toggleSave,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class ProductDetailsPopup extends StatefulWidget {
+  final Product product;
+  final String token;
+
+  const ProductDetailsPopup({Key? key, required this.product, required this.token}) : super(key: key);
+
+  @override
+  _ProductDetailsPopupState createState() => _ProductDetailsPopupState();
+}
+
+class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
+  late PageController _pageController;
+  int _currentPage = 0;
+  double _userRating = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    _startAutoSlide();
+  }
+
+  void _startAutoSlide() {
+    Timer.periodic(Duration(seconds: 8), (timer) {
+      if (_currentPage < (widget.product.photos?.length ?? 1) - 1) {
+        _currentPage++;
+      } else {
+        _currentPage = 0;
+      }
+      _pageController.animateToPage(
+        _currentPage,
+        duration: Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  Future<void> _submitRating(double rating) async {
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost:8080/product/${widget.product.productId}/rate'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'rating': rating}),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Rating submitted successfully')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to submit rating')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Connection error')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            height: 200,
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: widget.product.photos?.length ?? 1,
+              itemBuilder: (context, index) {
+                return Image.network(
+                  widget.product.photos?[index] ?? widget.product.photos?.first ?? '',
+                  fit: BoxFit.cover,
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.product.name ?? 'No Name',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  widget.product.description ?? 'No description available',
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(height: 16),
+                if (widget.product.skinType.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Skin Type:',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        widget.product.skinType.join(', '),
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      SizedBox(height: 16),
+                    ],
+                  ),
+                if (widget.product.ingredients.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Ingredients:',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        widget.product.ingredients.join(', '),
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      SizedBox(height: 16),
+                    ],
+                  ),
+                RatingBar.builder(
+                  initialRating: widget.product.rating,
+                  minRating: 1,
+                  direction: Axis.horizontal,
+                  allowHalfRating: true,
+                  itemCount: 5,
+                  itemPadding: EdgeInsets.symmetric(horizontal: 4.0),
+                  itemBuilder: (context, _) => Icon(
+                    Icons.star,
+                    color: Colors.amber,
+                  ),
+                  onRatingUpdate: (rating) {
+                    setState(() {
+                      _userRating = rating;
+                    });
+                    _submitRating(rating);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
