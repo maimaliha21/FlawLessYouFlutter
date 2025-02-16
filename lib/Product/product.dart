@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 
-
 class ProductApp extends StatelessWidget {
   const ProductApp({Key? key}) : super(key: key);
 
@@ -34,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _pages = [
     const Center(child: Text("Home")),
-    // const ProductTabScreen(),
+    // ProductTabScreen(token: "your_token_here"), // قم بتغيير "your_token_here" إلى التوكن الفعلي
     const Center(child: Text("Search")),
     const Center(child: Text("Settings")),
   ];
@@ -57,13 +56,15 @@ class Product {
   final String? description;
   final double rating;
   final String? imageUrl;
+  bool isSaved;
 
-  const Product({
+  Product({
     required this.productId,
     this.name,
     this.description,
     required this.rating,
     this.imageUrl,
+    this.isSaved = false,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -83,11 +84,12 @@ class Product {
     }
 
     return Product(
-      productId: json['productId'] as String,
+      productId: json['productId'] as String? ?? 'unknown',
       name: json['name'] as String?,
       description: json['description'] as String?,
       rating: avgRating,
       imageUrl: imageUrl,
+      isSaved: json['isSaved'] is bool ? json['isSaved'] : false,
     );
   }
 }
@@ -107,10 +109,42 @@ class ProductTabScreen extends StatelessWidget {
     );
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
-      return data.map((json) => Product.fromJson(json)).toList();
+      // Check if the response body is valid JSON
+      try {
+        final decodedBody = jsonDecode(response.body);
+        if (decodedBody is List) {
+          List<Product> products = decodedBody.map((json) => Product.fromJson(json)).toList();
+
+          // Fetch saved status for each product
+          for (var product in products) {
+            final savedResponse = await http.get(
+              Uri.parse('http://localhost:8080/product/${product.productId}/isSaved'),
+              headers: {
+                'Authorization': 'Bearer $token',
+                'Content-Type': 'application/json',
+              },
+            );
+
+            if (savedResponse.statusCode == 200) {
+              // Handle the case where the response is a bool directly
+              if (savedResponse.body == 'true' || savedResponse.body == 'false') {
+                product.isSaved = savedResponse.body == 'true';
+              } else {
+                final savedData = jsonDecode(savedResponse.body);
+                product.isSaved = savedData['isSaved'] is bool ? savedData['isSaved'] : false;
+              }
+            }
+          }
+
+          return products;
+        } else {
+          throw Exception('Invalid response format: Expected a list of products');
+        }
+      } catch (e) {
+        throw Exception('Failed to parse response: $e');
+      }
     } else {
-      throw Exception('Failed to load products');
+      throw Exception('Failed to load products: ${response.statusCode}');
     }
   }
 
@@ -142,7 +176,6 @@ class ProductTabScreen extends StatelessWidget {
 
 class ProductList extends StatelessWidget {
   final List<Product> products;
-
   final String token;
 
   const ProductList({
@@ -164,7 +197,7 @@ class ProductList extends StatelessWidget {
         ),
         itemCount: products.length,
         itemBuilder: (context, index) {
-          return ProductCard(product: products[index],token: token);
+          return ProductCard(product: products[index], token: token);
         },
       ),
     );
@@ -187,28 +220,7 @@ class _ProductCardState extends State<ProductCard> {
   @override
   void initState() {
     super.initState();
-    checkIfProductIsSaved();
-  }
-
-  Future<void> checkIfProductIsSaved() async {
-    try {
-      final response = await http.get(
-        Uri.parse('http://localhost:8080/product/${widget.product.productId}/isSaved'),
-        headers: {
-          'Authorization': 'Bearer ${widget.token}',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        setState(() {
-          isSaved = data['isSaved'] ?? false;
-        });
-      }
-    } catch (e) {
-      print('Error checking saved status: $e');
-    }
+    isSaved = widget.product.isSaved;
   }
 
   Future<void> toggleSave() async {
@@ -365,8 +377,7 @@ class _ProductCardState extends State<ProductCard> {
                   isSaved ? Icons.bookmark : Icons.bookmark_border,
                   color: isSaved ? Colors.yellow : Colors.white,
                 ),
-                onPressed: toggleSave, // Updated to use new toggle method
-
+                onPressed: toggleSave,
               ),
             ),
           ],
