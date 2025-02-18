@@ -7,7 +7,6 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:projtry1/Product/product.dart';
 
-
 class Profile extends StatelessWidget {
   final String token;
   final Map<String, dynamic> userInfo;
@@ -101,7 +100,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // await GoogleSignInApi.signOut();
       // Navigator.of(context).pushAndRemoveUntil(
       //   MaterialPageRoute(builder: (context) => const LoginScreen()),
-      //       (route) => false,
+      //   (route) => false,
       // );
     } catch (e) {
       print('Error during logout: $e');
@@ -167,36 +166,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         backgroundColor: Colors.transparent,
                         child: Stack(
                           children: [
-                            Container(
-                              width: 300,
-                              height: 300,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.8),
-                                borderRadius: BorderRadius.circular(20),
-                                image: DecorationImage(
-                                  image: _getProfileImage(),
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
+                          Container(
+                          width: 300,
+                          height: 300,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(20),
+                            image: DecorationImage(
+                              image: _getProfileImage(),
+                              fit: BoxFit.cover,
                             ),
-                            Positioned(
-                              bottom: 15,
-                              left: 50,
-                              right: 50,
-                              child: ElevatedButton(
-                                onPressed: _pickImage,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFB0BEC5),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 50, vertical: 15),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                child: const Text('Change Picture'),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 15,
+                          left: 50,
+                          right: 50,
+                          child: ElevatedButton(
+                            onPressed: _pickImage,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFB0BEC5),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 50, vertical: 15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
+                              child: const Text('Change Picture'),
                             ),
+                          ),
                           ],
                         ),
                       ),
@@ -244,8 +242,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => editProfile(
-                      ),
+                      builder: (context) => editProfile(),
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
@@ -276,7 +273,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
             const SizedBox(height: 20),
-            const TabBarSection(),
+            TabBarSection(token: widget.token),
           ],
         ),
       ),
@@ -286,7 +283,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
 
   ImageProvider _getProfileImage() {
     if (_profileImage != null) return FileImage(_profileImage!);
@@ -361,9 +357,9 @@ class CustomBottomNavigationBar extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => ProductTabScreen(
-                        token: token,
-
-                        )
+                          token: token,
+                          apiUrl: 'http://localhost:8080/product/random?limit=6',
+                        ),
                       ),
                     );
                   },
@@ -400,7 +396,9 @@ class BottomWaveClipper extends CustomClipper<Path> {
 }
 
 class TabBarSection extends StatefulWidget {
-  const TabBarSection({super.key});
+  final String token;
+
+  const TabBarSection({super.key, required this.token});
 
   @override
   _TabBarSectionState createState() => _TabBarSectionState();
@@ -432,14 +430,12 @@ class _TabBarSectionState extends State<TabBarSection>
         Container(
           height: 200,
           child: TabBarView(
-            controller: _tabController,
-            children: const [
-              Center(
-                  child: Text('No saved items',
-                      style: TextStyle(color: Colors.black))),
-              Center(
-                  child: Text('No history available',
-                      style: TextStyle(color: Colors.black))),
+              controller: _tabController,
+              children: [
+              SavedProductsScreen(token: widget.token),
+          const Center(
+            child: Text('No history available',
+                style: TextStyle(color: Colors.black)),
             ],
           ),
         ),
