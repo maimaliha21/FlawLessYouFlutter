@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:projtry1/Product/product.dart';
 
+
 class Profile extends StatelessWidget {
   final String token;
   final Map<String, dynamic> userInfo;
@@ -361,6 +362,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) => ProductTabScreen(
                         token: token,
+
                         )
                       ),
                     );
