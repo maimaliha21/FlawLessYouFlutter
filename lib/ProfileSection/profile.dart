@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:projtry1/Product/product.dart';
 import 'package:projtry1/Product/productPage.dart';
 import 'dart:convert';
+
 class Profile extends StatelessWidget {
   final String token;
   final Map<String, dynamic> userInfo;
@@ -44,88 +45,117 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   File? _profileImage;
   final ImagePicker _picker = ImagePicker();
+  bool _isUploading = false;
 
   Future<void> _pickImage() async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 1024,
+        maxHeight: 1024,
+      );
+
       if (image != null) {
         setState(() {
           _profileImage = File(image.path);
+          _isUploading = true;
         });
+
         await _uploadProfilePicture(File(image.path));
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No image selected')),
-        );
+
+        setState(() {
+          _isUploading = false;
+        });
       }
     } catch (e) {
-      print('Error picking image: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to pick image')),
-      );
+      setState(() {
+        _isUploading = false;
+      });
+      _showErrorSnackBar('Failed to pick image: ${e.toString()}');
     }
   }
 
   Future<void> _uploadProfilePicture(File imageFile) async {
     try {
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('http://localhost:8080/api/users/profilePicture'),
+      // Read file as bytes
+      List<int> imageBytes = await imageFile.readAsBytes();
+
+      final url = Uri.parse('http://localhost:8080/api/users/profilePicture');
+
+      var request = http.MultipartRequest('POST', url)
+        ..headers.addAll({
+          'Authorization': 'Bearer ${widget.token}',
+          'Accept': '*/*',
+        });
+
+      // Create multipart file from bytes
+      var multipartFile = http.MultipartFile.fromBytes(
+        'file',
+        imageBytes,
+        filename: 'profile_picture.jpg',
       );
 
-      request.headers.addAll({
-        'Authorization': 'Bearer ${widget.token}',
-      });
+      // Add file to request
+      request.files.add(multipartFile);
 
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'file',
-          imageFile.path,
-        ),
-      );
-
-      print('Sending request with file: ${imageFile.path}');
-
-      var response = await request.send();
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
-        var responseData = await response.stream.bytesToString();
-        var jsonResponse = jsonDecode(responseData);
-
-        print('Response: $jsonResponse');
-
+        final jsonResponse = jsonDecode(response.body);
         setState(() {
           widget.userInfo['profilePicture'] = jsonResponse['url'];
         });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile picture updated successfully')),
-        );
+        _showSuccessSnackBar('Profile picture updated successfully');
       } else {
-        var errorResponse = await response.stream.bytesToString();
-        print('Error response: $errorResponse');
-        throw Exception('Failed to upload profile picture. Status code: ${response.statusCode}');
+        throw Exception('Failed to upload: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error uploading profile picture: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to upload profile picture')),
-      );
+      _showErrorSnackBar('Failed to upload profile picture: ${e.toString()}');
+      rethrow;
     }
   }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   Future<void> _handleLogout() async {
     try {
       // await GoogleSignInApi.signOut();
-      // Navigator.of(context).pushAndRemoveUntil(
-      //   MaterialPageRoute(builder: (context) => const LoginScreen()),
-      //       (route) => false,
-      // );
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+            (route) => false,
+      );
     } catch (e) {
       print('Error during logout: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to logout')),
-      );
+      _showErrorSnackBar('Failed to logout');
     }
+  }
+
+  ImageProvider _getProfileImage() {
+    if (_profileImage != null) return FileImage(_profileImage!);
+    if (widget.userInfo['profilePicture'] != null) {
+      return NetworkImage(widget.userInfo['profilePicture']);
+    }
+    return const AssetImage('assets/profile.jpg');
   }
 
   @override
@@ -196,39 +226,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               ),
                             ),
+                            if (_isUploading)
+                              const Center(
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                                ),
+                              ),
                             Positioned(
                               bottom: 15,
                               left: 50,
                               right: 50,
                               child: ElevatedButton(
-                                onPressed: _pickImage,
+                                onPressed: _isUploading ? null : _pickImage,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFB0BEC5),
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 50, vertical: 15),
+                                    horizontal: 50,
+                                    vertical: 15,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
-                                child: const Text('Change Picture'),
+                                child: Text(_isUploading ? 'Uploading...' : 'Change Picture'),
                               ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                    child: CircleAvatar(
-                      radius: 75,
-                      backgroundColor: Colors.white,
-                      child: CircleAvatar(
-                        radius: 70,
-                        backgroundColor: Colors.white,
-                        child: CircleAvatar(
-                          radius: 65,
-                          backgroundImage: _getProfileImage(),
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 75,
+                          backgroundColor: Colors.white,
+                          child: CircleAvatar(
+                            radius: 70,
+                            backgroundColor: Colors.white,
+                            child: CircleAvatar(
+                              radius: 65,
+                              backgroundImage: _getProfileImage(),
+                            ),
+                          ),
                         ),
-                      ),
+                        if (_isUploading)
+                          Positioned.fill(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.3),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -240,7 +296,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black),
+                  color: Colors.black
+              ),
             ),
             Text(
               widget.userInfo['email'] ?? '',
@@ -261,15 +318,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => editProfile(
-                      ),
+                      builder: (context) => editProfile(),
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 50, vertical: 20),
+                        horizontal: 50,
+                        vertical: 20
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -283,7 +341,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 50, vertical: 20),
+                        horizontal: 50,
+                        vertical: 20
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -302,14 +362,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         userInfo: widget.userInfo,
       ),
     );
-  }
-
-  ImageProvider _getProfileImage() {
-    if (_profileImage != null) return FileImage(_profileImage!);
-    if (widget.userInfo['profilePicture'] != null) {
-      return NetworkImage(widget.userInfo['profilePicture']);
-    }
-    return const AssetImage('assets/profile.jpg');
   }
 }
 
@@ -376,8 +428,9 @@ class CustomBottomNavigationBar extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ProductPage(token: token,userInfo: userInfo
-
+                        builder: (context) => ProductPage(
+                            token: token,
+                            userInfo: userInfo
                         ),
                       ),
                     );
@@ -401,10 +454,18 @@ class BottomWaveClipper extends CustomClipper<Path> {
   Path getClip(Size size) {
     Path path = Path();
     path.lineTo(0, size.height - 20);
-    path.quadraticBezierTo(size.width / 4, size.height, size.width / 2,
-        size.height - 20);
-    path.quadraticBezierTo(size.width * 3 / 4, size.height - 40, size.width,
-        size.height - 20);
+    path.quadraticBezierTo(
+        size.width / 4,
+        size.height,
+        size.width / 2,
+        size.height - 20
+    );
+    path.quadraticBezierTo(
+        size.width * 3 / 4,
+        size.height - 40,
+        size.width,
+        size.height - 20
+    );
     path.lineTo(size.width, 0);
     path.close();
     return path;
@@ -431,6 +492,12 @@ class _TabBarSectionState extends State<TabBarSection>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
