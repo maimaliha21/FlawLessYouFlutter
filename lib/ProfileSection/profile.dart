@@ -100,7 +100,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // await GoogleSignInApi.signOut();
       // Navigator.of(context).pushAndRemoveUntil(
       //   MaterialPageRoute(builder: (context) => const LoginScreen()),
-      //   (route) => false,
+      //       (route) => false,
       // );
     } catch (e) {
       print('Error during logout: $e');
@@ -166,35 +166,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         backgroundColor: Colors.transparent,
                         child: Stack(
                           children: [
-                          Container(
-                          width: 300,
-                          height: 300,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.8),
-                            borderRadius: BorderRadius.circular(20),
-                            image: DecorationImage(
-                              image: _getProfileImage(),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 15,
-                          left: 50,
-                          right: 50,
-                          child: ElevatedButton(
-                            onPressed: _pickImage,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFB0BEC5),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 50, vertical: 15),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                            Container(
+                              width: 300,
+                              height: 300,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.8),
+                                borderRadius: BorderRadius.circular(20),
+                                image: DecorationImage(
+                                  image: _getProfileImage(),
+                                  fit: BoxFit.cover,
+                                ),
                               ),
-                              child: const Text('Change Picture'),
                             ),
-                          ),
+                            Positioned(
+                              bottom: 15,
+                              left: 50,
+                              right: 50,
+                              child: ElevatedButton(
+                                onPressed: _pickImage,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFB0BEC5),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 50, vertical: 15),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: const Text('Change Picture'),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -242,7 +243,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => editProfile(),
+                      builder: (context) => editProfile(
+                      ),
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
@@ -356,10 +358,10 @@ class CustomBottomNavigationBar extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ProductTabScreen(
-                          token: token,
-                          apiUrl: 'http://localhost:8080/product/random?limit=6',
-                        ),
+                          builder: (context) => ProductTabScreen(
+                            token: token,
+                            apiUrl: "http://localhost:8080/product/random?limit=6",
+                          )
                       ),
                     );
                   },
@@ -430,12 +432,16 @@ class _TabBarSectionState extends State<TabBarSection>
         Container(
           height: 200,
           child: TabBarView(
-              controller: _tabController,
-              children: [
-              SavedProductsScreen(token: widget.token),
-          const Center(
-            child: Text('No history available',
-                style: TextStyle(color: Colors.black)),
+            controller: _tabController,
+            children: [
+              ProductTabScreen(
+                token: widget.token,
+                apiUrl: "http://localhost:8080/product/Saved",
+              ),
+              const Center(
+                child: Text('No history available',
+                    style: TextStyle(color: Colors.black)),
+              ),
             ],
           ),
         ),
