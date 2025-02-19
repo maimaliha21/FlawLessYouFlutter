@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:projtry1/Product/product.dart';
 import 'package:projtry1/Product/productPage.dart';
+import 'dart:convert';
 class Profile extends StatelessWidget {
   final String token;
   final Map<String, dynamic> userInfo;
@@ -52,6 +53,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _profileImage = File(image.path);
         });
         await _uploadProfilePicture(File(image.path));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No image selected')),
+        );
       }
     } catch (e) {
       print('Error picking image: $e');
@@ -65,7 +70,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://localhost:8080/api/users/profile-picture'),
+        Uri.parse('http://localhost:8080/api/users/profilePicture'),
       );
 
       request.headers.addAll({
@@ -79,13 +84,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
 
+      print('Sending request with file: ${imageFile.path}');
+
       var response = await request.send();
+
       if (response.statusCode == 200) {
+        var responseData = await response.stream.bytesToString();
+        var jsonResponse = jsonDecode(responseData);
+
+        print('Response: $jsonResponse');
+
+        setState(() {
+          widget.userInfo['profilePicture'] = jsonResponse['url'];
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile picture updated successfully')),
         );
       } else {
-        throw Exception('Failed to upload profile picture');
+        var errorResponse = await response.stream.bytesToString();
+        print('Error response: $errorResponse');
+        throw Exception('Failed to upload profile picture. Status code: ${response.statusCode}');
       }
     } catch (e) {
       print('Error uploading profile picture: $e');
@@ -94,7 +113,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
-
   Future<void> _handleLogout() async {
     try {
       // await GoogleSignInApi.signOut();
@@ -358,9 +376,9 @@ class CustomBottomNavigationBar extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => ProductPage(token: token,userInfo: userInfo
+                        builder: (context) => ProductPage(token: token,userInfo: userInfo
 
-                          ),
+                        ),
                       ),
                     );
                   },
