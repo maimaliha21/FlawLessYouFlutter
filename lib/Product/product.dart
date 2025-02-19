@@ -5,23 +5,19 @@ import 'dart:async';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 class ProductApp extends StatelessWidget {
-  final String token;
-
-  const ProductApp({Key? key, required this.token}) : super(key: key);
+  const ProductApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: HomeScreen(token: token),
+      home: HomeScreen(),
     );
   }
 }
 
 class HomeScreen extends StatefulWidget {
-  final String token;
-
-  const HomeScreen({Key? key, required this.token}) : super(key: key);
+  const HomeScreen({Key? key}) : super(key: key);
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -30,21 +26,18 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 1;
 
-  final List<Widget> _pages = [
-    const Center(child: Text("Home")),
-    ProductTabScreen(
-      token: widget.token,
-      apiUrl: 'http://localhost:8080/product/random?limit=6',
-    ),
-    const Center(child: Text("Search")),
-    SavedProductsScreen(token: widget.token),
-  ];
-
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
+
+  final List<Widget> _pages = [
+    const Center(child: Text("Home")),
+    // ProductTabScreen(token: "your_token_here"), // قم بتغيير "your_token_here" إلى التوكن الفعلي
+    const Center(child: Text("Search")),
+    const Center(child: Text("Settings")),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -53,112 +46,9 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: CustomBottomNavigationBar(
         onItemTapped: _onItemTapped,
         selectedIndex: _selectedIndex,
-        token: widget.token,
       ),
     );
   }
-}
-
-class BaseProductScreen extends StatelessWidget {
-  final String token;
-  final String apiUrl;
-  final String screenTitle;
-
-  const BaseProductScreen({
-    Key? key,
-    required this.token,
-    required this.apiUrl,
-    this.screenTitle = "Products",
-  }) : super(key: key);
-
-  Future<List<Product>> fetchProducts() async {
-    final response = await http.get(
-      Uri.parse(apiUrl),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      try {
-        final decodedBody = jsonDecode(response.body);
-        if (decodedBody is List) {
-          List<Product> products = decodedBody.map((json) => Product.fromJson(json)).toList();
-
-          for (var product in products) {
-            final savedResponse = await http.get(
-              Uri.parse('http://localhost:8080/product/${product.productId}/isSaved'),
-              headers: {
-                'Authorization': 'Bearer $token',
-                'Content-Type': 'application/json',
-              },
-            );
-
-            if (savedResponse.statusCode == 200) {
-              product.isSaved = savedResponse.body == 'true';
-            }
-          }
-
-          return products;
-        } else {
-          throw Exception('Invalid response format');
-        }
-      } catch (e) {
-        throw Exception('Failed to parse response: $e');
-      }
-    } else {
-      throw Exception('Failed to load products: ${response.statusCode}');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[200],
-      appBar: AppBar(
-        title: Text(screenTitle),
-        centerTitle: true,
-      ),
-      body: FutureBuilder<List<Product>>(
-        future: fetchProducts(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return ProductList(products: snapshot.data!, token: token);
-        },
-      ),
-    );
-  }
-}
-
-class ProductTabScreen extends BaseProductScreen {
-  const ProductTabScreen({
-    Key? key,
-    required String token,
-    required String apiUrl,
-  }) : super(
-    key: key,
-    token: token,
-    apiUrl: apiUrl,
-    screenTitle: "Products",
-  );
-}
-
-class SavedProductsScreen extends BaseProductScreen {
-  const SavedProductsScreen({
-    Key? key,
-    required String token,
-  }) : super(
-    key: key,
-    token: token,
-    apiUrl: 'http://localhost:8080/product/Saved',
-    screenTitle: "Saved Products",
-  );
 }
 
 class Product {
@@ -198,18 +88,98 @@ class Product {
     }
 
     return Product(
-      productId: json['productId'] ?? 'unknown',
-      name: json['name'],
+      productId: json['productId'] as String? ?? 'unknown',
+      name: json['name'] as String?,
       skinType: List<String>.from(json['skinType'] ?? []),
       ingredients: List<String>.from(json['ingredients'] ?? []),
-      description: json['description'],
+      description: json['description'] as String?,
       rating: avgRating,
       photos: photos,
-      isSaved: json['isSaved'] ?? false,
+      isSaved: json['isSaved'] is bool ? json['isSaved'] : false,
     );
   }
 }
+class ProductTabScreen extends StatelessWidget {
+  final String token;
+  final String apiUrl; // إضافة معامل للرابط
 
+  const ProductTabScreen({
+    Key? key,
+    required this.token,
+    required this.apiUrl, // تمرير الرابط كمعامل
+  }) : super(key: key);
+
+  Future<List<Product>> fetchProducts() async {
+    final response = await http.get(
+      Uri.parse(apiUrl), // استخدام الرابط الممرر
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      try {
+        final decodedBody = jsonDecode(response.body);
+        if (decodedBody is List) {
+          List<Product> products = decodedBody.map((json) => Product.fromJson(json)).toList();
+
+          for (var product in products) {
+            final savedResponse = await http.get(
+              Uri.parse('http://localhost:8080/product/${product.productId}/isSaved'),
+              headers: {
+                'Authorization': 'Bearer $token',
+                'Content-Type': 'application/json',
+              },
+            );
+
+            if (savedResponse.statusCode == 200) {
+              if (savedResponse.body == 'true' || savedResponse.body == 'false') {
+                product.isSaved = savedResponse.body == 'true';
+              } else {
+                final savedData = jsonDecode(savedResponse.body);
+                product.isSaved = savedData['isSaved'] is bool ? savedData['isSaved'] : false;
+              }
+            }
+          }
+
+          return products;
+        } else {
+          throw Exception('Invalid response format: Expected a list of products');
+        }
+      } catch (e) {
+        throw Exception('Failed to parse response: $e');
+      }
+    } else {
+      throw Exception('Failed to load products: ${response.statusCode}');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[200],
+      appBar: AppBar(
+        title: const Text("Products"),
+        centerTitle: true,
+      ),
+      body: FutureBuilder<List<Product>>(
+        future: fetchProducts(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return ProductList(products: snapshot.data!, token: token);
+        },
+      ),
+    );
+  }
+}
 class ProductList extends StatelessWidget {
   final List<Product> products;
   final String token;
@@ -272,7 +242,7 @@ class _ProductCardState extends State<ProductCard> {
           'Content-Type': 'application/json',
         },
       )
-          : http.delete(
+          : http.post(
         Uri.parse('http://localhost:8080/product/${widget.product.productId}/savedProduct'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
@@ -519,7 +489,7 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'rating': rating.toInt()}),
+        body: jsonEncode({'rating': rating.toInt()}), // تحويل التقييم إلى عدد صحيح
       );
 
       if (response.statusCode == 200) {
@@ -545,7 +515,7 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            height: 300,
+            height: 300, // زيادة ارتفاع الصورة
             child: PageView.builder(
               controller: _pageController,
               itemCount: widget.product.photos?.length ?? 1,
@@ -636,13 +606,11 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
 class CustomBottomNavigationBar extends StatelessWidget {
   final Function(int) onItemTapped;
   final int selectedIndex;
-  final String token;
 
   const CustomBottomNavigationBar({
     super.key,
     required this.onItemTapped,
     required this.selectedIndex,
-    required this.token,
   });
 
   @override
@@ -697,7 +665,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                   onPressed: () => onItemTapped(2),
                 ),
                 IconButton(
-                  icon: Icon(Icons.person, color: selectedIndex == 3 ? Colors.blue : Colors.grey),
+                  icon: Icon(Icons.settings, color: selectedIndex == 3 ? Colors.blue : Colors.grey),
                   onPressed: () => onItemTapped(3),
                 ),
               ],
