@@ -275,7 +275,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
             const SizedBox(height: 20),
-            const TabBarSection(),
+            TabBarSection(token: widget.token),
           ],
         ),
       ),
@@ -285,7 +285,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
 
   ImageProvider _getProfileImage() {
     if (_profileImage != null) return FileImage(_profileImage!);
@@ -359,9 +358,10 @@ class CustomBottomNavigationBar extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ProductTabScreen(
-                        token: token,
-                        )
+                          builder: (context) => ProductTabScreen(
+                            token: token,
+                            apiUrl: "http://localhost:8080/product/random?limit=6",
+                          )
                       ),
                     );
                   },
@@ -398,7 +398,9 @@ class BottomWaveClipper extends CustomClipper<Path> {
 }
 
 class TabBarSection extends StatefulWidget {
-  const TabBarSection({super.key});
+  final String token;
+
+  const TabBarSection({super.key, required this.token});
 
   @override
   _TabBarSectionState createState() => _TabBarSectionState();
@@ -431,13 +433,15 @@ class _TabBarSectionState extends State<TabBarSection>
           height: 200,
           child: TabBarView(
             controller: _tabController,
-            children: const [
-              Center(
-                  child: Text('No saved items',
-                      style: TextStyle(color: Colors.black))),
-              Center(
-                  child: Text('No history available',
-                      style: TextStyle(color: Colors.black))),
+            children: [
+              ProductTabScreen(
+                token: widget.token,
+                apiUrl: "http://localhost:8080/product/Saved",
+              ),
+              const Center(
+                child: Text('No history available',
+                    style: TextStyle(color: Colors.black)),
+              ),
             ],
           ),
         ),

@@ -4,8 +4,6 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
-
-
 class ProductApp extends StatelessWidget {
   const ProductApp({Key? key}) : super(key: key);
 
@@ -36,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _pages = [
     const Center(child: Text("Home")),
-    ProductTabScreen(token: "your_token_here"), // قم بتغيير "your_token_here" إلى التوكن الفعلي
+    // ProductTabScreen(token: "your_token_here"), // قم بتغيير "your_token_here" إلى التوكن الفعلي
     const Center(child: Text("Search")),
     const Center(child: Text("Settings")),
   ];
@@ -101,15 +99,19 @@ class Product {
     );
   }
 }
-
 class ProductTabScreen extends StatelessWidget {
   final String token;
+  final String apiUrl; // إضافة معامل للرابط
 
-  const ProductTabScreen({Key? key, required this.token}) : super(key: key);
+  const ProductTabScreen({
+    Key? key,
+    required this.token,
+    required this.apiUrl, // تمرير الرابط كمعامل
+  }) : super(key: key);
 
   Future<List<Product>> fetchProducts() async {
     final response = await http.get(
-      Uri.parse('http://localhost:8080/product/random?limit=6'),
+      Uri.parse(apiUrl), // استخدام الرابط الممرر
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -178,7 +180,6 @@ class ProductTabScreen extends StatelessWidget {
     );
   }
 }
-
 class ProductList extends StatelessWidget {
   final List<Product> products;
   final String token;
@@ -421,12 +422,14 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
   late PageController _pageController;
   int _currentPage = 0;
   double _userRating = 0;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
     _startAutoSlide();
+    _fetchUserRating();
   }
 
   void _startAutoSlide() {
@@ -444,15 +447,49 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
     });
   }
 
-  Future<void> _submitRating(double rating) async {
+  Future<void> _fetchUserRating() async {
     try {
-      final response = await http.post(
-        Uri.parse('http://localhost:8080/product/${widget.product.productId}/rate'),
+      final response = await http.get(
+        Uri.parse('http://localhost:8080/product/${widget.product.productId}/userReview'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'rating': rating}),
+      );
+
+      if (response.statusCode == 200) {
+        final rating = jsonDecode(response.body);
+        setState(() {
+          _userRating = rating.toDouble();
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to fetch user rating')),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Connection error')),
+      );
+    }
+  }
+
+  Future<void> _submitRating(double rating) async {
+    try {
+      final response = await http.put(
+        Uri.parse('http://localhost:8080/product/${widget.product.productId}/reviews'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'rating': rating.toInt()}), // تحويل التقييم إلى عدد صحيح
       );
 
       if (response.statusCode == 200) {
@@ -478,7 +515,7 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            height: 200,
+            height: 300, // زيادة ارتفاع الصورة
             child: PageView.builder(
               controller: _pageController,
               itemCount: widget.product.photos?.length ?? 1,
@@ -537,8 +574,10 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
                       SizedBox(height: 16),
                     ],
                   ),
-                RatingBar.builder(
-                  initialRating: widget.product.rating,
+                _isLoading
+                    ? CircularProgressIndicator()
+                    : RatingBar.builder(
+                  initialRating: _userRating,
                   minRating: 1,
                   direction: Axis.horizontal,
                   allowHalfRating: true,
