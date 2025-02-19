@@ -6,7 +6,7 @@ import 'package:projtry1/LogIn/login.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:projtry1/Product/product.dart';
-
+import 'package:projtry1/Product/productPage.dart';
 class Profile extends StatelessWidget {
   final String token;
   final Map<String, dynamic> userInfo;
@@ -358,10 +358,9 @@ class CustomBottomNavigationBar extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => ProductTabScreen(
-                            token: token,
-                            apiUrl: "http://localhost:8080/product/random?limit=6",
-                          )
+                          builder: (context) => ProductPage(token: token,userInfo: userInfo
+
+                          ),
                       ),
                     );
                   },
@@ -430,7 +429,7 @@ class _TabBarSectionState extends State<TabBarSection>
           ],
         ),
         Container(
-          height: 200,
+          height: 300,
           child: TabBarView(
             controller: _tabController,
             children: [

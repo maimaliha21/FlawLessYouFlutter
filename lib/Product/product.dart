@@ -34,7 +34,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _pages = [
     const Center(child: Text("Home")),
-    // ProductTabScreen(token: "your_token_here"), // قم بتغيير "your_token_here" إلى التوكن الفعلي
     const Center(child: Text("Search")),
     const Center(child: Text("Settings")),
   ];
@@ -159,10 +158,10 @@ class ProductTabScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
-      appBar: AppBar(
-        title: const Text("Products"),
-        centerTitle: true,
-      ),
+      // appBar: AppBar(
+      //   // title: const Text("Products"),
+      //   centerTitle: true,
+      // ),
       body: FutureBuilder<List<Product>>(
         future: fetchProducts(),
         builder: (context, snapshot) {
