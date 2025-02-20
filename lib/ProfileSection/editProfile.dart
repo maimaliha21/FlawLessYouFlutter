@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'profile.dart';
-import 'package:http/http.dart' as http;
 
 void main() {
   runApp(editProfile());
@@ -13,32 +11,36 @@ class editProfile extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: EditProfileScreen(token: 'your_token_here', userInfo: {}),
+      home: EditProfileScreen(),
     );
   }
 }
 
 class EditProfileScreen extends StatefulWidget {
-  final String token;
-  final Map<String, dynamic> userInfo;
-
-  const EditProfileScreen({
-    Key? key,
-    required this.token,
-    required this.userInfo,
-  }) : super(key: key);
-
   @override
   _EditProfileScreenState createState() => _EditProfileScreenState();
 }
 
-class _EditProfileScreenState extends State<EditProfileScreen> {
+class _EditProfileScreenState extends State<EditProfileScreen>
+    with SingleTickerProviderStateMixin {
   File? _profileImage;
   final ImagePicker _picker = ImagePicker();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _oldPasswordController = TextEditingController();
+  final TextEditingController _newPasswordController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
 
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
@@ -49,260 +51,251 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  Future<void> _saveChanges() async {
-    try {
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('http://localhost:8080/api/users/update-profile'),
-      );
-
-      request.headers.addAll({
-        'Authorization': 'Bearer ${widget.token}',
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      setState(() {
+        _dobController.text = "${picked.day}/${picked.month}/${picked.year}";
       });
-
-      if (_profileImage != null) {
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'file',
-            _profileImage!.path,
-          ),
-        );
-      }
-
-      request.fields['firstName'] = _firstNameController.text;
-      request.fields['lastName'] = _lastNameController.text;
-      request.fields['dob'] = _dobController.text;
-      request.fields['password'] = _passwordController.text;
-
-      var response = await request.send();
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully')),
-        );
-      } else {
-        throw Exception('Failed to update profile');
-      }
-    } catch (e) {
-      print('Error updating profile: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to update profile')),
-      );
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _firstNameController.text = widget.userInfo['firstName'] ?? '';
-    _lastNameController.text = widget.userInfo['lastName'] ?? '';
-    _dobController.text = widget.userInfo['dob'] ?? '';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
+      appBar: AppBar(
+        title: Text('Edit Profile'),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            // الانتقال إلى صفحة أخرى (مثل صفحة البروفايل)
+            Navigator.pop(context);
+          },
+        ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(text: 'Personal Info'),
+            Tab(text: 'Security'),
+          ],
+        ),
+      ),
+      body: Column(
         children: [
-          Container(
-            width: double.infinity,
-            height: 200,
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/bgphoto.jpg'),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          Positioned(
-            top: 40,
-            left: 10,
+          // مساحة فارغة في الأعلى
+          SizedBox(height: 20),
+          // صورة البروفايل مع ظل
+          Padding(
+            padding: EdgeInsets.only(top: 20),
             child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ProfileScreen(token: widget.token, userInfo: widget.userInfo)),
-                );
-              },
+              onTap: _pickImage,
               child: Container(
-                padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.grey[700],
-                  borderRadius: BorderRadius.circular(8),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black26,
-                      blurRadius: 8,
+                      blurRadius: 10,
                       spreadRadius: 2,
-                      offset: Offset(2, 2),
+                      offset: Offset(0, 4),
                     ),
                   ],
+                  shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  Icons.arrow_back,
-                  color: Colors.white,
-                  size: 28,
+                child: CircleAvatar(
+                  radius: 60,
+                  backgroundColor: Colors.grey[200],
+                  backgroundImage: _profileImage == null
+                      ? AssetImage('assets/profile.jpg') as ImageProvider
+                      : FileImage(_profileImage!),
                 ),
               ),
             ),
           ),
-          Padding(
-            padding: EdgeInsets.all(20.0),
-            child: Column(
+          SizedBox(height: 20), // مسافة بين صورة البروفايل والحقول
+          // التبويبات
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
               children: [
-                SizedBox(height: 90),
-                Align(
-                  alignment: Alignment.center,
-                  child: Stack(
+                // Personal Info Tab
+                SingleChildScrollView(
+                  padding: EdgeInsets.all(20),
+                  child: Column(
                     children: [
-                      GestureDetector(
-                        onTap: _pickImage,
-                        child: CircleAvatar(
-                          radius: 60,
-                          backgroundColor: Colors.white,
-                          child: CircleAvatar(
-                            radius: 55,
-                            backgroundImage: _profileImage == null
-                                ? AssetImage('assets/profile.jpg') as ImageProvider
-                                : FileImage(_profileImage!),
-                          ),
-                        ),
+                      _buildTextFieldWithDescription(
+                        'First Name',
+                        _firstNameController,
+                        description: 'Enter your first name',
                       ),
-                      Positioned(
-                        bottom: 5,
-                        right: 5,
-                        child: CircleAvatar(
-                          radius: 15,
-                          backgroundColor: Colors.blue,
-                          child: Icon(Icons.edit, color: Colors.white, size: 15),
-                        ),
+                      _buildTextFieldWithDescription(
+                        'Last Name',
+                        _lastNameController,
+                        description: 'Enter your last name',
+                      ),
+                      _buildDateFieldWithDescription(
+                        'Date of Birth',
+                        _dobController,
+                        context,
+                        description: 'Select your date of birth',
+                      ),
+                      _buildTextFieldWithDescription(
+                        'Phone Number',
+                        _phoneController,
+                        description: 'Enter your phone number',
                       ),
                     ],
                   ),
                 ),
-                SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(child: _buildTextField('First Name', _firstNameController)),
-                    SizedBox(width: 10),
-                    Expanded(child: _buildTextField('Last Name', _lastNameController)),
-                  ],
-                ),
-                _buildTextField('Date of Birth', _dobController),
-                _buildTextField('Change Password', _passwordController, isPassword: true),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _saveChanges,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                // Security Tab
+                SingleChildScrollView(
+                  padding: EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      _buildTextFieldWithDescription(
+                        'Email',
+                        _emailController,
+                        description: 'Enter your email address',
+                      ),
+                      _buildTextFieldWithDescription(
+                        'Username',
+                        _usernameController,
+                        description: 'Enter your username',
+                      ),
+                      _buildTextFieldWithDescription(
+                        'Old Password',
+                        _oldPasswordController,
+                        description: 'Enter your old password',
+                        isPassword: true,
+                      ),
+                      _buildTextFieldWithDescription(
+                        'New Password',
+                        _newPasswordController,
+                        description: 'Enter your new password',
+                        isPassword: true,
+                      ),
+                    ],
                   ),
-                  child: Text('Save Changes'),
                 ),
               ],
             ),
           ),
         ],
       ),
-      bottomNavigationBar: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          ClipPath(
-            clipper: BottomWaveClipper(),
-            child: Container(
-              height: 70,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 10,
-                  ),
-                ],
-              ),
+      // زر Save مع تصميم جديد
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(bottom: 155), // رفع الزر لأعلى قليلاً
+        child: FloatingActionButton.extended(
+          onPressed: () {
+            // Save changes logic here
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Changes saved successfully!')),
+            );
+          },
+          icon: Icon(Icons.save, color: Colors.white),
+          label: Text(
+            'Save Changes',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.blue,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30), // حواف مدورة
+          ),
+          elevation: 5, // ظل للزر
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat, // وضع الزر في المنتصف
+    );
+  }
+
+  Widget _buildTextFieldWithDescription(
+      String label,
+      TextEditingController controller, {
+        String? description,
+        bool isPassword = false,
+      }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (description != null)
+          Padding(
+            padding: EdgeInsets.only(bottom: 5),
+            child: Text(
+              description,
+              style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ),
-          Positioned(
-            bottom: 25,
-            left: MediaQuery.of(context).size.width / 2 - 30,
-            child: FloatingActionButton(
-              backgroundColor: Colors.blue,
-              onPressed: () {},
-              child: Icon(Icons.face, color: Colors.white),
+        _buildTextField(label, controller, isPassword: isPassword),
+      ],
+    );
+  }
+
+  Widget _buildDateFieldWithDescription(
+      String label,
+      TextEditingController controller,
+      BuildContext context, {
+        String? description,
+      }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (description != null)
+          Padding(
+            padding: EdgeInsets.only(bottom: 5),
+            child: Text(
+              description,
+              style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 70,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.home, color: Colors.blue),
-                    onPressed: () {},
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.chat, color: Colors.blue),
-                    onPressed: () {},
-                  ),
-                  SizedBox(width: 60),
-                  IconButton(
-                    icon: Icon(Icons.settings, color: Colors.blue),
-                    onPressed: () {},
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.person, color: Colors.blue),
-                    onPressed: () {},
-                  ),
-                ],
-              ),
-            ),
+        _buildDateField(label, controller, context),
+      ],
+    );
+  }
+
+  Widget _buildTextField(String label, TextEditingController controller,
+      {bool isPassword = false}) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 20),
+      child: TextField(
+        controller: controller,
+        obscureText: isPassword,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
           ),
-        ],
+          filled: true,
+          fillColor: Colors.grey[200],
+        ),
       ),
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {bool isPassword = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
-        SizedBox(height: 5),
-        TextField(
-          controller: controller,
-          obscureText: isPassword,
-          decoration: InputDecoration(
-            hintText: label,
-            border: OutlineInputBorder(),
+  Widget _buildDateField(
+      String label, TextEditingController controller, BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 20),
+      child: TextField(
+        controller: controller,
+        readOnly: true,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          filled: true,
+          fillColor: Colors.grey[200],
+          suffixIcon: IconButton(
+            icon: Icon(Icons.calendar_today),
+            onPressed: () => _selectDate(context),
           ),
         ),
-        SizedBox(height: 10),
-      ],
+        onTap: () => _selectDate(context),
+      ),
     );
   }
-}
-
-class BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height - 20);
-    path.quadraticBezierTo(
-        size.width / 4, size.height, size.width / 2, size.height - 20);
-    path.quadraticBezierTo(
-        size.width * 3 / 4, size.height - 40, size.width, size.height - 20);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
