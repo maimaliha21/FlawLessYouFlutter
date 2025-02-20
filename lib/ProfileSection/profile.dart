@@ -73,7 +73,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SnackBar(content: Text('Failed to pick image')),
       );
     }
-  }Future<void> _uploadProfilePicture(html.File imageFile) async {
+  }
+
+  Future<void> _uploadProfilePicture(html.File imageFile) async {
     try {
       final reader = html.FileReader();
       reader.readAsArrayBuffer(imageFile);
