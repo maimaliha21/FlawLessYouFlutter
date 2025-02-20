@@ -6,25 +6,25 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="A new Flutter project.">
 
-  <!-- Consolidated and Corrected CSP Meta Tag -->
+  <!-- تم تصحيح سياسة الأمان لتشمل النطاقات الضرورية -->
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self' https:;
                 script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://apis.google.com https://www.gstatic.com https://accounts.google.com;
                 style-src 'self' 'unsafe-inline' https:;
                 frame-src 'self' https://accounts.google.com;
-                 connect-src http://localhost:8080 'self' ws://localhost:8080 https:;
+                connect-src http://localhost:8080 'self' ws://localhost:8080 https:;
 ">
 
-  <!-- Cross-Origin Policies -->
+  <!-- سياسات Cross-Origin -->
   <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
   <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
 
-  <!-- Google Sign-In Meta and Scripts -->
+  <!-- تم توحيد Client ID ليكون متطابقًا في جميع الأماكن -->
   <meta name="google-signin-client_id" content="631393157394-glrev6a2q6oiquvv15a24minn0j93t51.apps.googleusercontent.com">
   <script src="https://apis.google.com/js/api.js" async defer></script>
   <script src="https://apis.google.com/js/platform.js" async defer></script>
 
-  <!-- Firebase Scripts -->
+  <!-- إعدادات Firebase -->
   <script>
     window.global = window;
     window.process = { env: {} };
@@ -32,16 +32,16 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
 
-  <!-- Firebase Init -->
+  <!-- تهيئة Firebase مع التكوين الصحيح -->
   <script>
     const firebaseConfig = {
-     apiKey: "AIzaSyD6k8ws8cIVOuqDNGGlLLvL9kw-nndfAeo",
-  authDomain: "flawlessyouu-3a5cc.firebaseapp.com",
-  projectId: "flawlessyouu-3a5cc",
-  storageBucket: "flawlessyouu-3a5cc.firebasestorage.app",
-  messagingSenderId: "122285423203",
-  appId: "1:122285423203:web:bfea0853a7c70d8b97d656",
-  measurementId: "G-1RMNHW2S3W"
+      apiKey: "AIzaSyD6k8ws8cIVOuqDNGGlLLvL9kw-nndfAeo",
+      authDomain: "flawlessyouu-3a5cc.firebaseapp.com",
+      projectId: "flawlessyouu-3a5cc",
+      storageBucket: "flawlessyouu-3a5cc.firebasestorage.app",
+      messagingSenderId: "122285423203",
+      appId: "1:122285423203:web:bfea0853a7c70d8b97d656",
+      measurementId: "G-1RMNHW2S3W"
     };
 
     if (firebase.apps.length === 0) {
@@ -49,12 +49,12 @@
     }
   </script>
 
-  <!-- Initialize gapi.client -->
+  <!-- تم توحيد Client ID هنا ليطابق الميتا تاج -->
   <script>
     function initGapi() {
       gapi.load('auth2', function() {
         gapi.auth2.init({
-          client_id: '631393157394-glrev6a2q6oiquvv15a24minn0j93t51.apps.googleusercontent.com',
+          client_id: '631393157394-glrev6a2q6oiquvv15a24minn0j93t51.apps.googleusercontent.com', // نفس الـ Client ID
         }).then(() => {
           console.log('Google Auth initialized successfully');
         }).catch((error) => {
@@ -66,7 +66,7 @@
     window.onload = initGapi;
   </script>
 
-  <!-- iOS Meta Tags & Icons -->
+  <!-- إعدادات iOS -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="projtry1">
