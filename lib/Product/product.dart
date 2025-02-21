@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
-
-void main() {
-  runApp(const ProductApp());
-}
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 class ProductApp extends StatelessWidget {
   const ProductApp({Key? key}) : super(key: key);
@@ -37,7 +34,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _pages = [
     const Center(child: Text("Home")),
-    const ProductTabScreen(),
     const Center(child: Text("Search")),
     const Center(child: Text("Settings")),
   ];
@@ -54,62 +50,118 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+class Product {
+  final String productId;
+  final String? name;
+  final List<String> skinType;
+  final List<String> ingredients;
+  final String? description;
+  final double rating;
+  final List<String>? photos;
+  bool isSaved;
+
+  Product({
+    required this.productId,
+    this.name,
+    required this.skinType,
+    required this.ingredients,
+    this.description,
+    required this.rating,
+    this.photos,
+    this.isSaved = false,
+  });
+
+  factory Product.fromJson(Map<String, dynamic> json) {
+    double avgRating = 0.0;
+    final reviews = json['reviews'];
+    if (reviews != null && reviews is Map<String, dynamic>) {
+      final ratings = reviews.values.whereType<int>().toList();
+      if (ratings.isNotEmpty) {
+        avgRating = ratings.reduce((a, b) => a + b) / ratings.length;
+      }
+    }
+
+    List<String>? photos;
+    if (json['photos'] is List) {
+      photos = List<String>.from(json['photos']);
+    }
+
+    return Product(
+      productId: json['productId'] as String? ?? 'unknown',
+      name: json['name'] as String?,
+      skinType: List<String>.from(json['skinType'] ?? []),
+      ingredients: List<String>.from(json['ingredients'] ?? []),
+      description: json['description'] as String?,
+      rating: avgRating,
+      photos: photos,
+      isSaved: json['isSaved'] is bool ? json['isSaved'] : false,
+    );
+  }
+}
 class ProductTabScreen extends StatelessWidget {
-  const ProductTabScreen({Key? key}) : super(key: key);
+  final String token;
+  final String apiUrl; // إضافة معامل للرابط
+
+  const ProductTabScreen({
+    Key? key,
+    required this.token,
+    required this.apiUrl, // تمرير الرابط كمعامل
+  }) : super(key: key);
 
   Future<List<Product>> fetchProducts() async {
-    // final response = await http.get(
-    //   Uri.parse('https://your-backend-api.com/products'),
-    //
-    // );
-    //
-    // if (response.statusCode == 200) {
-    //   List<dynamic> data = json.decode(response.body);
-    //   return data.map((json) => Product.fromJson(json)).toList();
-    return [
-    Product(
-      id: 1,
-      name: "Face Cleanser",
-      description: "Gentle cleanser for all skin types.",
-      rating: 4.5,
-      imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924453/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.28.05%20PM.jpeg_20250207123410.jpg",
-    ),
-    ];
+    final response = await http.get(
+      Uri.parse(apiUrl), // استخدام الرابط الممرر
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      try {
+        final decodedBody = jsonDecode(response.body);
+        if (decodedBody is List) {
+          List<Product> products = decodedBody.map((json) => Product.fromJson(json)).toList();
+
+          for (var product in products) {
+            final savedResponse = await http.get(
+              Uri.parse('http://localhost:8080/product/${product.productId}/isSaved'),
+              headers: {
+                'Authorization': 'Bearer $token',
+                'Content-Type': 'application/json',
+              },
+            );
+
+            if (savedResponse.statusCode == 200) {
+              if (savedResponse.body == 'true' || savedResponse.body == 'false') {
+                product.isSaved = savedResponse.body == 'true';
+              } else {
+                final savedData = jsonDecode(savedResponse.body);
+                product.isSaved = savedData['isSaved'] is bool ? savedData['isSaved'] : false;
+              }
+            }
+          }
+
+          return products;
+        } else {
+          throw Exception('Invalid response format: Expected a list of products');
+        }
+      } catch (e) {
+        throw Exception('Failed to parse response: $e');
+      }
+    } else {
+      throw Exception('Failed to load products: ${response.statusCode}');
+    }
   }
-    // else {  return [
-    //   Product(
-    //     id: 1,
-    //     name: "Face Cleanser",
-    //     description: "Gentle cleanser for all skin types.",
-    //     rating: 4.5,
-    //     imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924453/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.28.05%20PM.jpeg_20250207123410.jpg",
-    //   ),
-    //   Product(
-    //     id: 2,
-    //     name: "Moisturizer",
-    //     description: "Hydrates and nourishes the skin.",
-    //     rating: 4.7,
-    //     imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924475/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.27.29%20PM.jpeg_20250207123434.jpg",
-    //   ),
-    //   Product(
-    //     id: 3,
-    //     name: "Sunscreen",
-    //     description: "SPF 50+ protection from UV rays.",
-    //     rating: 4.8,
-    //     imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924453/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.28.05%20PM.jpeg_20250207123410.jpg",
-    //   ),
-    // ];
-    //   }
-  // }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
-      appBar: AppBar(
-        title: const Text("Products"),
-        centerTitle: true,
-      ),
+      // appBar: AppBar(
+      //   // title: const Text("Products"),
+      //   centerTitle: true,
+      // ),
       body: FutureBuilder<List<Product>>(
         future: fetchProducts(),
         builder: (context, snapshot) {
@@ -121,43 +173,21 @@ class ProductTabScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
-          return ProductList(products: snapshot.data!);
+          return ProductList(products: snapshot.data!, token: token);
         },
       ),
     );
   }
 }
-
-class Product {
-  final int id;
-  final String name;
-  final String description;
-  final double rating;
-  final String imageUrl;
-
-  const Product({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.rating,
-    required this.imageUrl,
-  });
-
-  factory Product.fromJson(Map<String, dynamic> json) {
-    return Product(
-      id: json['id'],
-      name: json['name'],
-      description: json['description'],
-      rating: json['rating'].toDouble(),
-      imageUrl: json['imageUrl'],
-    );
-  }
-}
-
 class ProductList extends StatelessWidget {
   final List<Product> products;
+  final String token;
 
-  const ProductList({Key? key, required this.products}) : super(key: key);
+  const ProductList({
+    Key? key,
+    required this.products,
+    required this.token,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -172,7 +202,7 @@ class ProductList extends StatelessWidget {
         ),
         itemCount: products.length,
         itemBuilder: (context, index) {
-          return ProductCard(product: products[index]);
+          return ProductCard(product: products[index], token: token);
         },
       ),
     );
@@ -181,8 +211,9 @@ class ProductList extends StatelessWidget {
 
 class ProductCard extends StatefulWidget {
   final Product product;
+  final String token;
 
-  const ProductCard({Key? key, required this.product}) : super(key: key);
+  const ProductCard({Key? key, required this.product, required this.token}) : super(key: key);
 
   @override
   _ProductCardState createState() => _ProductCardState();
@@ -191,144 +222,386 @@ class ProductCard extends StatefulWidget {
 class _ProductCardState extends State<ProductCard> {
   bool isSaved = false;
 
-  Future<void> saveProduct(int productId) async {
-    final url = Uri.parse('https://your-backend-api.com/save');
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'productId': productId}),
-    );
+  @override
+  void initState() {
+    super.initState();
+    isSaved = widget.product.isSaved;
+  }
 
-    if (response.statusCode == 200) {
-      setState(() => isSaved = true);
+  Future<void> toggleSave() async {
+    final newState = !isSaved;
+    setState(() => isSaved = newState);
+
+    try {
+      final response = await (newState
+          ? http.post(
+        Uri.parse('http://localhost:8080/product/${widget.product.productId}/savedProduct'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+      )
+          : http.post(
+        Uri.parse('http://localhost:8080/product/${widget.product.productId}/savedProduct'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+      ));
+
+      if (response.statusCode != 200) {
+        setState(() => isSaved = !newState);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to ${newState ? 'save' : 'unsave'} product')),
+        );
+      }
+    } catch (e) {
+      setState(() => isSaved = !newState);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Product saved successfully!')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to save product.')),
+        const SnackBar(content: Text('Connection error')),
       );
     }
   }
 
+  void _showProductDetails(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          insetPadding: EdgeInsets.all(16),
+          child: ProductDetailsPopup(product: widget.product, token: widget.token),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(15),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.network(
-              widget.product.imageUrl,
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Center(
-                  child: CircularProgressIndicator(
-                    value: loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded /
-                        loadingProgress.expectedTotalBytes!
-                        : null,
+    return GestureDetector(
+      onTap: () => _showProductDetails(context),
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(15),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (widget.product.photos != null && widget.product.photos!.isNotEmpty)
+                Image.network(
+                  widget.product.photos![0],
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.error),
                   ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) => const Icon(Icons.error),
-            ),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Colors.black.withOpacity(0.8),
-                      Colors.transparent,
+                )
+              else
+                Container(
+                  color: Colors.grey[300],
+                  child: const Center(
+                    child: Icon(Icons.image_not_supported, color: Colors.white),
+                  ),
+                ),
+
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.8),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.product.name ?? 'No Name',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.product.description ?? 'No description available',
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          ...List.generate(5, (index) {
+                            double starPosition = index + 1.0;
+                            if (widget.product.rating >= starPosition) {
+                              return const Icon(
+                                Icons.star,
+                                color: Colors.yellow,
+                                size: 16,
+                              );
+                            } else if (widget.product.rating >= starPosition - 0.5) {
+                              return const Icon(
+                                Icons.star_half,
+                                color: Colors.yellow,
+                                size: 16,
+                              );
+                            } else {
+                              return const Icon(
+                                Icons.star_border,
+                                color: Colors.grey,
+                                size: 16,
+                              );
+                            }
+                          }),
+                          const SizedBox(width: 4),
+                          Text(
+                            widget.product.rating.toStringAsFixed(1),
+                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.product.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      widget.product.description,
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        ...List.generate(5, (index) {
-                          double starPosition = index + 1.0;
-                          if (widget.product.rating >= starPosition) {
-                            return const Icon(
-                              Icons.star,
-                              color: Colors.yellow,
-                              size: 16,
-                            );
-                          } else if (widget.product.rating >= starPosition - 0.5) {
-                            return const Icon(
-                              Icons.star_half,
-                              color: Colors.yellow,
-                              size: 16,
-                            );
-                          } else {
-                            return const Icon(
-                              Icons.star_border,
-                              color: Colors.grey,
-                              size: 16,
-                            );
-                          }
-                        }),
-                        const SizedBox(width: 4),
-                        Text(
-                          widget.product.rating.toStringAsFixed(1),
-                          style: const TextStyle(color: Colors.white, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ],
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: IconButton(
+                  icon: Icon(
+                    isSaved ? Icons.bookmark : Icons.bookmark_border,
+                    color: isSaved ? Colors.yellow : Colors.white,
+                  ),
+                  onPressed: toggleSave,
                 ),
               ),
-            ),
-            Positioned(
-              top: 8,
-              right: 8,
-              child: IconButton(
-                icon: Icon(
-                  isSaved ? Icons.bookmark : Icons.bookmark_border,
-                  color: isSaved ? Colors.yellow : Colors.white,
-                ),
-                onPressed: () => saveProduct(widget.product.id),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// CustomBottomNavigationBar و BottomWaveClipper يبقى نفس الكود السابق دون تغيير
+class ProductDetailsPopup extends StatefulWidget {
+  final Product product;
+  final String token;
+
+  const ProductDetailsPopup({Key? key, required this.product, required this.token}) : super(key: key);
+
+  @override
+  _ProductDetailsPopupState createState() => _ProductDetailsPopupState();
+}
+
+class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
+  late PageController _pageController;
+  int _currentPage = 0;
+  double _userRating = 0;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    _startAutoSlide();
+    _fetchUserRating();
+  }
+
+  void _startAutoSlide() {
+    Timer.periodic(Duration(seconds: 8), (timer) {
+      if (_currentPage < (widget.product.photos?.length ?? 1) - 1) {
+        _currentPage++;
+      } else {
+        _currentPage = 0;
+      }
+      _pageController.animateToPage(
+        _currentPage,
+        duration: Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  Future<void> _fetchUserRating() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://localhost:8080/product/${widget.product.productId}/userReview'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final rating = jsonDecode(response.body);
+        setState(() {
+          _userRating = rating.toDouble();
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to fetch user rating')),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Connection error')),
+      );
+    }
+  }
+
+  Future<void> _submitRating(double rating) async {
+    try {
+      final response = await http.put(
+        Uri.parse('http://localhost:8080/product/${widget.product.productId}/reviews'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'rating': rating.toInt()}), // تحويل التقييم إلى عدد صحيح
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Rating submitted successfully')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to submit rating')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Connection error')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            height: 300, // زيادة ارتفاع الصورة
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: widget.product.photos?.length ?? 1,
+              itemBuilder: (context, index) {
+                return Image.network(
+                  widget.product.photos?[index] ?? widget.product.photos?.first ?? '',
+                  fit: BoxFit.cover,
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.product.name ?? 'No Name',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  widget.product.description ?? 'No description available',
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(height: 16),
+                if (widget.product.skinType.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Skin Type:',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        widget.product.skinType.join(', '),
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      SizedBox(height: 16),
+                    ],
+                  ),
+                if (widget.product.ingredients.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Ingredients:',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        widget.product.ingredients.join(', '),
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      SizedBox(height: 16),
+                    ],
+                  ),
+                _isLoading
+                    ? CircularProgressIndicator()
+                    : RatingBar.builder(
+                  initialRating: _userRating,
+                  minRating: 1,
+                  direction: Axis.horizontal,
+                  allowHalfRating: true,
+                  itemCount: 5,
+                  itemPadding: EdgeInsets.symmetric(horizontal: 4.0),
+                  itemBuilder: (context, _) => Icon(
+                    Icons.star,
+                    color: Colors.amber,
+                  ),
+                  onRatingUpdate: (rating) {
+                    setState(() {
+                      _userRating = rating;
+                    });
+                    _submitRating(rating);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class CustomBottomNavigationBar extends StatelessWidget {
   final Function(int) onItemTapped;
   final int selectedIndex;

@@ -100,10 +100,10 @@ class _SupportTeamScreenState extends State<SupportTeamScreen> {
             IconButton(
               icon: Icon(Icons.arrow_back, color: Colors.white, size: 26),
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => editProfile()),
-                );
+                // Navigator.push(
+                //   context,
+                //   MaterialPageRoute(builder: (context) => editProfile()),
+                // );
               },
             ),
             SizedBox(width: 8),

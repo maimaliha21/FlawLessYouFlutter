@@ -81,10 +81,10 @@ class _CardScreenState extends State<CardScreen> {
             IconButton(
               icon: Icon(Icons.arrow_back, color: Colors.white, size: 26), // السهم
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => editProfile()), // الانتقال لصفحة Profile
-                );
+                // Navigator.push(
+                //                 //   context,
+                //                 //   MaterialPageRoute(builder: (context) => editProfile()), // الانتقال لصفحة Profile
+                //                 // );
               },
             ),
             SizedBox(width: 8), // مسافة صغيرة بين السهم والنص

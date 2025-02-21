@@ -3,8 +3,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:projtry1/ProfileSection/editProfile.dart';
 import 'package:projtry1/api/google_signin_api.dart';
 import 'package:projtry1/LogIn/login.dart';
-import 'dart:io';
+import 'dart:html' as html; // استيراد dart:html للتعامل مع الملفات في الويب
+import 'dart:typed_data'; // لاستخدام Uint8List
 import 'package:http/http.dart' as http;
+import 'package:projtry1/Product/product.dart';
+import 'package:projtry1/Product/productPage.dart';
+import 'dart:convert';
 
 class Profile extends StatelessWidget {
   final String token;
@@ -40,17 +44,27 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  File? _profileImage;
+  html.File? _profileImage;
   final ImagePicker _picker = ImagePicker();
-
   Future<void> _pickImage() async {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
-        setState(() {
-          _profileImage = File(image.path);
-        });
-        await _uploadProfilePicture(File(image.path));
+        print('Selected file: ${image.name}, MIME type: ${image.mimeType}'); // Log MIME type
+        if (image.mimeType?.startsWith('image/') ?? false) {
+          setState(() {
+            _profileImage = html.File([image.path], image.name);
+          });
+          await _uploadProfilePicture(_profileImage!);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please select a valid image file')),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No image selected')),
+        );
       }
     } catch (e) {
       print('Error picking image: $e');
@@ -59,37 +73,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
-
-  Future<void> _uploadProfilePicture(File imageFile) async {
+  Future<void> _uploadProfilePicture(html.File imageFile) async {
     try {
+      final reader = html.FileReader();
+      reader.readAsArrayBuffer(imageFile);
+      await reader.onLoad.first;
+
+      final fileBytes = reader.result as Uint8List;
+
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://localhost:8080/api/users/profile-picture'),
+        Uri.parse('http://localhost:8080/api/users/profilePicture'),
       );
 
       request.headers.addAll({
         'Authorization': 'Bearer ${widget.token}',
       });
 
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'file',
-          imageFile.path,
-        ),
+      var multipartFile = http.MultipartFile.fromBytes(
+        'file',
+        fileBytes,
+        filename: imageFile.name,
       );
 
+      request.files.add(multipartFile);
+
+      print('Sending request with file: ${imageFile.name}, MIME type: ${imageFile.type}'); // Log MIME type
+
       var response = await request.send();
+
       if (response.statusCode == 200) {
+        var responseData = await response.stream.bytesToString();
+        var jsonResponse = jsonDecode(responseData);
+
+        setState(() {
+          widget.userInfo['profilePicture'] = jsonResponse['url'];
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile picture updated successfully')),
         );
       } else {
-        throw Exception('Failed to upload profile picture');
+        var errorResponse = await response.stream.bytesToString();
+        print('Error response: $errorResponse');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to upload profile picture: $errorResponse')),
+        );
       }
     } catch (e) {
       print('Error uploading profile picture: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to upload profile picture')),
+        SnackBar(content: Text('Failed to upload profile picture: $e')),
       );
     }
   }
@@ -242,7 +276,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => editProfile(
+                      builder: (context) => EditProfile(
+                          token: widget.token,
+                          // userInfo: widget.userInfo
                       ),
                     ),
                   ),
@@ -274,16 +310,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
             const SizedBox(height: 20),
-            const TabBarSection(),
+            TabBarSection(token: widget.token),
           ],
         ),
       ),
-      bottomNavigationBar: const CustomBottomNavigationBar(),
+      bottomNavigationBar: CustomBottomNavigationBar(
+        token: widget.token,
+        userInfo: widget.userInfo,
+      ),
     );
   }
 
   ImageProvider _getProfileImage() {
-    if (_profileImage != null) return FileImage(_profileImage!);
+    if (_profileImage != null) return NetworkImage(_profileImage!.name);
     if (widget.userInfo['profilePicture'] != null) {
       return NetworkImage(widget.userInfo['profilePicture']);
     }
@@ -292,7 +331,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 }
 
 class CustomBottomNavigationBar extends StatelessWidget {
-  const CustomBottomNavigationBar({super.key});
+  final String token;
+  final Map<String, dynamic> userInfo;
+
+  const CustomBottomNavigationBar({
+    super.key,
+    required this.token,
+    required this.userInfo,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -343,7 +389,14 @@ class CustomBottomNavigationBar extends StatelessWidget {
                 const SizedBox(width: 60),
                 IconButton(
                   icon: const Icon(Icons.settings, color: Colors.blue),
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProductPage(token: token, userInfo: userInfo),
+                      ),
+                    );
+                  },
                 ),
                 IconButton(
                   icon: const Icon(Icons.person, color: Colors.blue),
@@ -377,7 +430,9 @@ class BottomWaveClipper extends CustomClipper<Path> {
 }
 
 class TabBarSection extends StatefulWidget {
-  const TabBarSection({super.key});
+  final String token;
+
+  const TabBarSection({super.key, required this.token});
 
   @override
   _TabBarSectionState createState() => _TabBarSectionState();
@@ -407,16 +462,18 @@ class _TabBarSectionState extends State<TabBarSection>
           ],
         ),
         Container(
-          height: 200,
+          height: 300,
           child: TabBarView(
             controller: _tabController,
-            children: const [
-              Center(
-                  child: Text('No saved items',
-                      style: TextStyle(color: Colors.black))),
-              Center(
-                  child: Text('No history available',
-                      style: TextStyle(color: Colors.black))),
+            children: [
+              ProductTabScreen(
+                token: widget.token,
+                apiUrl: "http://localhost:8080/product/Saved",
+              ),
+              const Center(
+                child: Text('No history available',
+                    style: TextStyle(color: Colors.black)),
+              ),
             ],
           ),
         ),
