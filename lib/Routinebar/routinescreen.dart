@@ -29,10 +29,10 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onItemTapped(int index) {
     if (index == 4) {
       // الانتقال إلى صفحة البروفايل عند الضغط على الأيقونة
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => editProfile()), // فتح الصفحة من ملف profile.dart
-      );
+      // Navigator.push(
+      //   context,
+      //   MaterialPageRoute(builder: (context) => editProfile()), // فتح الصفحة من ملف profile.dart
+      // );
     } else if(index == 3) {
       setState(() {
         _selectedIndex = index;
