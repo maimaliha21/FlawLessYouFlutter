@@ -1,419 +1,352 @@
-// import 'package:flutter/material.dart';
-// import 'package:google_fonts/google_fonts.dart';
-// void main() {
-//   runApp(MyApp());
-// }
-//
-// class MyApp extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       debugShowCheckedModeBanner: false,
-//       home: HomeScreen(),
-//     );
-//   }
-// }
-//
-// class HomeScreen extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       bottomNavigationBar: BottomNavigationBar(
-//         selectedItemColor: Colors.white,
-//         unselectedItemColor: Colors.white70,
-//         backgroundColor: Color.fromRGBO(166, 224, 228, 1), // اللون السماوي المتوسط
-//         items: [
-//           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-//           BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Schedule'),
-//           BottomNavigationBarItem(icon: Icon(Icons.face), label: 'Community'),
-//           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-//         ],
-//       ),
-//       body: Container(
-//         decoration: BoxDecoration(
-//           image: DecorationImage(
-//             image: AssetImage('assets/background.png'),
-//             fit: BoxFit.cover,
-//           ),
-//         ),
-//         child: SafeArea(
-//           child: SingleChildScrollView(
-//             padding: EdgeInsets.all(16.0),
-//             child: Column(
-//               crossAxisAlignment: CrossAxisAlignment.start,
-//               children: [
-//                 SizedBox(height: 20),
-//                 Text(
-//                   'Hello, Celina',
-//                   style: TextStyle(
-//                     fontSize: 24,
-//                     fontWeight: FontWeight.bold,
-//                     color: Colors.black,
-//                   ),
-//                 ),
-//                 Text(
-//                   'How’s your face condition?',
-//                   style: TextStyle(color: Colors.black87),
-//                 ),
-//                 SizedBox(height: 10),
-//                 TextField(
-//                   onTap: () {
-//                     Navigator.push(
-//                       context,
-//                       MaterialPageRoute(builder: (context) => SearchScreen()),
-//                     );
-//                   },
-//                   readOnly: true,
-//                   decoration: InputDecoration(
-//                     hintText: 'Find your favorite product',
-//                     filled: true,
-//                     fillColor: Color.fromRGBO(200, 236, 238, 1), // اللون السماوي الفاتح جدًا
-//                     prefixIcon: Icon(Icons.search, color: Colors.black54),
-//                     border: OutlineInputBorder(
-//                       borderRadius: BorderRadius.circular(30),
-//                       borderSide: BorderSide.none,
-//                     ),
-//                   ),
-//                 ),
-//                 SizedBox(height: 20),
-//                 Container(
-//                   padding: EdgeInsets.all(16.0),
-//                   decoration: BoxDecoration(
-//                     color: Color.fromRGBO(200, 236, 238, 1), // اللون السماوي الفاتح جدًا
-//                     borderRadius: BorderRadius.circular(12),
-//                     boxShadow: [
-//                       BoxShadow(
-//                         color: Colors.black26,
-//                         blurRadius: 4,
-//                         offset: Offset(2, 2),
-//                       ),
-//                     ],
-//                   ),
-//                   child: Column(
-//                     crossAxisAlignment: CrossAxisAlignment.start,
-//                     children: [
-//                       Text(
-//                         'Hi',
-//                         style: TextStyle(
-//                           fontSize: 20,
-//                           fontWeight: FontWeight.bold,
-//                           color: Colors.black,
-//                         ),
-//                       ),
-//                       Text(
-//                         'Don’t forget your daily skin routine, we care about you and your skin',
-//                         style: TextStyle(color: Colors.black),
-//                       ),
-//                       TextButton(
-//                         onPressed: () {},
-//                         child: Text(
-//                           'Start Skincare Routine',
-//                           style: TextStyle(color: Colors.black),
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-//                 ),
-//                 SizedBox(height: 20),
-//                 Text(
-//                   'TIPS',
-//                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-//                 ),
-//                 SizedBox(height: 10),
-//                 TipsCarousel(),
-//                 SizedBox(height: 20),
-//                 Text(
-//                   'Product',
-//                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-//                 ),
-//                 SizedBox(height: 10),
-//               ],
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-//
-// class TipsCarousel extends StatefulWidget {
-//   @override
-//   _TipsCarouselState createState() => _TipsCarouselState();
-// }
-//
-// class _TipsCarouselState extends State<TipsCarousel> {
-//   int _currentIndex = 0;
-//
-//   final List<Widget> _tips = [
-//     tipCard('Stay Hydrated', Color.fromRGBO(200, 236, 238, 1)),
-//     tipCard('Moisturize Regularly', Color.fromRGBO(166, 224, 228, 1)),
-//     tipCard('Use Sunscreen', Colors.orange[100]!),
-//   ];
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Column(
-//       children: [
-//         Container(
-//           height: 130, // Slightly smaller height for tips
-//           child: PageView.builder(
-//             itemCount: _tips.length,
-//             controller: PageController(viewportFraction: 0.8),
-//             onPageChanged: (index) {
-//               setState(() {
-//                 _currentIndex = index;
-//               });
-//             },
-//             itemBuilder: (context, index) {
-//               return _tips[index];
-//             },
-//           ),
-//         ),
-//         SizedBox(height: 10),
-//         Row(
-//           mainAxisAlignment: MainAxisAlignment.center,
-//           children: List.generate(_tips.length, (index) {
-//             return Container(
-//               margin: EdgeInsets.symmetric(horizontal: 4),
-//               width: 8,
-//               height: 8,
-//               decoration: BoxDecoration(
-//                 color: _currentIndex == index
-//                     ? Color(0xFF36D8F4) // Stylish line color
-//                     : Colors.grey,
-//                 shape: BoxShape.circle,
-//               ),
-//             );
-//           }),
-//         ),
-//       ],
-//     );
-//   }
-//
-//   static Widget tipCard(String text, Color backgroundColor) {
-//     return AnimatedSwitcher(
-//       duration: Duration(milliseconds: 300),
-//       child: Container(
-//         key: ValueKey<String>(text), // Unique key for animation
-//         width: double.infinity,
-//         margin: EdgeInsets.symmetric(horizontal: 8.0),
-//         padding: EdgeInsets.all(12.0), // Smaller padding
-//         decoration: BoxDecoration(
-//           color: backgroundColor,
-//           borderRadius: BorderRadius.circular(12),
-//           boxShadow: [
-//             BoxShadow(
-//               color: Colors.black12,
-//               blurRadius: 4,
-//               offset: Offset(2, 2),
-//             ),
-//           ],
-//         ),
-//         child: Center(
-//           child: Text(
-//             text,
-//             style: TextStyle(
-//               fontSize: 16, // Smaller font size for tips
-//               fontWeight: FontWeight.bold,
-//               color: Colors.black87,
-//             ),
-//             textAlign: TextAlign.center,
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-//
-// class SearchScreen extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text('Search'),
-//       ),
-//       body: Center(
-//         child: Text('Search Page Content Here'),
-//       ),
-//     );
-//   }
-// }
-
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../Product/product.dart';
+import '../Product/productPage.dart';
+import '../Home_Section/search.dart';
 
-void main() {
-  runApp(MyApp());
-}
+class Home extends StatelessWidget {
+  final String token;
+  final Map<String, dynamic> userInfo;
 
-class MyApp extends StatelessWidget {
+  const Home({
+    Key? key,
+    required this.token,
+    required this.userInfo,
+  }) : super(key: key);
+
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: HomeScreen(),
+    TextEditingController searchController = TextEditingController();
+
+    return DefaultTabController(
+      length: 2, // Number of tabs
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'Flawless You',
+            style: TextStyle(
+              fontStyle: FontStyle.italic,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: Color(0xFFC7C7BB),
+          elevation: 0,
+          centerTitle: true,
+        ),
+        body: Stack(
+          children: [
+            // خلفية الصفحة
+            Positioned.fill(
+              child: Image.asset(
+                'assets/background.png',
+                fit: BoxFit.cover,
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ترحيب بالمستخدم
+                  Text(
+                    'Hello, ${userInfo['userName']}!',
+                    style: TextStyle(
+                      fontStyle: FontStyle.italic,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+
+                  // حقل البحث
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search products',
+                            prefixIcon: Icon(Icons.search, color: Color(0xFF88A383)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      IconButton(
+                        icon: Icon(Icons.search, color: Color(0xFF88A383)),
+                        onPressed: () {
+                          if (searchController.text.isNotEmpty) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => search(
+                                  token: token,
+                                  searchQuery: searchController.text,
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+
+                  // بطاقة العناية بالبشرة
+                  Stack(
+                    children: [
+                      Container(
+                        height: 120,
+                        decoration: BoxDecoration(
+                          image: DecorationImage(
+                            image: AssetImage('assets/HI.png'),
+                            fit: BoxFit.cover,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      Container(
+                        height: 120,
+                        padding: EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          color: Colors.black.withOpacity(0.3),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Don’t forget your daily skin routine, we care about you and your skin!',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(height: 10),
+                            TextButton(
+                              onPressed: () {
+                                // الانتقال إلى صفحة العناية بالبشرة
+                              },
+                              child: Text(
+                                'Start Skincare Routine',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+
+                  // قسم النصائح
+                  Text(
+                    'Tips',
+                    style: TextStyle(
+                      fontStyle: FontStyle.italic,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        TipCard(
+                          icon: Icons.local_drink,
+                          text: 'Stay hydrated and moisturize regularly',
+                        ),
+                        TipCard(
+                          icon: Icons.wb_sunny,
+                          text: 'Use sunscreen daily',
+                        ),
+                        TipCard(
+                          icon: Icons.favorite,
+                          text: 'Skin-related advice and reminders',
+                        ),
+                        TipCard(
+                          icon: Icons.access_alarm,
+                          text: 'Avoid touching your face frequently',
+                        ),
+                        TipCard(
+                          icon: Icons.eco,
+                          text: 'Use eco-friendly skincare products',
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 10),
+
+                  // قسم المنتجات
+                  Text(
+                    'Product Collections',
+                    style: TextStyle(
+                      fontStyle: FontStyle.italic,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        ProductTabScreen(
+                          token: token,
+                          apiUrl: "http://localhost:8080/product/random?limit=6",
+                        ),
+                        // يمكنك إضافة علامات تبويب إضافية هنا
+                        // Center(child: Text('Tab 2 Content')),
+                        // Center(child: Text('Tab 3 Content')),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        bottomNavigationBar: CustomBottomNavigationBar(
+          token: token,
+          userInfo: userInfo,
+        ),
+      ),
     );
   }
 }
 
-class HomeScreen extends StatelessWidget {
+// بطاقة النصيحة
+class TipCard extends StatelessWidget {
+  final String text;
+  final IconData icon;
+
+  TipCard({required this.text, required this.icon});
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white70,
-        backgroundColor: Color.fromRGBO(166, 224, 228, 1),
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Schedule'),
-          BottomNavigationBarItem(icon: Icon(Icons.face), label: 'Community'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+    return Container(
+      margin: EdgeInsets.only(right: 12),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xFFC7C7BB),
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 8,
+            spreadRadius: 3,
+          ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/background.png'),
-            fit: BoxFit.cover,
+      child: Row(
+        children: [
+          Icon(icon, color: Color(0xFF88A383), size: 26),
+          SizedBox(width: 10),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 20),
-                Text(
-                  'Hello, Celina',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    fontStyle: FontStyle.italic,  // تغيير النص إلى مايل
-                    color: Colors.black,
-                  ),
+        ],
+      ),
+    );
+  }
+}
+
+// شريط التنقل السفلي
+class CustomBottomNavigationBar extends StatelessWidget {
+  final String token;
+  final Map<String, dynamic> userInfo;
+
+  const CustomBottomNavigationBar({
+    super.key,
+    required this.token,
+    required this.userInfo,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        ClipPath(
+          clipper: BottomWaveClipper(),
+          child: Container(
+            height: 70,
+            decoration: BoxDecoration(
+              color: Color(0xFFC7C7BB),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 10,
                 ),
-                Text(
-                  'How’s your face condition?',
-                  style: TextStyle(color: Colors.black87),
-                ),
-                SizedBox(height: 10),
-                TextField(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SearchScreen()),
-                    );
-                  },
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    hintText: 'Find your favorite product',
-                    filled: true,
-                    fillColor: Color.fromRGBO(200, 236, 238, 1),
-                    prefixIcon: Icon(Icons.search, color: Colors.black54),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 20),
-                Container(
-                  padding: EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage('assets/HI.png'),
-                      fit: BoxFit.cover,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 4,
-                        offset: Offset(2, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Hi',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          fontStyle: FontStyle.italic,  // تغيير النص إلى مايل
-                          color: Colors.black,
-                        ),
-                      ),
-                      Text(
-                        'Don’t forget your daily skin routine, we care about you and your skin',
-                        style: TextStyle(color: Colors.black),
-                      ),
-                      TextButton(
-                        onPressed: () {},
-                        child: Text(
-                          'Start Skincare Routine',
-                          style: TextStyle(color: Colors.black),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 20),
-                Text(
-                  'TIPS',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),  // تغيير النص إلى مايل
-                ),
-                SizedBox(height: 10),
-                TipsCarousel(),
-                SizedBox(height: 20),
-                Text(
-                  'Product',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
-                ),
-                SizedBox(height: 10),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class TipsCarousel extends StatefulWidget {
-  @override
-  _TipsCarouselState createState() => _TipsCarouselState();
-}
-
-class _TipsCarouselState extends State<TipsCarousel> {
-  int _currentIndex = 0;
-
-  final List<Widget> _tips = [
-    tipCard('Stay Hydrated', Color.fromRGBO(200, 236, 238, 1)),
-    tipCard('Moisturize Regularly', Color.fromRGBO(166, 224, 228, 1)),
-    tipCard('Use Sunscreen',Color.fromRGBO(200, 236, 238, 1)),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          height: 130,
-          child: PageView.builder(
-            itemCount: _tips.length,
-            controller: PageController(viewportFraction: 0.8),
-            onPageChanged: (index) {
-              setState(() {
-                _currentIndex = index;
-              });
-            },
-            itemBuilder: (context, index) {
-              return _tips[index];
-            },
+        Positioned(
+          bottom: 25,
+          left: MediaQuery.of(context).size.width / 2 - 30,
+          child: FloatingActionButton(
+            backgroundColor: Color(0xFF88A383),
+            onPressed: () {},
+            child: const Icon(Icons.face, color: Color(0xFF9EA684)),
+          ),
+        ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            height: 70,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.home, color: Color(0xFF88A383)),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Home(
+                          token: token,
+                          userInfo: userInfo,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: Icon(Icons.chat, color: Color(0xFF88A383)),
+                  onPressed: () {},
+                ),
+                SizedBox(width: 60),
+                IconButton(
+                  icon: Icon(Icons.settings, color: Color(0xFF88A383)),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProductPage(
+                          token: token,
+                          userInfo: userInfo,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: Icon(Icons.person, color: Color(0xFF88A383)),
+                  onPressed: () {},
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -421,50 +354,19 @@ class _TipsCarouselState extends State<TipsCarousel> {
   }
 }
 
-Widget tipCard(String text, Color backgroundColor) {
-  return AnimatedSwitcher(
-    duration: Duration(milliseconds: 300),
-    child: Container(
-      key: ValueKey<String>(text),
-      width: double.infinity,
-      margin: EdgeInsets.symmetric(horizontal: 8.0),
-      padding: EdgeInsets.all(12.0),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 4,
-            offset: Offset(2, 2),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Text(
-          text,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ),
-    ),
-  );
-}
-
-class SearchScreen extends StatelessWidget {
+// تصميم الشريط السفلي
+class BottomWaveClipper extends CustomClipper<Path> {
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Search'),
-      ),
-      body: Center(
-        child: Text('Search Page Content Here'),
-      ),
-    );
+  Path getClip(Size size) {
+    Path path = Path();
+    path.lineTo(0, size.height - 20);
+    path.quadraticBezierTo(size.width / 4, size.height, size.width / 2, size.height - 20);
+    path.quadraticBezierTo(size.width * 3 / 4, size.height - 40, size.width, size.height - 20);
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
   }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

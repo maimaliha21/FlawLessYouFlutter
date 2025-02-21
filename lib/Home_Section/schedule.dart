@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:projtry1/ProfileSection/aboutUs.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import 'home.dart';
@@ -40,7 +41,7 @@ class _SkincareCalendarScreenState extends State<SkincareCalendarScreen> {
     onPressed: () {
     Navigator.pushReplacement(
     context,
-    MaterialPageRoute(builder: (context) => HomeScreen()), // استبدل HomeScreen بالشاشة الصحيحة
+    MaterialPageRoute(builder: (context) => aboutUs()), // استبدل HomeScreen بالشاشة الصحيحة
     );
     },
     ),
