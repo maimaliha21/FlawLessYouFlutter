@@ -1,58 +1,47 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
-void main() {
-  runApp(SkincareRoutineApp());
-}
+final String _imageUrl = 'https://res.cloudinary.com/davwgirjs/image/upload/v1738924453/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.28.05%20PM.jpeg_20250207123410.jpg';
 
-class SkincareRoutineApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: SkincareRoutineScreen(),
-    );
-  }
-}
 
-class SkincareRoutineScreen extends StatefulWidget {
+class SkincareRoutine extends StatefulWidget {
+  final String token;
+  SkincareRoutine({required this.token});
+
   @override
   _SkincareRoutineScreenState createState() => _SkincareRoutineScreenState();
 }
 
-class _SkincareRoutineScreenState extends State<SkincareRoutineScreen> {
+class _SkincareRoutineScreenState extends State<SkincareRoutine> {
   int _currentStep = 0;
+  List<Map<String, String>> _routines = [];
+  bool _isLoading = true;
 
-  // قائمة الخطوات مع نفس الصورة لكل الخطوات
-  final List<Map<String, String>> _routines = [
-    {
-      'title': 'Cleanse your face with an appropriate cleanser',
-      'description': 'Use a gentle cleanser suitable for your skin type.',
-    },
-    {
-      'title': 'Apply Toner',
-      'description': 'Use a hydrating or exfoliating toner based on your skin needs.',
-    },
-    {
-      'title': 'Apply Serum',
-      'description': 'Use a serum to target specific skin concerns like wrinkles or dark spots.',
-    },
-    {
-      'title': 'Apply Eye Cream',
-      'description': 'Gently apply eye cream to reduce puffiness and dark circles.',
-    },
-    {
-      'title': 'Apply Moisturizer',
-      'description': 'Use a lightweight or rich moisturizer depending on your skin type.',
-    },
-    {
-      'title': 'Apply Sunscreen (if daytime)',
-      'description': 'Don\'t forget sunscreen to protect your skin from UV rays.',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+  }
 
-  // رابط الصورة الموحد
-  final String _imageUrl =
-      'https://res.cloudinary.com/davwgirjs/image/upload/v1738924453/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.28.05%20PM.jpeg_20250207123410.jpg';
+  Future<void> _fetchData() async {
+    final response = await http.get(
+      Uri.parse('http://localhost:8080/product/search'),
+      headers: {
+        'Authorization': 'Bearer ${widget.token}',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      setState(() {
+        _routines = List<Map<String, String>>.from(data['routines']);
+        _isLoading = false;
+      });
+    } else {
+      throw Exception('Failed to load data');
+    }
+  }
 
   void _nextStep(BuildContext context) {
     if (_currentStep < _routines.length - 1) {
@@ -69,6 +58,14 @@ class _SkincareRoutineScreenState extends State<SkincareRoutineScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Color.fromARGB(255, 166, 224, 228),
@@ -102,7 +99,6 @@ class _SkincareRoutineScreenState extends State<SkincareRoutineScreen> {
               ),
             ),
             SizedBox(height: 16),
-            // عرض الصورة من الرابط الموحد
             Image.network(
               _imageUrl,
               height: 120,
@@ -171,10 +167,10 @@ class HomeScreen extends StatelessWidget {
             SizedBox(height: 30),
             ElevatedButton(
               onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => SkincareRoutineApp()),
-                );
+                // Navigator.pushReplacement(
+                //   context,
+                //   MaterialPageRoute(builder: (context) => SkincareRoutine()),
+                //);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Color.fromARGB(255, 166, 224, 228),
