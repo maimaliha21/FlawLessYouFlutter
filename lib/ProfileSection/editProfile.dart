@@ -1,38 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-void main() {
-  runApp(editProfile());
-}
+class EditProfile extends StatefulWidget {
+  final String token;
 
-class editProfile extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: EditProfileScreen(),
-    );
-  }
-}
+  const EditProfile({Key? key, required this.token}) : super(key: key);
 
-class EditProfileScreen extends StatefulWidget {
   @override
   _EditProfileScreenState createState() => _EditProfileScreenState();
 }
 
-class _EditProfileScreenState extends State<EditProfileScreen>
+class _EditProfileScreenState extends State<EditProfile>
     with SingleTickerProviderStateMixin {
   File? _profileImage;
   final ImagePicker _picker = ImagePicker();
-  final TextEditingController _firstNameController = TextEditingController();
-  final TextEditingController _lastNameController = TextEditingController();
-  final TextEditingController _dobController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _genderController = TextEditingController();
   final TextEditingController _oldPasswordController = TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
 
   late TabController _tabController;
 
@@ -40,6 +30,37 @@ class _EditProfileScreenState extends State<EditProfileScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    fetchUserData(); // جلب بيانات المستخدم عند بدء التشغيل
+  }
+
+  Future<void> fetchUserData() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://localhost:8080/api/users/profile'),
+        headers: {
+          'accept': '*/*',
+          'Authorization': 'Bearer ${widget.token}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> userData = jsonDecode(response.body);
+        setState(() {
+          _usernameController.text = userData['userName'] ?? '';
+          _emailController.text = userData['email'] ?? '';
+          _phoneController.text = userData['phoneNumber'] ?? '';
+          _genderController.text = userData['gender'] ?? ''; // تعيينها إلى فارغة إذا كانت null
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to fetch user data: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
   }
 
   Future<void> _pickImage() async {
@@ -51,17 +72,38 @@ class _EditProfileScreenState extends State<EditProfileScreen>
     }
   }
 
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null) {
-      setState(() {
-        _dobController.text = "${picked.day}/${picked.month}/${picked.year}";
-      });
+  Future<void> _saveChanges() async {
+    final Map<String, dynamic> requestBody = {
+      "userName": _usernameController.text,
+      "email": _emailController.text,
+      "phoneNumber": _phoneController.text,
+      "gender": _genderController.text.isEmpty ? null : _genderController.text.toUpperCase(),
+    };
+
+    try {
+      final response = await http.put(
+        Uri.parse('http://localhost:8080/api/users/update'),
+        headers: {
+          'accept': '*/*',
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(requestBody),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('User updated successfully')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update user: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     }
   }
 
@@ -73,7 +115,6 @@ class _EditProfileScreenState extends State<EditProfileScreen>
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
-            // الانتقال إلى صفحة أخرى (مثل صفحة البروفايل)
             Navigator.pop(context);
           },
         ),
@@ -87,9 +128,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
       ),
       body: Column(
         children: [
-          // مساحة فارغة في الأعلى
           SizedBox(height: 20),
-          // صورة البروفايل مع ظل
           Padding(
             padding: EdgeInsets.only(top: 20),
             child: GestureDetector(
@@ -116,56 +155,60 @@ class _EditProfileScreenState extends State<EditProfileScreen>
               ),
             ),
           ),
-          SizedBox(height: 20), // مسافة بين صورة البروفايل والحقول
-          // التبويبات
+          SizedBox(height: 20),
           Expanded(
             child: TabBarView(
               controller: _tabController,
               children: [
                 // Personal Info Tab
                 SingleChildScrollView(
-                  padding: EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      _buildTextFieldWithDescription(
-                        'First Name',
-                        _firstNameController,
-                        description: 'Enter your first name',
-                      ),
-                      _buildTextFieldWithDescription(
-                        'Last Name',
-                        _lastNameController,
-                        description: 'Enter your last name',
-                      ),
-                      _buildDateFieldWithDescription(
-                        'Date of Birth',
-                        _dobController,
-                        context,
-                        description: 'Select your date of birth',
-                      ),
-                      _buildTextFieldWithDescription(
-                        'Phone Number',
-                        _phoneController,
-                        description: 'Enter your phone number',
-                      ),
-                    ],
-                  ),
-                ),
-                // Security Tab
-                SingleChildScrollView(
-                  padding: EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      _buildTextFieldWithDescription(
-                        'Email',
-                        _emailController,
-                        description: 'Enter your email address',
-                      ),
+                      // Username field
                       _buildTextFieldWithDescription(
                         'Username',
                         _usernameController,
                         description: 'Enter your username',
+                        hintText: _usernameController.text.isEmpty ? null : _usernameController.text,
                       ),
+                      const SizedBox(height: 10),
+
+                      // Email field
+                      _buildTextFieldWithDescription(
+                        'Email',
+                        _emailController,
+                        description: 'Enter your email address',
+                        hintText: _emailController.text.isEmpty ? null : _emailController.text,
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Phone number field
+                      _buildTextFieldWithDescription(
+                        'Phone Number',
+                        _phoneController,
+                        description: 'Enter your phone number',
+                        hintText: _phoneController.text.isEmpty ? null : _phoneController.text,
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Gender field
+                      _buildTextFieldWithDescription(
+                        'Gender',
+                        _genderController,
+                        description: 'Enter your gender (MALE/FEMALE)',
+                        hintText: _genderController.text.isEmpty ? null : _genderController.text,
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+
+                // Security Tab
+                SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
                       _buildTextFieldWithDescription(
                         'Old Password',
                         _oldPasswordController,
@@ -186,16 +229,10 @@ class _EditProfileScreenState extends State<EditProfileScreen>
           ),
         ],
       ),
-      // زر Save مع تصميم جديد
       floatingActionButton: Padding(
-        padding: EdgeInsets.only(bottom: 155), // رفع الزر لأعلى قليلاً
+        padding: EdgeInsets.only(bottom: 155),
         child: FloatingActionButton.extended(
-          onPressed: () {
-            // Save changes logic here
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Changes saved successfully!')),
-            );
-          },
+          onPressed: _saveChanges,
           icon: Icon(Icons.save, color: Colors.white),
           label: Text(
             'Save Changes',
@@ -203,12 +240,12 @@ class _EditProfileScreenState extends State<EditProfileScreen>
           ),
           backgroundColor: Colors.blue,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30), // حواف مدورة
+            borderRadius: BorderRadius.circular(30),
           ),
-          elevation: 5, // ظل للزر
+          elevation: 5,
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat, // وضع الزر في المنتصف
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
@@ -217,6 +254,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
       TextEditingController controller, {
         String? description,
         bool isPassword = false,
+        String? hintText,
       }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,35 +267,13 @@ class _EditProfileScreenState extends State<EditProfileScreen>
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ),
-        _buildTextField(label, controller, isPassword: isPassword),
-      ],
-    );
-  }
-
-  Widget _buildDateFieldWithDescription(
-      String label,
-      TextEditingController controller,
-      BuildContext context, {
-        String? description,
-      }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (description != null)
-          Padding(
-            padding: EdgeInsets.only(bottom: 5),
-            child: Text(
-              description,
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ),
-        _buildDateField(label, controller, context),
+        _buildTextField(label, controller, isPassword: isPassword, hintText: hintText),
       ],
     );
   }
 
   Widget _buildTextField(String label, TextEditingController controller,
-      {bool isPassword = false}) {
+      {bool isPassword = false, String? hintText}) {
     return Padding(
       padding: EdgeInsets.only(bottom: 20),
       child: TextField(
@@ -265,36 +281,13 @@ class _EditProfileScreenState extends State<EditProfileScreen>
         obscureText: isPassword,
         decoration: InputDecoration(
           labelText: label,
+          hintText: hintText, // عرض البيانات الحالية كـ hint
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
           ),
           filled: true,
           fillColor: Colors.grey[200],
         ),
-      ),
-    );
-  }
-
-  Widget _buildDateField(
-      String label, TextEditingController controller, BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 20),
-      child: TextField(
-        controller: controller,
-        readOnly: true,
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          filled: true,
-          fillColor: Colors.grey[200],
-          suffixIcon: IconButton(
-            icon: Icon(Icons.calendar_today),
-            onPressed: () => _selectDate(context),
-          ),
-        ),
-        onTap: () => _selectDate(context),
       ),
     );
   }
