@@ -279,8 +279,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => EditProfile(
-                          token: widget.token,
-                          // userInfo: widget.userInfo
+                        token: widget.token,
+                        // userInfo: widget.userInfo
                       ),
                     ),
                   ),

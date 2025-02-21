@@ -1,13 +1,20 @@
-import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import '../LogIn/login.dart';
+import '../Product/product.dart';
 
 class EditProfile extends StatefulWidget {
   final String token;
 
-  const EditProfile({Key? key, required this.token}) : super(key: key);
+
+  const EditProfile({
+    Key? key,
+    required this.token,
+
+  }) : super(key: key);
 
   @override
   _EditProfileScreenState createState() => _EditProfileScreenState();
@@ -29,10 +36,9 @@ class _EditProfileScreenState extends State<EditProfile>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 1, vsync: this); // طول التبويب 1
     fetchUserData(); // جلب بيانات المستخدم عند بدء التشغيل
   }
-
   Future<void> fetchUserData() async {
     try {
       final response = await http.get(
@@ -62,7 +68,6 @@ class _EditProfileScreenState extends State<EditProfile>
       );
     }
   }
-
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
@@ -73,38 +78,121 @@ class _EditProfileScreenState extends State<EditProfile>
   }
 
   Future<void> _saveChanges() async {
-    final Map<String, dynamic> requestBody = {
-      "userName": _usernameController.text,
-      "email": _emailController.text,
-      "phoneNumber": _phoneController.text,
-      "gender": _genderController.text.isEmpty ? null : _genderController.text.toUpperCase(),
-    };
+    // عرض Dialog لإدخال اسم المستخدم وكلمة المرور
+    final result = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        String username = '';
+        String password = '';
+
+        return AlertDialog(
+          title: Text('تأكيد الهوية'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                decoration: InputDecoration(labelText: 'اسم المستخدم'),
+                onChanged: (value) {
+                  username = value;
+                },
+              ),
+              TextField(
+                decoration: InputDecoration(labelText: 'كلمة المرور'),
+                obscureText: true,
+                onChanged: (value) {
+                  password = value;
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop({'username': username, 'password': password});
+              },
+              child: Text('تأكيد'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // إغلاق Dialog بدون إرجاع بيانات
+              },
+              child: Text('إلغاء'),
+            ),
+          ],
+        );
+      },
+    );
+
+    // إذا تم الضغط على إلغاء، لا نكمل العملية
+    if (result == null) return;
+
+    final String username = result['username'];
+    final String password = result['password'];
 
     try {
-      final response = await http.put(
-        Uri.parse('http://localhost:8080/api/users/update'),
+      // التحقق من صحة اسم المستخدم وكلمة المرور
+      final authResponse = await http.post(
+        Uri.parse('http://localhost:8080/api/auth/signin'),
         headers: {
           'accept': '*/*',
-          'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode(requestBody),
+        body: jsonEncode({
+          'username': username,
+          'password': password,
+        }),
       );
 
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('User updated successfully')),
+      if (authResponse.statusCode == 200) {
+        // إذا كانت البيانات صحيحة، نتابع عملية التحديث
+        final Map<String, dynamic> requestBody = {
+          "userName": _usernameController.text,
+          "email": _emailController.text,
+          "phoneNumber": _phoneController.text,
+          "gender": _genderController.text.isEmpty ? null : _genderController.text.toUpperCase(),
+        };
+
+        final updateResponse = await http.put(
+          Uri.parse('http://localhost:8080/api/users/update'),
+          headers: {
+            'accept': '*/*',
+            'Authorization': 'Bearer ${widget.token}',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(requestBody),
         );
+
+        if (updateResponse.statusCode == 200) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('تم تحديث المستخدم بنجاح')),
+          );
+
+          // الانتقال إلى صفحة تسجيل الدخول بعد عرض الرسالة
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => LoginScreen()),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('فشل في تحديث المستخدم: ${updateResponse.statusCode}')),
+          );
+        }
       } else {
+        // إذا كانت البيانات غير صحيحة، نعرض رسالة خطأ
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update user: ${response.statusCode}')),
+          SnackBar(content: Text('اسم المستخدم أو كلمة المرور غير صحيحة')),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('حدث خطأ: $e')),
       );
     }
+  }
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+
   }
 
   @override
@@ -112,12 +200,6 @@ class _EditProfileScreenState extends State<EditProfile>
     return Scaffold(
       appBar: AppBar(
         title: Text('Edit Profile'),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
         bottom: TabBar(
           controller: _tabController,
           tabs: [
