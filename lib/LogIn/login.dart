@@ -94,7 +94,7 @@ class LoginScreen extends StatelessWidget {
     } catch (e) {
       print('Error during login: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar( 
+        SnackBar(
           content: Text(e.toString()),
           backgroundColor: Colors.red,
         ),
@@ -315,7 +315,7 @@ class LoginScreen extends StatelessWidget {
                   ],
                 ),
               ),
-            ), 
+            ),
           ),
         ],
       ),
