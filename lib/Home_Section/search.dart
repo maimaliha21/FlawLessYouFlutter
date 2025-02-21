@@ -49,6 +49,7 @@ class _SearchPageState extends State<search> with SingleTickerProviderStateMixin
             token: widget.token,
             apiUrl: "http://localhost:8080/product/search?name=${widget.searchQuery}",
           ),
+
         ],
       ),
     );
