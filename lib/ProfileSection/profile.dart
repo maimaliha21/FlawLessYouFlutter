@@ -10,6 +10,8 @@ import 'package:projtry1/Product/product.dart';
 import 'package:projtry1/Product/productPage.dart';
 import 'dart:convert';
 
+import '../Home_Section/home.dart';
+
 class Profile extends StatelessWidget {
   final String token;
   final Map<String, dynamic> userInfo;
@@ -380,7 +382,17 @@ class CustomBottomNavigationBar extends StatelessWidget {
               children: [
                 IconButton(
                   icon: const Icon(Icons.home, color: Colors.blue),
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Home(
+                          token: token,
+                          userInfo: userInfo,
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 IconButton(
                   icon: const Icon(Icons.chat, color: Colors.blue),
