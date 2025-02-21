@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:projtry1/Product/product.dart';
 import 'package:projtry1/Product/productPage.dart';
 import 'dart:convert';
+import 'package:projtry1/Card/Card.dart';
 
 import '../Home_Section/home.dart';
 
@@ -396,7 +397,14 @@ class CustomBottomNavigationBar extends StatelessWidget {
                 ),
                 IconButton(
                   icon: const Icon(Icons.chat, color: Colors.blue),
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MessageCard(token: token),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(width: 60),
                 IconButton(
