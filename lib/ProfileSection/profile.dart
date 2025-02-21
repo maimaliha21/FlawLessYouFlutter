@@ -46,7 +46,6 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   html.File? _profileImage;
   final ImagePicker _picker = ImagePicker();
-
   Future<void> _pickImage() async {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
@@ -74,7 +73,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
-
   Future<void> _uploadProfilePicture(html.File imageFile) async {
     try {
       final reader = html.FileReader();
@@ -278,7 +276,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => editProfile(
+                      builder: (context) => EditProfile(
+                          token: widget.token,
+                          // userInfo: widget.userInfo
                       ),
                     ),
                   ),
