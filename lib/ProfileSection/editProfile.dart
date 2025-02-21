@@ -49,7 +49,7 @@ class _EditProfileScreenState extends State<EditProfile>
           _usernameController.text = userData['userName'] ?? '';
           _emailController.text = userData['email'] ?? '';
           _phoneController.text = userData['phoneNumber'] ?? '';
-          _genderController.text = userData['gender'] ?? null;
+          _genderController.text = userData['gender'] ?? ''; // تعيينها إلى فارغة إذا كانت null
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -77,7 +77,7 @@ class _EditProfileScreenState extends State<EditProfile>
       "userName": _usernameController.text,
       "email": _emailController.text,
       "phoneNumber": _phoneController.text,
-      "gender": _genderController.text.toUpperCase(),
+      "gender": _genderController.text.isEmpty ? null : _genderController.text.toUpperCase(),
     };
 
     try {
@@ -170,6 +170,7 @@ class _EditProfileScreenState extends State<EditProfile>
                         'Username',
                         _usernameController,
                         description: 'Enter your username',
+                        hintText: _usernameController.text.isEmpty ? null : _usernameController.text,
                       ),
                       const SizedBox(height: 10),
 
@@ -178,6 +179,7 @@ class _EditProfileScreenState extends State<EditProfile>
                         'Email',
                         _emailController,
                         description: 'Enter your email address',
+                        hintText: _emailController.text.isEmpty ? null : _emailController.text,
                       ),
                       const SizedBox(height: 10),
 
@@ -186,6 +188,7 @@ class _EditProfileScreenState extends State<EditProfile>
                         'Phone Number',
                         _phoneController,
                         description: 'Enter your phone number',
+                        hintText: _phoneController.text.isEmpty ? null : _phoneController.text,
                       ),
                       const SizedBox(height: 10),
 
@@ -194,6 +197,7 @@ class _EditProfileScreenState extends State<EditProfile>
                         'Gender',
                         _genderController,
                         description: 'Enter your gender (MALE/FEMALE)',
+                        hintText: _genderController.text.isEmpty ? null : _genderController.text,
                       ),
                       const SizedBox(height: 20),
                     ],
@@ -250,6 +254,7 @@ class _EditProfileScreenState extends State<EditProfile>
       TextEditingController controller, {
         String? description,
         bool isPassword = false,
+        String? hintText,
       }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,13 +267,13 @@ class _EditProfileScreenState extends State<EditProfile>
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ),
-        _buildTextField(label, controller, isPassword: isPassword),
+        _buildTextField(label, controller, isPassword: isPassword, hintText: hintText),
       ],
     );
   }
 
   Widget _buildTextField(String label, TextEditingController controller,
-      {bool isPassword = false}) {
+      {bool isPassword = false, String? hintText}) {
     return Padding(
       padding: EdgeInsets.only(bottom: 20),
       child: TextField(
@@ -276,7 +281,7 @@ class _EditProfileScreenState extends State<EditProfile>
         obscureText: isPassword,
         decoration: InputDecoration(
           labelText: label,
-          hintText: controller.text.isEmpty ? null : controller.text,
+          hintText: hintText, // عرض البيانات الحالية كـ hint
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
           ),
