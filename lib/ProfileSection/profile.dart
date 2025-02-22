@@ -12,6 +12,7 @@ import 'dart:convert';
 import 'package:projtry1/Card/Card.dart';
 
 import '../Home_Section/home.dart';
+import '../Routinebar/routinescreen.dart';
 
 class Profile extends StatelessWidget {
   final String token;
@@ -308,7 +309,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text('View Routine'),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // الانتقال إلى صفحة الروتين (RoutineScreen)
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => RoutineScreen()),
+                      );
+                    },
+                    child: const Text('View Routine'),
+                  ),
+
                 ),
               ],
             ),

@@ -1,12 +1,9 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:projtry1/ProfileSection/editProfile.dart';
-import 'package:projtry1/ProfileSection/profile.dart';
-
-
-void main() {
-  runApp(RoutineScreen());
-}
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'dart:async';
 
 class RoutineScreen extends StatelessWidget {
   @override
@@ -25,41 +22,58 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 1;
+  String? token;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadToken();
+  }
+
+  Future<void> _loadToken() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      token = prefs.getString('token');
+      _isLoading = false;
+    });
+  }
 
   void _onItemTapped(int index) {
     if (index == 4) {
-      // الانتقال إلى صفحة البروفايل عند الضغط على الأيقونة
-      // Navigator.push(
-      //   context,
-      //   MaterialPageRoute(builder: (context) => editProfile()), // فتح الصفحة من ملف adminprofile.dart
-      // );
-    } else if(index == 3) {
+      // Navigate to profile page
+    } else if (index == 3) {
       setState(() {
         _selectedIndex = index;
       });
-    } else if(index == 2){
-      //camera
-    } else if(index == 1){ Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => RoutineScreen()), // فتح الصفحة من ملف adminprofile.dart
-    );
+    } else if (index == 2) {
+      // Camera
+    } else if (index == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => RoutineScreen()),
+      );
     } else {
-      // Navigator.push(
-      // context,
-      // MaterialPageRoute(builder: (context) => home()) // فتح الصفحة من ملف adminprofile.dart
-
-  }}
+      // Navigate to home
+    }
+  }
 
   final List<Widget> _pages = [
     Center(child: Text("home")),
-    RoutineTabScreen(),
     Center(child: Text("routine")),
     Center(child: Text("settings")),
-    // لا حاجة لإضافة صفحة البروفايل هنا لأننا نفتحها عند الضغط على الأيقونة
   ];
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    _pages[1] = RoutineTabScreen(token: token);
+
     return Scaffold(
       body: _pages[_selectedIndex],
       bottomNavigationBar: Stack(
@@ -102,24 +116,62 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class RoutineTabScreen extends StatelessWidget {
-  final List<Routine> morningRoutines = [
-    Routine(name: "Morning Cleanser", time: "7:00 AM", details: "Apply cleanser and rinse with warm water.", imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924453/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.28.05%20PM.jpeg_20250207123410.jpg"),
-    Routine(name: "Moisturizing", time: "7:30 AM", details: "Use hydrating cream on face and neck.", imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924475/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.27.29%20PM.jpeg_20250207123434.jpg"),
-    Routine(name: "Sunscreen", time: "8:00 AM", details: "Apply SPF 50 sunscreen evenly.", imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738917076/nhndev/product/Screenshot%202025-02-06%20230725.png_20250207103114.png"),
+class RoutineTabScreen extends StatefulWidget {
+  final String? token;
+
+  RoutineTabScreen({required this.token});
+
+  @override
+  _RoutineTabScreenState createState() => _RoutineTabScreenState();
+}
+
+class _RoutineTabScreenState extends State<RoutineTabScreen> {
+  Map<String, List<Routine>> routines = {
+    "MORNING": [],
+    "AFTERNOON": [],
+    "NIGHT": [],
+  };
+
+  final List<String> backgroundImages = [
+    "https://res.cloudinary.com/davwgirjs/image/upload/v1738924453/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.28.05%20PM.jpeg_20250207123410.jpg",
+    "https://res.cloudinary.com/davwgirjs/image/upload/v1738924475/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.27.29%20PM.jpeg_20250207123434.jpg",
   ];
 
-  final List<Routine> afternoonRoutines = [
-    Routine(name: "Toner", time: "12:00 PM", details: "Apply toner to refresh skin.", imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924475/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.27.29%20PM.jpeg_20250207123434.jpg"),
-    Routine(name: "Hydration Spray", time: "1:00 PM", details: "Use hydration mist for a fresh feel.", imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738917076/nhndev/product/Screenshot%202025-02-06%20230725.png_20250207103114.png"),
-    Routine(name: "Night Serum", time: "9:00 PM", details: "Apply serum before bed.", imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924453/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.28.05%20PM.jpeg_20250207123410.jpg"),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    fetchRoutines();
+  }
 
-  final List<Routine> eveningRoutines = [
-    Routine(name: "Night Serum", time: "9:00 PM", details: "Apply serum before bed.", imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924453/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.28.05%20PM.jpeg_20250207123410.jpg"),
-    Routine(name: "Moisturizer", time: "9:30 PM", details: "Use night moisturizer for hydration.", imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738917076/nhndev/product/Screenshot%202025-02-06%20230725.png_20250207103114.png"),
-    Routine(name: "Moisturizing", time: "7:30 AM", details: "Use hydrating cream on face and neck.", imageUrl: "https://res.cloudinary.com/davwgirjs/image/upload/v1738924475/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.27.29%20PM.jpeg_20250207123434.jpg"),
-  ];
+  Future<void> fetchRoutines() async {
+    if (widget.token == null) {
+      throw Exception('Token is null');
+    }
+
+    final response = await http.get(
+      Uri.parse('http://localhost:8080/api/routines/by-time'),
+      headers: {
+        'Authorization': 'Bearer ${widget.token}',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+      setState(() {
+        routines["MORNING"] = (data["MORNING"] as List)
+            .map((item) => Routine.fromJson(item))
+            .toList();
+        routines["AFTERNOON"] = (data["AFTERNOON"] as List)
+            .map((item) => Routine.fromJson(item))
+            .toList();
+        routines["NIGHT"] = (data["NIGHT"] as List)
+            .map((item) => Routine.fromJson(item))
+            .toList();
+      });
+    } else {
+      throw Exception('Failed to load routines');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -143,9 +195,9 @@ class RoutineTabScreen extends StatelessWidget {
         ),
         body: TabBarView(
           children: [
-            RoutineList(routines: morningRoutines),
-            RoutineList(routines: afternoonRoutines),
-            RoutineList(routines: eveningRoutines),
+            RoutineList(routines: routines["MORNING"]!, backgroundImages: backgroundImages, token: widget.token!),
+            RoutineList(routines: routines["AFTERNOON"]!, backgroundImages: backgroundImages, token: widget.token!),
+            RoutineList(routines: routines["NIGHT"]!, backgroundImages: backgroundImages, token: widget.token!),
           ],
         ),
       ),
@@ -154,18 +206,49 @@ class RoutineTabScreen extends StatelessWidget {
 }
 
 class Routine {
+  final String productId;
   final String name;
-  final String time;
-  final String details;
-  final String imageUrl;
+  final List<String> skinType;
+  final String description;
+  final List<String> ingredients;
+  final String adminId;
+  final List<String> photos;
+  final Map<String, dynamic> reviews;
+  final List<String> usageTime;
 
-  Routine({required this.name, required this.time, required this.details, required this.imageUrl});
+  Routine({
+    required this.productId,
+    required this.name,
+    required this.skinType,
+    required this.description,
+    required this.ingredients,
+    required this.adminId,
+    required this.photos,
+    required this.reviews,
+    required this.usageTime,
+  });
+
+  factory Routine.fromJson(Map<String, dynamic> json) {
+    return Routine(
+      productId: json['productId'],
+      name: json['name'],
+      skinType: List<String>.from(json['skinType']),
+      description: json['description'],
+      ingredients: List<String>.from(json['ingredients']),
+      adminId: json['adminId'],
+      photos: List<String>.from(json['photos']),
+      reviews: json['reviews'],
+      usageTime: List<String>.from(json['usageTime']),
+    );
+  }
 }
 
 class RoutineList extends StatelessWidget {
   final List<Routine> routines;
+  final List<String> backgroundImages;
+  final String token;
 
-  RoutineList({required this.routines});
+  RoutineList({required this.routines, required this.backgroundImages, required this.token});
 
   @override
   Widget build(BuildContext context) {
@@ -174,7 +257,8 @@ class RoutineList extends StatelessWidget {
       child: ListView.builder(
         itemCount: routines.length,
         itemBuilder: (context, index) {
-          return RoutineCard(routine: routines[index]);
+          String imageUrl = backgroundImages[index % backgroundImages.length];
+          return RoutineCard(routine: routines[index], imageUrl: imageUrl, token: token);
         },
       ),
     );
@@ -183,43 +267,278 @@ class RoutineList extends StatelessWidget {
 
 class RoutineCard extends StatelessWidget {
   final Routine routine;
+  final String imageUrl;
+  final String token;
 
-  RoutineCard({required this.routine});
+  RoutineCard({required this.routine, required this.imageUrl, required this.token});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Stack(
-          children: [
-            Image.network(routine.imageUrl, width: double.infinity, height: 200, fit: BoxFit.cover),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: EdgeInsets.all(12),
-                color: Colors.grey.withOpacity(0.5),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(routine.name, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                    Text(routine.time, style: TextStyle(color: Colors.white70, fontSize: 14)),
-                    SizedBox(height: 5),
-                    Text(routine.details, style: TextStyle(color: Colors.white, fontSize: 14)),
-                  ],
+    return GestureDetector(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          builder: (context) {
+            return ProductDetailsPopup(product: routine, token: token);
+          },
+        );
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            children: [
+              Image.network(
+                imageUrl,
+                width: double.infinity,
+                height: 200,
+                fit: BoxFit.cover,
+              ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: EdgeInsets.all(12),
+                  color: Colors.grey.withOpacity(0.5),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        routine.name,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        routine.usageTime.join(', '), // عرض الأوقات
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        routine.description, // عرض الوصف
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                        maxLines: 2, // تحديد عدد الأسطر
+                        overflow: TextOverflow.ellipsis, // تقصير النص إذا كان طويلاً
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+class ProductDetailsPopup extends StatefulWidget {
+  final Routine product;
+  final String token;
+
+  const ProductDetailsPopup({Key? key, required this.product, required this.token}) : super(key: key);
+
+  @override
+  _ProductDetailsPopupState createState() => _ProductDetailsPopupState();
+}
+
+class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
+  late PageController _pageController;
+  int _currentPage = 0;
+  double _userRating = 0;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    _startAutoSlide();
+    _fetchUserRating();
+  }
+
+  void _startAutoSlide() {
+    Timer.periodic(Duration(seconds: 8), (timer) {
+      if (_currentPage < (widget.product.photos.length ?? 1) - 1) {
+        _currentPage++;
+      } else {
+        _currentPage = 0;
+      }
+      _pageController.animateToPage(
+        _currentPage,
+        duration: Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  Future<void> _fetchUserRating() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://localhost:8080/product/${widget.product.productId}/userReview'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final rating = jsonDecode(response.body);
+        setState(() {
+          _userRating = rating.toDouble();
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to fetch user rating')),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Connection error')),
+      );
+    }
+  }
+
+  Future<void> _submitRating(double rating) async {
+    try {
+      final response = await http.put(
+        Uri.parse('http://localhost:8080/product/${widget.product.productId}/reviews'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'rating': rating.toInt()}),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Rating submitted successfully')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to submit rating')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Connection error')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            height: 300,
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: widget.product.photos.length,
+              itemBuilder: (context, index) {
+                return Image.network(
+                  widget.product.photos[index],
+                  fit: BoxFit.cover,
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.product.name,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  widget.product.description,
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(height: 16),
+                if (widget.product.skinType.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Skin Type:',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        widget.product.skinType.join(', '),
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      SizedBox(height: 16),
+                    ],
+                  ),
+                if (widget.product.ingredients.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Ingredients:',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        widget.product.ingredients.join(', '),
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      SizedBox(height: 16),
+                    ],
+                  ),
+                _isLoading
+                    ? CircularProgressIndicator()
+                    : RatingBar.builder(
+                  initialRating: _userRating,
+                  minRating: 1,
+                  direction: Axis.horizontal,
+                  allowHalfRating: true,
+                  itemCount: 5,
+                  itemPadding: EdgeInsets.symmetric(horizontal: 4.0),
+                  itemBuilder: (context, _) => Icon(
+                    Icons.star,
+                    color: Colors.amber,
+                  ),
+                  onRatingUpdate: (rating) {
+                    setState(() {
+                      _userRating = rating;
+                    });
+                    _submitRating(rating);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+} 
