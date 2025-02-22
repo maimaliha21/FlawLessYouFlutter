@@ -339,14 +339,14 @@ class UserRoutineCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "مرحبا بك في روتينك",
+                      "welcome to your routine ",
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    SizedBox(height: 3),
                     Text(
                       userRoutine!['description'],
                       style: TextStyle(
