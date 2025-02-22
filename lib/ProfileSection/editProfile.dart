@@ -86,18 +86,18 @@ class _EditProfileScreenState extends State<EditProfile>
         String password = '';
 
         return AlertDialog(
-          title: Text('تأكيد الهوية'),
+          title: Text('Identity verification'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                decoration: InputDecoration(labelText: 'اسم المستخدم'),
+                decoration: InputDecoration(labelText: 'Username'),
                 onChanged: (value) {
                   username = value;
                 },
               ),
               TextField(
-                decoration: InputDecoration(labelText: 'كلمة المرور'),
+                decoration: InputDecoration(labelText: 'Password'),
                 obscureText: true,
                 onChanged: (value) {
                   password = value;
@@ -110,13 +110,13 @@ class _EditProfileScreenState extends State<EditProfile>
               onPressed: () {
                 Navigator.of(context).pop({'username': username, 'password': password});
               },
-              child: Text('تأكيد'),
+              child: Text('Confirmation'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop(); // إغلاق Dialog بدون إرجاع بيانات
               },
-              child: Text('إلغاء'),
+              child: Text('Cancel'),
             ),
           ],
         );
@@ -164,7 +164,7 @@ class _EditProfileScreenState extends State<EditProfile>
 
         if (updateResponse.statusCode == 200) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('تم تحديث المستخدم بنجاح')),
+            SnackBar(content: Text('User updated successfully')),
           );
 
           // الانتقال إلى صفحة تسجيل الدخول بعد عرض الرسالة
@@ -173,18 +173,18 @@ class _EditProfileScreenState extends State<EditProfile>
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('فشل في تحديث المستخدم: ${updateResponse.statusCode}')),
+            SnackBar(content: Text('Failed to update user: ${updateResponse.statusCode}')),
           );
         }
       } else {
         // إذا كانت البيانات غير صحيحة، نعرض رسالة خطأ
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('اسم المستخدم أو كلمة المرور غير صحيحة')),
+          SnackBar(content: Text('Username or password is incorrect')),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('حدث خطأ: $e')),
+        SnackBar(content: Text('An error occurred: $e')),
       );
     }
   }
