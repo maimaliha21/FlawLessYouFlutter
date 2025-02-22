@@ -153,7 +153,7 @@ class _MessageCardState extends State<MessageCard> {
                           );
                         }).toList(),
                       ),
-                      SizedBox(height: 16),
+                      SizedBox(height: 20),
                       TextField(
                         controller: messageController,
                         maxLines: 3,
@@ -193,10 +193,48 @@ class _MessageCardState extends State<MessageCard> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: ListTile(
+                      child: ExpansionTile(
                         leading: Icon(Icons.message, color: Colors.teal[300]), // أيقونة زيتية
-                        title: Text(card['message'], style: TextStyle(color: Colors.black87)),
-                        subtitle: Text('Sent on: ${card['sentDate']}', style: TextStyle(color: Colors.black87)),
+                        title: Text(
+                          card['message'],
+                          style: TextStyle(color: Colors.black87),
+                          maxLines: 2, // عدد الأسطر القصوى قبل التوسيع
+                          overflow: TextOverflow.ellipsis, // اختصار النص إذا كان طويلاً
+                        ),
+                        subtitle: Text(
+                          'Sent to: ${card['expertName'] ?? 'Unknown'}',
+                          style: TextStyle(color: Colors.black54),
+                        ),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Message:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  card['message'],
+                                  style: TextStyle(color: Colors.black87),
+                                ),
+                                SizedBox(height: 16),
+                                Text(
+                                  'Sent to: ${card['expertName'] ?? 'Unknown'}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },
