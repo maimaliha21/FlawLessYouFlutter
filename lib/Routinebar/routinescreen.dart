@@ -88,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
               unselectedItemColor: Colors.grey,
               currentIndex: _selectedIndex,
               onTap: _onItemTapped,
-              items: [
+              items: const [
                 BottomNavigationBarItem(icon: Icon(Icons.home), label: ""),
                 BottomNavigationBarItem(icon: Icon(Icons.article), label: "routine"),
                 BottomNavigationBarItem(icon: SizedBox.shrink(), label: ""),
@@ -137,10 +137,13 @@ class _RoutineTabScreenState extends State<RoutineTabScreen> {
     "https://res.cloudinary.com/davwgirjs/image/upload/v1738924475/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.27.29%20PM.jpeg_20250207123434.jpg",
   ];
 
+  Map<String, dynamic>? userRoutine;
+
   @override
   void initState() {
     super.initState();
     fetchRoutines();
+    fetchUserRoutine();
   }
 
   Future<void> fetchRoutines() async {
@@ -173,6 +176,28 @@ class _RoutineTabScreenState extends State<RoutineTabScreen> {
     }
   }
 
+  Future<void> fetchUserRoutine() async {
+    if (widget.token == null) {
+      throw Exception('Token is null');
+    }
+
+    final response = await http.get(
+      Uri.parse('http://localhost:8080/api/routines/userRoutine'),
+      headers: {
+        'Authorization': 'Bearer ${widget.token}',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+      setState(() {
+        userRoutine = data;
+      });
+    } else {
+      throw Exception('Failed to load user routine');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -186,7 +211,7 @@ class _RoutineTabScreenState extends State<RoutineTabScreen> {
             labelColor: Colors.black,
             unselectedLabelColor: Colors.grey[700],
             indicatorColor: Colors.yellow[700],
-            tabs: [
+            tabs: const [
               Tab(text: "Morning"),
               Tab(text: "Afternoon"),
               Tab(text: "Evening"),
@@ -195,9 +220,9 @@ class _RoutineTabScreenState extends State<RoutineTabScreen> {
         ),
         body: TabBarView(
           children: [
-            RoutineList(routines: routines["MORNING"]!, backgroundImages: backgroundImages, token: widget.token!),
-            RoutineList(routines: routines["AFTERNOON"]!, backgroundImages: backgroundImages, token: widget.token!),
-            RoutineList(routines: routines["NIGHT"]!, backgroundImages: backgroundImages, token: widget.token!),
+            RoutineList(routines: routines["MORNING"]!, backgroundImages: backgroundImages, token: widget.token!, userRoutine: userRoutine),
+            RoutineList(routines: routines["AFTERNOON"]!, backgroundImages: backgroundImages, token: widget.token!, userRoutine: userRoutine),
+            RoutineList(routines: routines["NIGHT"]!, backgroundImages: backgroundImages, token: widget.token!, userRoutine: userRoutine),
           ],
         ),
       ),
@@ -247,19 +272,96 @@ class RoutineList extends StatelessWidget {
   final List<Routine> routines;
   final List<String> backgroundImages;
   final String token;
+  final Map<String, dynamic>? userRoutine;
 
-  RoutineList({required this.routines, required this.backgroundImages, required this.token});
+  RoutineList({required this.routines, required this.backgroundImages, required this.token, this.userRoutine});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: ListView.builder(
-        itemCount: routines.length,
+        itemCount: routines.length + 1, // +1 for the user routine card
         itemBuilder: (context, index) {
-          String imageUrl = backgroundImages[index % backgroundImages.length];
-          return RoutineCard(routine: routines[index], imageUrl: imageUrl, token: token);
+          if (index == 0) {
+            return UserRoutineCard(userRoutine: userRoutine);
+          } else {
+            String imageUrl = backgroundImages[(index - 1) % backgroundImages.length];
+            return RoutineCard(routine: routines[index - 1], imageUrl: imageUrl, token: token);
+          }
         },
+      ),
+    );
+  }
+}
+
+class UserRoutineCard extends StatelessWidget {
+  final Map<String, dynamic>? userRoutine;
+
+  UserRoutineCard({this.userRoutine});
+
+  @override
+  Widget build(BuildContext context) {
+    if (userRoutine == null) {
+      return Container();
+    }
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          children: [
+            Image.network(
+              "https://res.cloudinary.com/davwgirjs/image/upload/v1740264486/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740264484011_download.jpg.jpg",
+              width: double.infinity,
+              height: 200,
+              fit: BoxFit.cover,
+            ),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: EdgeInsets.all(12),
+                color: Colors.grey.withOpacity(0.5),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "مرحبا بك في روتينك",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      userRoutine!['description'],
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      "Analysis ID: ${userRoutine!['analysisId']}",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -541,4 +643,4 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
       ),
     );
   }
-} 
+}
