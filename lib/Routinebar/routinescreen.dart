@@ -31,7 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // الانتقال إلى صفحة البروفايل عند الضغط على الأيقونة
       // Navigator.push(
       //   context,
-      //   MaterialPageRoute(builder: (context) => editProfile()), // فتح الصفحة من ملف profile.dart
+      //   MaterialPageRoute(builder: (context) => editProfile()), // فتح الصفحة من ملف adminprofile.dart
       // );
     } else if(index == 3) {
       setState(() {
@@ -41,12 +41,12 @@ class _HomeScreenState extends State<HomeScreen> {
       //camera
     } else if(index == 1){ Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => RoutineScreen()), // فتح الصفحة من ملف profile.dart
+      MaterialPageRoute(builder: (context) => RoutineScreen()), // فتح الصفحة من ملف adminprofile.dart
     );
     } else {
       // Navigator.push(
       // context,
-      // MaterialPageRoute(builder: (context) => home()) // فتح الصفحة من ملف profile.dart
+      // MaterialPageRoute(builder: (context) => home()) // فتح الصفحة من ملف adminprofile.dart
 
   }}
 

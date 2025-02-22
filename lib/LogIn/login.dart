@@ -6,6 +6,8 @@ import 'package:projtry1/api/google_signin_api.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'firebase_options.dart';
+import 'package:projtry1/Admin/AdminProfileSectio/adminprofile.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +39,9 @@ class LoginScreen extends StatelessWidget {
       if (response.statusCode == 200) {
         final userInfo = jsonDecode(response.body);
         print('Fetched user info: $userInfo');
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', token); // حفظ التوكن
+        await prefs.setString('userInfo', jsonEncode(userInfo));
         return userInfo;
       } else {
         print('Failed to fetch user info: ${response.statusCode}');
@@ -73,17 +78,28 @@ class LoginScreen extends StatelessWidget {
         final userInfo = await fetchUserInfo(token);
 
         if (userInfo != null) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => Profile(
-                token: token,
-                userInfo: userInfo,
+          if (userInfo['role'] == 'ADMIN') {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AdminProfile(
+
+                ),
               ),
-            ),
-          );
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => Profile(
+                  token: token,
+                  userInfo: userInfo,
+                ),
+              ),
+            );
+          }
         } else {
-          throw Exception();
+          throw Exception('Failed to fetch user information');
         }
       } else {
         final errorBody = jsonDecode(response.body);
