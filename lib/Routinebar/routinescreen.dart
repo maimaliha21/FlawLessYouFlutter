@@ -24,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 1;
   String? token;
   bool _isLoading = true;
+  String? userInfo;
 
   @override
   void initState() {
@@ -33,35 +34,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadToken() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userInfoString = prefs.getString('userInfo');
+    Map<String, dynamic> userInfoMap = json.decode(userInfoString ?? '{}');
+
     setState(() {
       token = prefs.getString('token');
+      userInfo = userInfoMap['userName'];
       _isLoading = false;
     });
   }
 
   void _onItemTapped(int index) {
-    if (index == 4) {
-      // Navigate to profile page
-    } else if (index == 3) {
-      setState(() {
-        _selectedIndex = index;
-      });
-    } else if (index == 2) {
-      // Camera
-    } else if (index == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => RoutineScreen()),
-      );
-    } else {
-      // Navigate to home
-    }
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   final List<Widget> _pages = [
-    Center(child: Text("home")),
-    Center(child: Text("routine")),
-    Center(child: Text("settings")),
+    Center(child: Text("Home")),
+    Center(child: Text("Routine")),
+    Center(child: Text("Settings")),
   ];
 
   @override
@@ -72,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    _pages[1] = RoutineTabScreen(token: token);
+    _pages[1] = RoutineTabScreen(token: token, userName: userInfo);
 
     return Scaffold(
       body: _pages[_selectedIndex],
@@ -90,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: _onItemTapped,
               items: const [
                 BottomNavigationBarItem(icon: Icon(Icons.home), label: ""),
-                BottomNavigationBarItem(icon: Icon(Icons.article), label: "routine"),
+                BottomNavigationBarItem(icon: Icon(Icons.article), label: "Routine"),
                 BottomNavigationBarItem(icon: SizedBox.shrink(), label: ""),
                 BottomNavigationBarItem(icon: Icon(Icons.settings), label: ""),
                 BottomNavigationBarItem(icon: Icon(Icons.person), label: ""),
@@ -118,8 +110,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
 class RoutineTabScreen extends StatefulWidget {
   final String? token;
+  final String? userName;
 
-  RoutineTabScreen({required this.token});
+  RoutineTabScreen({required this.token, this.userName});
 
   @override
   _RoutineTabScreenState createState() => _RoutineTabScreenState();
@@ -148,53 +141,75 @@ class _RoutineTabScreenState extends State<RoutineTabScreen> {
 
   Future<void> fetchRoutines() async {
     if (widget.token == null) {
-      throw Exception('Token is null');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Token is null')),
+      );
+      return;
     }
 
-    final response = await http.get(
-      Uri.parse('http://localhost:8080/api/routines/by-time'),
-      headers: {
-        'Authorization': 'Bearer ${widget.token}',
-      },
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('http://localhost:8080/api/routines/by-time'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = json.decode(response.body);
-      setState(() {
-        routines["MORNING"] = (data["MORNING"] as List)
-            .map((item) => Routine.fromJson(item))
-            .toList();
-        routines["AFTERNOON"] = (data["AFTERNOON"] as List)
-            .map((item) => Routine.fromJson(item))
-            .toList();
-        routines["NIGHT"] = (data["NIGHT"] as List)
-            .map((item) => Routine.fromJson(item))
-            .toList();
-      });
-    } else {
-      throw Exception('Failed to load routines');
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        setState(() {
+          routines["MORNING"] = (data["MORNING"] as List)
+              .map((item) => Routine.fromJson(item))
+              .toList();
+          routines["AFTERNOON"] = (data["AFTERNOON"] as List)
+              .map((item) => Routine.fromJson(item))
+              .toList();
+          routines["NIGHT"] = (data["NIGHT"] as List)
+              .map((item) => Routine.fromJson(item))
+              .toList();
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load routines')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Connection error')),
+      );
     }
   }
 
   Future<void> fetchUserRoutine() async {
     if (widget.token == null) {
-      throw Exception('Token is null');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Token is null')),
+      );
+      return;
     }
 
-    final response = await http.get(
-      Uri.parse('http://localhost:8080/api/routines/userRoutine'),
-      headers: {
-        'Authorization': 'Bearer ${widget.token}',
-      },
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('http://localhost:8080/api/routines/userRoutine'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = json.decode(response.body);
-      setState(() {
-        userRoutine = data;
-      });
-    } else {
-      throw Exception('Failed to load user routine');
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        setState(() {
+          userRoutine = data;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load user routine')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Connection error')),
+      );
     }
   }
 
@@ -204,9 +219,7 @@ class _RoutineTabScreenState extends State<RoutineTabScreen> {
       backgroundColor: Colors.grey[200],
       body: Column(
         children: [
-          // بطاقة "مرحبا بك في روتينك"
-          if (userRoutine != null) UserRoutineCard(userRoutine: userRoutine),
-          // التبويبات (Tabs)
+          if (userRoutine != null) UserRoutineCard(userRoutine: userRoutine, userName: widget.userName),
           Expanded(
             child: DefaultTabController(
               length: 3,
@@ -303,8 +316,9 @@ class RoutineList extends StatelessWidget {
 
 class UserRoutineCard extends StatelessWidget {
   final Map<String, dynamic>? userRoutine;
+  final String? userName;
 
-  UserRoutineCard({this.userRoutine});
+  UserRoutineCard({this.userRoutine, this.userName});
 
   @override
   Widget build(BuildContext context) {
@@ -339,7 +353,7 @@ class UserRoutineCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "welcome to your routine ",
+                      'Welcome to your routine, $userName!',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -428,7 +442,7 @@ class RoutineCard extends StatelessWidget {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        routine.usageTime.join(', '), // عرض الأوقات
+                        routine.usageTime.join(', '),
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 14,
@@ -436,13 +450,13 @@ class RoutineCard extends StatelessWidget {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        routine.description, // عرض الوصف
+                        routine.description,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 14,
                         ),
-                        maxLines: 2, // تحديد عدد الأسطر
-                        overflow: TextOverflow.ellipsis, // تقصير النص إذا كان طويلاً
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -564,7 +578,8 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
         children: [
           SizedBox(
             height: 300,
-            child: PageView.builder(
+            child: widget.product.photos.isNotEmpty
+                ? PageView.builder(
               controller: _pageController,
               itemCount: widget.product.photos.length,
               itemBuilder: (context, index) {
@@ -573,7 +588,8 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
                   fit: BoxFit.cover,
                 );
               },
-            ),
+            )
+                : Center(child: Text('No photos available')),
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),
