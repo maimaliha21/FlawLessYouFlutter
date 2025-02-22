@@ -200,31 +200,42 @@ class _RoutineTabScreenState extends State<RoutineTabScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        backgroundColor: Colors.grey[200],
-        appBar: AppBar(
-          title: Text("Skin Care Routine"),
-          centerTitle: true,
-          bottom: TabBar(
-            labelColor: Colors.black,
-            unselectedLabelColor: Colors.grey[700],
-            indicatorColor: Colors.yellow[700],
-            tabs: const [
-              Tab(text: "Morning"),
-              Tab(text: "Afternoon"),
-              Tab(text: "Evening"),
-            ],
+    return Scaffold(
+      backgroundColor: Colors.grey[200],
+      body: Column(
+        children: [
+          // بطاقة "مرحبا بك في روتينك"
+          if (userRoutine != null) UserRoutineCard(userRoutine: userRoutine),
+          // التبويبات (Tabs)
+          Expanded(
+            child: DefaultTabController(
+              length: 3,
+              child: Column(
+                children: [
+                  TabBar(
+                    labelColor: Colors.black,
+                    unselectedLabelColor: Colors.grey[700],
+                    indicatorColor: Colors.yellow[700],
+                    tabs: const [
+                      Tab(text: "Morning"),
+                      Tab(text: "Afternoon"),
+                      Tab(text: "Evening"),
+                    ],
+                  ),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        RoutineList(routines: routines["MORNING"]!, backgroundImages: backgroundImages, token: widget.token!),
+                        RoutineList(routines: routines["AFTERNOON"]!, backgroundImages: backgroundImages, token: widget.token!),
+                        RoutineList(routines: routines["NIGHT"]!, backgroundImages: backgroundImages, token: widget.token!),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-        body: TabBarView(
-          children: [
-            RoutineList(routines: routines["MORNING"]!, backgroundImages: backgroundImages, token: widget.token!, userRoutine: userRoutine),
-            RoutineList(routines: routines["AFTERNOON"]!, backgroundImages: backgroundImages, token: widget.token!, userRoutine: userRoutine),
-            RoutineList(routines: routines["NIGHT"]!, backgroundImages: backgroundImages, token: widget.token!, userRoutine: userRoutine),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -272,23 +283,18 @@ class RoutineList extends StatelessWidget {
   final List<Routine> routines;
   final List<String> backgroundImages;
   final String token;
-  final Map<String, dynamic>? userRoutine;
 
-  RoutineList({required this.routines, required this.backgroundImages, required this.token, this.userRoutine});
+  RoutineList({required this.routines, required this.backgroundImages, required this.token});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: ListView.builder(
-        itemCount: routines.length + 1, // +1 for the user routine card
+        itemCount: routines.length,
         itemBuilder: (context, index) {
-          if (index == 0) {
-            return UserRoutineCard(userRoutine: userRoutine);
-          } else {
-            String imageUrl = backgroundImages[(index - 1) % backgroundImages.length];
-            return RoutineCard(routine: routines[index - 1], imageUrl: imageUrl, token: token);
-          }
+          String imageUrl = backgroundImages[index % backgroundImages.length];
+          return RoutineCard(routine: routines[index], imageUrl: imageUrl, token: token);
         },
       ),
     );
