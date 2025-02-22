@@ -299,7 +299,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(width: 10),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>  RoutineScreen(),
+                    ),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
@@ -309,17 +314,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // الانتقال إلى صفحة الروتين (RoutineScreen)
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => RoutineScreen()),
-                      );
-                    },
-                    child: const Text('View Routine'),
-                  ),
-
+                  child: const Text('View Routine'),
                 ),
               ],
             ),
