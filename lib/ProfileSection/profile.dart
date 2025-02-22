@@ -114,7 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile picture updated successfully')),
+          const SnackBar(content: Text('AdminProfileSectio picture updated successfully')),
         );
       } else {
         var errorResponse = await response.stream.bytesToString();

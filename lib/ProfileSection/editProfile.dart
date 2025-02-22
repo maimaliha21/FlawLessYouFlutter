@@ -244,7 +244,7 @@ class _EditProfileScreenState extends State<EditProfile>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Edit Profile'),
+        title: Text('Edit AdminProfileSectio'),
         bottom: TabBar(
           controller: _tabController,
           tabs: [
