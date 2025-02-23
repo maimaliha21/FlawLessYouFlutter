@@ -11,7 +11,7 @@ class Signup extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Create Profile',
+      title: 'Create AdminProfileSectio',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
@@ -213,7 +213,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen>
                 children: [
                   SizedBox(height: 40),
                   Text(
-                    'Create Profile',
+                    'Create AdminProfileSectio',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
                   ),
                   SizedBox(height: 30),

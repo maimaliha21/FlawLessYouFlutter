@@ -121,7 +121,10 @@ class _MessageCardState extends State<MessageCard> {
       ),
       body: Container(
         decoration: BoxDecoration(
-          color: Colors.brown.shade100, // لون خلفية بيج فاتح
+          image: DecorationImage(
+            image: AssetImage('assets/messagesCards.jpg'), // تغيير الخلفية إلى الصورة
+            fit: BoxFit.cover,
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -129,10 +132,10 @@ class _MessageCardState extends State<MessageCard> {
             children: [
               // الكارد الأول
               Card(
-                color: Colors.white.withOpacity(0.7), // لون بطاقة شفاف
+                color: Colors.white.withOpacity(0.5), // جعل البوكس شفافًا قليلاً
                 elevation: 4,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(20), // جعل الحواف دائرية أكثر
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -160,7 +163,7 @@ class _MessageCardState extends State<MessageCard> {
                         style: TextStyle(color: Colors.black87),
                         decoration: InputDecoration(
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12), // جعل حواف TextField دائرية
                           ),
                           labelText: 'Message',
                           labelStyle: TextStyle(color: Colors.black87),
@@ -172,7 +175,7 @@ class _MessageCardState extends State<MessageCard> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal[300], // لون أخضر ضبابي
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12), // جعل حواف الزر دائرية
                           ),
                         ),
                         child: Text('Send', style: TextStyle(color: Colors.white)),
@@ -187,54 +190,67 @@ class _MessageCardState extends State<MessageCard> {
                   itemCount: cards.length,
                   itemBuilder: (context, index) {
                     final card = cards[index];
-                    return Card(
-                      color: Colors.white.withOpacity(0.7), // لون بطاقة شفاف
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ExpansionTile(
-                        leading: Icon(Icons.message, color: Colors.teal[300]), // أيقونة زيتية
-                        title: Text(
-                          card['message'],
-                          style: TextStyle(color: Colors.black87),
-                          maxLines: 2, // عدد الأسطر القصوى قبل التوسيع
-                          overflow: TextOverflow.ellipsis, // اختصار النص إذا كان طويلاً
-                        ),
-                        subtitle: Text(
-                          'Sent to: ${card['expertName'] ?? 'Unknown'}',
-                          style: TextStyle(color: Colors.black54),
-                        ),
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Message:',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  card['message'],
-                                  style: TextStyle(color: Colors.black87),
-                                ),
-                                SizedBox(height: 16),
-                                Text(
-                                  'Sent to: ${card['expertName'] ?? 'Unknown'}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ],
-                            ),
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 10), // إنزال الكارد لأسفل قليلاً
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            // تغيير لون الكارد عند الضغط
+                            card['isPressed'] = !(card['isPressed'] ?? false);
+                          });
+                        },
+                        child: Card(
+                          color: (card['isPressed'] ?? false)
+                              ? Colors.grey[300] // لون أغمق عند الضغط
+                              : Colors.white.withOpacity(0.5), // لون عادي
+                          elevation: 4,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20), // جعل الحواف دائرية أكثر
                           ),
-                        ],
+                          child: ExpansionTile(
+                            leading: Icon(Icons.message, color: Colors.teal[300]), // أيقونة زيتية
+                            title: Text(
+                              card['message'],
+                              style: TextStyle(color: Colors.black87),
+                              maxLines: 2, // عدد الأسطر القصوى قبل التوسيع
+                              overflow: TextOverflow.ellipsis, // اختصار النص إذا كان طويلاً
+                            ),
+                            subtitle: Text(
+                              'Sent to: ${card['expertName'] ?? 'Unknown'}',
+                              style: TextStyle(color: Colors.black54),
+                            ),
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Message:',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      card['message'],
+                                      style: TextStyle(color: Colors.black87),
+                                    ),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      'Sent to: ${card['expertName'] ?? 'Unknown'}',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     );
                   },
