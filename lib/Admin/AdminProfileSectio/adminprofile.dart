@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
-import '../../Card/Card.dart';
-import '../../Home_Section/home.dart';
 import '../../LogIn/login.dart';
 import '../../Product/product.dart';
-import '../../Product/productPage.dart';
-import '../../ProfileSection/editProfile.dart';
-import '../../Routinebar/routinescreen.dart';
 
 class AdminProfile extends StatefulWidget {
   const AdminProfile({Key? key}) : super(key: key);
@@ -17,27 +13,10 @@ class AdminProfile extends StatefulWidget {
   _AdminProfileState createState() => _AdminProfileState();
 }
 
-class BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height - 20);
-    path.quadraticBezierTo(size.width / 4, size.height, size.width / 2, size.height - 20);
-    path.quadraticBezierTo(size.width * 3 / 4, size.height - 40, size.width, size.height - 20);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
-
 class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderStateMixin {
   String? token;
   Map<String, dynamic>? userInfo;
   late TabController _tabController;
-  String? _profileImage;
 
   @override
   void initState() {
@@ -58,7 +37,6 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to load user data: $e')),
       );
-      _logout();
     }
   }
 
@@ -88,300 +66,147 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
     );
   }
 
-  Future<void> _handleLogout() async {
-    try {
-      // await GoogleSignInApi.signOut();
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-            (route) => false,
+  void _showEditPopup() {
+    if (userInfo != null && userInfo!['role'] == 'ADMIN') {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Edit Product'),
+            content: Text('You are an ADMIN. You can edit this product.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text('Close'),
+              ),
+              TextButton(
+                onPressed: () {
+                  // هنا يمكنك إضافة منطق التعديل
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Product updated successfully!')),
+                  );
+                },
+                child: Text('Save'),
+              ),
+            ],
+          );
+        },
       );
-    } catch (e) {
-      print('Error during logout: $e');
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to logout')),
+        SnackBar(content: Text('You do not have permission to edit.')),
       );
     }
-  }
-
-  Future<void> _pickImage() async {
-    // Implement image picking logic here
-  }
-
-  ImageProvider _getProfileImage() {
-    if (_profileImage != null) return NetworkImage(_profileImage!);
-    if (userInfo != null && userInfo!['profilePicture'] != null) {
-      return NetworkImage(userInfo!['profilePicture']);
-    }
-    return const AssetImage('assets/profile.jpg');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin Profile'),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Colors.blue,
-          unselectedLabelColor: Colors.grey,
-          tabs: const [
-            Tab(text: 'Saved'),
-            Tab(text: 'History'),
-          ],
-        ),
+        title: Text('Admin Profile'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: _logout,
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  height: 250,
-                  decoration: const BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage('assets/bgphoto.jpg'),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 30,
-                  right: 20,
-                  child: PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'logout') _handleLogout();
-                    },
-                    itemBuilder: (BuildContext context) => [
-                      const PopupMenuItem(
-                        value: 'support',
-                        child: Text('Support'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'about_us',
-                        child: Text('About Us'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'logout',
-                        child: Text('Log Out'),
-                      ),
-                    ],
-                    child: const Icon(
-                      Icons.more_vert,
-                      color: Colors.white,
-                      size: 30,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 150,
-                  left: MediaQuery.of(context).size.width / 2 - 75,
-                  child: GestureDetector(
-                    onTap: () => showDialog(
-                      context: context,
-                      builder: (context) => Dialog(
-                        backgroundColor: Colors.transparent,
-                        child: Stack(
-                          children: [
-                            Container(
-                              width: 300,
-                              height: 300,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.8),
-                                borderRadius: BorderRadius.circular(20),
-                                image: DecorationImage(
-                                  image: _getProfileImage(),
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 15,
-                              left: 50,
-                              right: 50,
-                              child: ElevatedButton(
-                                onPressed: _pickImage,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFB0BEC5),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 50, vertical: 15),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                child: const Text('Change Picture'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    child: CircleAvatar(
-                      radius: 75,
-                      backgroundColor: Colors.white,
-                      child: CircleAvatar(
-                        radius: 70,
-                        backgroundColor: Colors.white,
-                        child: CircleAvatar(
-                          radius: 65,
-                          backgroundImage: _getProfileImage(),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+      body: Column(
+        children: [
+          // الخلفية (Background)
+          Container(
+            height: 200,
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/bgphoto.jpg'), // مسار الصورة
+                fit: BoxFit.cover,
+              ),
             ),
-            const SizedBox(height: 60),
-            Text(
-              userInfo?['username'] ?? 'User',
-              style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black),
+          ),
+
+          // الصورة (Profile Picture)
+          if (userInfo != null)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundImage: NetworkImage(userInfo!['profilePicture'] ?? 'assets/profile.jpg'),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Welcome, ${userInfo!['name'] ?? 'Admin'}',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Email: ${userInfo!['email'] ?? 'N/A'}',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  SizedBox(height: 16),
+                ],
+              ),
             ),
-            Text(
-              userInfo?['email'] ?? '',
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            if (userInfo?['skinType'] != null) ...[
-              const SizedBox(height: 5),
-              Text(
-                'Skin Type: ${userInfo?['skinType']}',
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
+
+          // أزرار الروتين وتعديل الملف الشخصي
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RoutineScreen(),
+                    ),
+                  );
+                },
+                child: Text('View Routine'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditProfile(token: token!),
+                    ),
+                  );
+                },
+                child: Text('Edit Profile'),
               ),
             ],
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => EditProfile(
-                        token: token!,
-                        // userInfo: userInfo
-                      ),
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 50, vertical: 20),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Edit profile'),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>  RoutineScreen(),
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 50, vertical: 20),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('View Routine'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            TabBarView(
+          ),
+
+          // TabBar للسيفد والهستري
+          TabBar(
+            controller: _tabController,
+            labelColor: Colors.blue,
+            unselectedLabelColor: Colors.grey,
+            tabs: const [
+              Tab(text: 'Saved'),
+              Tab(text: 'History'),
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
               controller: _tabController,
               children: [
                 ProductTabScreen(
                   apiUrl: "http://localhost:8080/product/Saved",
                 ),
                 const Center(
-                  child: Text('No history available', style: TextStyle(color: Colors.black)),
+                  child: Text('No history available',
+                      style: TextStyle(color: Colors.black)),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-      bottomNavigationBar: BottomAppBar(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.home, color: Colors.blue),
-              onPressed: () {
-                if (token != null) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => Home(token: token!),
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Token is missing. Please log in again.')),
-                  );
-                }
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.chat, color: Colors.blue),
-              onPressed: () {
-                if (token != null) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MessageCard(token: token!),
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Token is missing. Please log in again.')),
-                  );
-                }
-              },
-            ),
-            const SizedBox(width: 60),
-            IconButton(
-              icon: const Icon(Icons.settings, color: Colors.blue),
-              onPressed: () {
-                if (token != null && userInfo != null) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ProductPage(token: token!, userInfo: userInfo!),
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('User data is missing. Please log in again.')),
-                  );
-                }
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.person, color: Colors.blue),
-              onPressed: () {},
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blue,
-        onPressed: () {},
-        child: const Icon(Icons.face, color: Colors.white),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 
@@ -389,5 +214,163 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+}
+
+// صفحة الروتين (Routine Screen)
+class RoutineScreen extends StatelessWidget {
+  const RoutineScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('My Routine'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Text(
+              'Your Daily Routine',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 20),
+            _buildRoutineItem('Morning', 'Cleanse, Moisturize, Sunscreen'),
+            _buildRoutineItem('Evening', 'Cleanse, Serum, Moisturize'),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                // إضافة وظيفة لتعديل الروتين
+              },
+              child: Text('Edit Routine'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRoutineItem(String time, String routine) {
+    return ListTile(
+      leading: Icon(Icons.access_time, color: Colors.blue),
+      title: Text(time, style: TextStyle(fontWeight: FontWeight.bold)),
+      subtitle: Text(routine),
+    );
+  }
+}
+
+// صفحة تعديل الملف الشخصي (Edit Profile)
+class EditProfile extends StatefulWidget {
+  final String token;
+
+  const EditProfile({Key? key, required this.token}) : super(key: key);
+
+  @override
+  _EditProfileState createState() => _EditProfileState();
+}
+
+class _EditProfileState extends State<EditProfile> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _usernameController;
+  late TextEditingController _emailController;
+  late TextEditingController _skinTypeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _usernameController = TextEditingController();
+    _emailController = TextEditingController();
+    _skinTypeController = TextEditingController();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Edit Profile'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              TextFormField(
+                controller: _usernameController,
+                decoration: InputDecoration(labelText: 'Username'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your username';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _emailController,
+                decoration: InputDecoration(labelText: 'Email'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your email';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _skinTypeController,
+                decoration: InputDecoration(labelText: 'Skin Type'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your skin type';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  if (_formKey.currentState!.validate()) {
+                    _updateProfile();
+                  }
+                },
+                child: Text('Save Changes'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _updateProfile() async {
+    try {
+      var response = await http.post(
+        Uri.parse('http://localhost:8080/api/users/updateProfile'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'username': _usernameController.text,
+          'email': _emailController.text,
+          'skinType': _skinTypeController.text,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profile updated successfully')),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update profile')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
   }
 }
