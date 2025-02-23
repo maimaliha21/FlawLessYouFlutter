@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'home.dart';
+
 final String _backgroundImageUrl =
     'https://res.cloudinary.com/davwgirjs/image/upload/v1740317838/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740317835039_Screenshot%202025-02-23%20153620.png.png';
 
@@ -266,7 +268,7 @@ class HomeScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'لحظة عناية تُعيد لِبشرتكِ إشراقتها! 🌟 مع تطبيقنا، إطلالتكِ المشرقة بتكون أسهل وألطف من أي وقت!',
+                  'A moment of care that brings back the radiance to your skin! 🌟 With our app, your glowing look becomes easier and gentler than ever!',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -283,7 +285,9 @@ class HomeScreen extends StatelessWidget {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => SkincareRoutine(token: token)),
+                            builder: (context) =>Home(
+                              token: token,
+                            ),),
                       );
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
