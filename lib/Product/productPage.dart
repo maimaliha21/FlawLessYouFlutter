@@ -20,7 +20,7 @@ class ProductPage extends StatelessWidget {
         backgroundColor: Colors.blue,
       ),
       body: ProductTabScreen(
-        token: token,
+
         apiUrl: "http://localhost:8080/product/random?limit=6",
       ),
       bottomNavigationBar: CustomBottomNavigationBar(
