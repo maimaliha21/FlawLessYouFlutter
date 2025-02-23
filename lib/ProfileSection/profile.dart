@@ -12,6 +12,7 @@ import 'dart:convert';
 import 'package:projtry1/Card/Card.dart';
 
 import '../Home_Section/home.dart';
+import '../Routinebar/routinescreen.dart';
 
 class Profile extends StatelessWidget {
   final String token;
@@ -114,7 +115,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile picture updated successfully')),
+          const SnackBar(content: Text('AdminProfileSectio picture updated successfully')),
         );
       } else {
         var errorResponse = await response.stream.bytesToString();
@@ -298,7 +299,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(width: 10),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>  RoutineScreen(),
+                    ),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
