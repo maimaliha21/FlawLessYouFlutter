@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:projtry1/Product/product.dart'; // Ensure this import is correct
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:projtry1/Product/product.dart'; // تأكد من أن هذا الاستيراد صحيح
 
 class ProductPage extends StatelessWidget {
   final String token;
@@ -13,34 +15,127 @@ class ProductPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String role = userInfo['role'] ?? 'USER'; // الافتراضي هو USER إذا لم يتم تقديم الدور
+
     return Scaffold(
       backgroundColor: Colors.grey[300],
       appBar: AppBar(
         title: const Text('Product Page'),
         backgroundColor: Colors.blue,
       ),
-      body: ProductTabScreen(
-        token: token,
-        apiUrl: "http://localhost:8080/product/random?limit=6",
-      ),
+      body: role == 'ADMIN' ? _buildAdminView(context) : _buildUserView(context),
       bottomNavigationBar: CustomBottomNavigationBar(
         token: token,
         userInfo: userInfo,
       ),
     );
   }
-}
 
-
-
-  @override
-  Widget build(BuildContext context) {
-    // Implement API call and display products here
-    return Center(
-      child: Text("Products will be displayed here"), // Placeholder
+  Widget _buildUserView(BuildContext context) {
+    return ProductTabScreen(
+      apiUrl: "http://localhost:8080/product/random?limit=6",
     );
   }
 
+  Widget _buildAdminView(BuildContext context) {
+    return Center(
+      child: ElevatedButton(
+        onPressed: () {
+          _showEditProductPopup(context);
+        },
+        child: const Text('Edit Product'),
+      ),
+    );
+  }
+
+  void _showEditProductPopup(BuildContext context) {
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController descriptionController = TextEditingController();
+    final TextEditingController ingredientsController = TextEditingController();
+    final TextEditingController skinTypeController = TextEditingController();
+    final TextEditingController usageTimeController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Edit Product'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Name'),
+                ),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                ),
+                TextField(
+                  controller: ingredientsController,
+                  decoration: const InputDecoration(labelText: 'Ingredients'),
+                ),
+                TextField(
+                  controller: skinTypeController,
+                  decoration: const InputDecoration(labelText: 'Skin Type'),
+                ),
+                TextField(
+                  controller: usageTimeController,
+                  decoration: const InputDecoration(labelText: 'Usage Time'),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                // إعداد بيانات المنتج المحدثة
+                final updatedProduct = {
+                  "productId": "Atn5pCQF7VR4KhJCzI4g", // استبدل بمعرف المنتج الفعلي
+                  "name": nameController.text,
+                  "skinType": [skinTypeController.text],
+                  "description": descriptionController.text,
+                  "ingredients": [ingredientsController.text],
+                  "usageTime": [usageTimeController.text],
+                };
+
+                // إرسال طلب PUT
+                final response = await http.put(
+                  Uri.parse('http://localhost:8080/product/product'),
+                  headers: {
+                    'Authorization': 'Bearer $token',
+                    'Content-Type': 'application/json',
+                  },
+                  body: jsonEncode(updatedProduct),
+                );
+
+                // التعامل مع الاستجابة
+                if (response.statusCode == 200) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Product updated successfully!')),
+                  );
+                  Navigator.of(context).pop();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to update product: ${response.body}')),
+                  );
+                }
+              },
+              child: const Text('Update'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
 
 class CustomBottomNavigationBar extends StatelessWidget {
   final String token;
@@ -101,17 +196,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                 const SizedBox(width: 60),
                 IconButton(
                   icon: const Icon(Icons.settings, color: Colors.blue),
-                  onPressed: () {
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //     builder: (context) => produ(
-                    //       token: token,
-                    //       apiUrl: "http://localhost:8080/product/random?limit=6",
-                    //     ),
-                    //   ),
-                    // );
-                  },
+                  onPressed: () {},
                 ),
                 IconButton(
                   icon: const Icon(Icons.person, color: Colors.blue),
