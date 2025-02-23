@@ -395,7 +395,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) => Home(
                           token: token,
-                          userInfo: userInfo,
+
                         ),
                       ),
                     );
