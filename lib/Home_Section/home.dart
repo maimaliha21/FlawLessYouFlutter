@@ -207,7 +207,7 @@ class Home extends StatelessWidget {
                     child: TabBarView(
                       children: [
                         ProductTabScreen(
-                          token: token,
+
                           apiUrl: "http://localhost:8080/product/random?limit=6",
                         ),
                         // يمكنك إضافة علامات تبويب إضافية هنا

@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProductApp extends StatelessWidget {
   const ProductApp({Key? key}) : super(key: key);
@@ -98,19 +99,49 @@ class Product {
     );
   }
 }
-class ProductTabScreen extends StatelessWidget {
-  final String token;
-  final String apiUrl; // إضافة معامل للرابط
+
+class ProductTabScreen extends StatefulWidget {
+  final String apiUrl;
 
   const ProductTabScreen({
     Key? key,
-    required this.token,
-    required this.apiUrl, // تمرير الرابط كمعامل
+    required this.apiUrl,
   }) : super(key: key);
 
+  @override
+  _ProductTabScreenState createState() => _ProductTabScreenState();
+}
+
+class _ProductTabScreenState extends State<ProductTabScreen> {
+  String? token;
+  String? userInfo;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadToken();
+  }
+
+  Future<void> _loadToken() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userInfoString = prefs.getString('userInfo');
+    Map<String, dynamic> userInfoMap = json.decode(userInfoString ?? '{}');
+
+    setState(() {
+      token = prefs.getString('token');
+      userInfo = userInfoMap['role'];
+      _isLoading = false;
+    });
+  }
+
   Future<List<Product>> fetchProducts() async {
+    if (token == null) {
+      throw Exception('Token is not available');
+    }
+
     final response = await http.get(
-      Uri.parse(apiUrl), // استخدام الرابط الممرر
+      Uri.parse(widget.apiUrl),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -158,11 +189,9 @@ class ProductTabScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
-      // appBar: AppBar(
-      //   // title: const Text("Products"),
-      //   centerTitle: true,
-      // ),
-      body: FutureBuilder<List<Product>>(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : FutureBuilder<List<Product>>(
         future: fetchProducts(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
@@ -173,12 +202,13 @@ class ProductTabScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
-          return ProductList(products: snapshot.data!, token: token);
+          return ProductList(products: snapshot.data!, token: token!);
         },
       ),
     );
   }
 }
+
 class ProductList extends StatelessWidget {
   final List<Product> products;
   final String token;
@@ -488,7 +518,7 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'rating': rating.toInt()}), // تحويل التقييم إلى عدد صحيح
+        body: jsonEncode({'rating': rating.toInt()}),
       );
 
       if (response.statusCode == 200) {
@@ -514,7 +544,7 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            height: 300, // زيادة ارتفاع الصورة
+            height: 300,
             child: PageView.builder(
               controller: _pageController,
               itemCount: widget.product.photos?.length ?? 1,
