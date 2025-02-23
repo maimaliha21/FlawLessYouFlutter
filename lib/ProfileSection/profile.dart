@@ -395,7 +395,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) => Home(
                           token: token,
-                          userInfo: userInfo,
+
                         ),
                       ),
                     );
@@ -493,7 +493,7 @@ class _TabBarSectionState extends State<TabBarSection>
             controller: _tabController,
             children: [
               ProductTabScreen(
-                token: widget.token,
+
                 apiUrl: "http://localhost:8080/product/Saved",
               ),
               const Center(
