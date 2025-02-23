@@ -59,6 +59,7 @@ class Product {
   final String? description;
   final double rating;
   final List<String>? photos;
+  final List<String>? usageTime;
   bool isSaved;
 
   Product({
@@ -69,6 +70,7 @@ class Product {
     this.description,
     required this.rating,
     this.photos,
+    this.usageTime,
     this.isSaved = false,
   });
 
@@ -87,6 +89,11 @@ class Product {
       photos = List<String>.from(json['photos']);
     }
 
+    List<String>? usageTime;
+    if (json['usageTime'] is List) {
+      usageTime = List<String>.from(json['usageTime']);
+    }
+
     return Product(
       productId: json['productId'] as String? ?? 'unknown',
       name: json['name'] as String?,
@@ -95,6 +102,7 @@ class Product {
       description: json['description'] as String?,
       rating: avgRating,
       photos: photos,
+      usageTime: usageTime,
       isSaved: json['isSaved'] is bool ? json['isSaved'] : false,
     );
   }
@@ -114,7 +122,7 @@ class ProductTabScreen extends StatefulWidget {
 
 class _ProductTabScreenState extends State<ProductTabScreen> {
   String? token;
-  String? userInfo;
+  String? userRole;
   bool _isLoading = true;
 
   @override
@@ -130,7 +138,7 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
 
     setState(() {
       token = prefs.getString('token');
-      userInfo = userInfoMap['role'];
+      userRole = userInfoMap['role'];
       _isLoading = false;
     });
   }
@@ -202,7 +210,11 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          return ProductList(products: snapshot.data!, token: token!);
+          return ProductList(
+            products: snapshot.data!,
+            token: token!,
+            userRole: userRole!,
+          );
         },
       ),
     );
@@ -212,11 +224,13 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
 class ProductList extends StatelessWidget {
   final List<Product> products;
   final String token;
+  final String userRole;
 
   const ProductList({
     Key? key,
     required this.products,
     required this.token,
+    required this.userRole,
   }) : super(key: key);
 
   @override
@@ -232,7 +246,11 @@ class ProductList extends StatelessWidget {
         ),
         itemCount: products.length,
         itemBuilder: (context, index) {
-          return ProductCard(product: products[index], token: token);
+          return ProductCard(
+            product: products[index],
+            token: token,
+            userRole: userRole,
+          );
         },
       ),
     );
@@ -242,8 +260,14 @@ class ProductList extends StatelessWidget {
 class ProductCard extends StatefulWidget {
   final Product product;
   final String token;
+  final String userRole;
 
-  const ProductCard({Key? key, required this.product, required this.token}) : super(key: key);
+  const ProductCard({
+    Key? key,
+    required this.product,
+    required this.token,
+    required this.userRole,
+  }) : super(key: key);
 
   @override
   _ProductCardState createState() => _ProductCardState();
@@ -294,15 +318,29 @@ class _ProductCardState extends State<ProductCard> {
   }
 
   void _showProductDetails(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          insetPadding: EdgeInsets.all(16),
-          child: ProductDetailsPopup(product: widget.product, token: widget.token),
-        );
-      },
-    );
+    if (widget.userRole == 'ADMIN') {
+      // Open Edit Popup for Admin
+      showDialog(
+        context: context,
+        builder: (context) {
+          return Dialog(
+            insetPadding: EdgeInsets.all(16),
+            child: EditProductPopup(product: widget.product, token: widget.token),
+          );
+        },
+      );
+    } else {
+      // Open Product Details Popup for User
+      showDialog(
+        context: context,
+        builder: (context) {
+          return Dialog(
+            insetPadding: EdgeInsets.all(16),
+            child: ProductDetailsPopup(product: widget.product, token: widget.token),
+          );
+        },
+      );
+    }
   }
 
   @override
@@ -505,7 +543,7 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
         _isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Connection error')),
+        const SnackBar(content: Text('Connection error')),
       );
     }
   }
@@ -622,6 +660,201 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
                     });
                     _submitRating(rating);
                   },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class EditProductPopup extends StatefulWidget {
+  final Product product;
+  final String token;
+
+  const EditProductPopup({Key? key, required this.product, required this.token}) : super(key: key);
+
+  @override
+  _EditProductPopupState createState() => _EditProductPopupState();
+}
+
+class _EditProductPopupState extends State<EditProductPopup> {
+  late TextEditingController _nameController;
+  late TextEditingController _descriptionController;
+  late Map<String, bool> _skinType;
+  late List<String> _ingredients;
+  late Map<String, bool> _usageTime;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.product.name);
+    _descriptionController = TextEditingController(text: widget.product.description);
+    _skinType = {
+      'OILY': widget.product.skinType.contains('OILY'),
+      'DRY': widget.product.skinType.contains('DRY'),
+      'NORMAL': widget.product.skinType.contains('NORMAL'),
+    };
+    _ingredients = List.from(widget.product.ingredients);
+    _usageTime = {
+      'MORNING': widget.product.usageTime?.contains('MORNING') ?? false,
+      'NIGHT': widget.product.usageTime?.contains('NIGHT') ?? false,
+      'AFTERNOON': widget.product.usageTime?.contains('AFTERNOON') ?? false,
+    };
+  }
+
+  Future<void> _updateProduct() async {
+    try {
+      final response = await http.put(
+        Uri.parse('http://localhost:8080/product/product'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'productId': widget.product.productId,
+          'name': _nameController.text,
+          'skinType': _skinType.entries.where((entry) => entry.value).map((entry) => entry.key).toList(),
+          'description': _descriptionController.text,
+          'ingredients': _ingredients,
+          'usageTime': _usageTime.entries.where((entry) => entry.value).map((entry) => entry.key).toList(),
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Product updated successfully')),
+        );
+        Navigator.of(context).pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update product')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Connection error')),
+      );
+    }
+  }
+
+  void _addIngredient() async {
+    final newIngredient = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        final TextEditingController controller = TextEditingController();
+        return AlertDialog(
+          title: Text('Add Ingredient'),
+          content: TextField(
+            controller: controller,
+            decoration: InputDecoration(hintText: 'Enter ingredient'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(controller.text);
+              },
+              child: Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (newIngredient != null && newIngredient.isNotEmpty) {
+      setState(() {
+        _ingredients.add(newIngredient);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (widget.product.photos != null && widget.product.photos!.isNotEmpty)
+            Image.network(
+              widget.product.photos![0],
+              fit: BoxFit.cover,
+              height: 200,
+              width: double.infinity,
+            ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: _nameController,
+                  decoration: InputDecoration(labelText: 'Product Name'),
+                ),
+                TextField(
+                  controller: _descriptionController,
+                  decoration: InputDecoration(labelText: 'Description'),
+                  maxLines: 3,
+                ),
+                Text(
+                  'Skin Type:',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                Column(
+                  children: _skinType.entries.map((entry) {
+                    return CheckboxListTile(
+                      title: Text(entry.key),
+                      value: entry.value,
+                      onChanged: (value) {
+                        setState(() {
+                          _skinType[entry.key] = value ?? false;
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+                Text(
+                  'Ingredients:',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                Wrap(
+                  spacing: 8.0,
+                  children: _ingredients.map((ingredient) {
+                    return Chip(
+                      label: Text(ingredient),
+                      onDeleted: () {
+                        setState(() {
+                          _ingredients.remove(ingredient);
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+                IconButton(
+                  icon: Icon(Icons.add),
+                  onPressed: _addIngredient,
+                ),
+                Text(
+                  'Usage Time:',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                Column(
+                  children: _usageTime.entries.map((entry) {
+                    return CheckboxListTile(
+                      title: Text(entry.key),
+                      value: entry.value,
+                      onChanged: (value) {
+                        setState(() {
+                          _usageTime[entry.key] = value ?? false;
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+                ElevatedButton(
+                  onPressed: _updateProduct,
+                  child: Text('Update Product'),
                 ),
               ],
             ),
