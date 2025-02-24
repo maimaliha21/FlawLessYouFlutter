@@ -159,13 +159,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Container(
                   height: 250,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     image: DecorationImage(
-                      image: AssetImage('https://res.cloudinary.com/davwgirjs/image/upload/v1740417378/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417378981_bgphoto.jpg.jpg'),
+                      image: NetworkImage('https://res.cloudinary.com/davwgirjs/image/upload/v1740417378/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417378981_bgphoto.jpg.jpg'),
                       fit: BoxFit.cover,
                     ),
-                  ),
-                ),
+                  ),),
                 Positioned(
                   top: 30,
                   right: 20,
@@ -268,7 +267,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 60),
             Text(
-              widget.userInfo['username'] ?? 'User',
+              widget.userInfo['userName'] ?? 'User',
               style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
