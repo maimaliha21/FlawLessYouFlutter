@@ -94,7 +94,7 @@ class _UserFilterPageState extends State<UserFilterPage> {
         decoration: BoxDecoration(
           image: DecorationImage(
             image: NetworkImage(
-              'https://res.cloudinary.com/davwgirjs/image/upload/v1740398445/nhndev/product/Atn5pCQF7VR4KhJCzI4g_1740398442198_aboutusbg.jpg.jpg',
+              'https://res.cloudinary.com/davwgirjs/image/upload/v1740399050/nhndev/product/Atn5pCQF7VR4KhJCzI4g_1740399048265_005bdf0b-38be-4cbd-a016-f0c574659898.jpg.jpg',
             ),
             fit: BoxFit.cover,
           ),
@@ -103,29 +103,43 @@ class _UserFilterPageState extends State<UserFilterPage> {
           filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
           child: Column(
             children: [
-              // تم نقل حقل البحث إلى هنا (أسفل AppBar)
+              // العنوان وحقل البحث
               Padding(
-                padding: const EdgeInsets.only(top: 80.0, left: 8.0, right: 8.0), // تباعد من الأعلى
-                child: Row(
+                padding: const EdgeInsets.only(top: 100.0, left: 16.0, right: 16.0), // تباعد من الأعلى
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          labelText: 'Search by username',
-                          filled: true,
-                          fillColor: Colors.black.withOpacity(0.5), // خلفية سوداء شفافة
-                          labelStyle: TextStyle(color: Colors.white), // لون النص الأبيض
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                          ),
-                        ),
-                        style: TextStyle(color: Colors.white), // لون النص الأبيض
+                    Text(
+                      'User Filter',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    IconButton(
-                      icon: Icon(Icons.search, color: Colors.white), // لون الأيقونة أبيض
-                      onPressed: _searchUsers,
+                    SizedBox(height: 16), // مسافة بين العنوان وحقل البحث
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              labelText: 'Search by username',
+                              filled: true,
+                              fillColor: Colors.black.withOpacity(0.5), // خلفية سوداء شفافة
+                              labelStyle: TextStyle(color: Colors.white), // لون النص الأبيض
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10.0),
+                              ),
+                            ),
+                            style: TextStyle(color: Colors.white), // لون النص الأبيض
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.search, color: Colors.white), // لون الأيقونة أبيض
+                          onPressed: _searchUsers,
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -136,7 +150,7 @@ class _UserFilterPageState extends State<UserFilterPage> {
                   itemBuilder: (context, index) {
                     final user = _users[index];
                     return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10.0), // زوايا مستديرة
                         child: BackdropFilter(
