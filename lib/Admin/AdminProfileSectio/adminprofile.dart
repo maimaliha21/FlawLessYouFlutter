@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
+import '../../Card/Card.dart';
+import '../../Home_Section/home.dart';
 import '../../LogIn/login.dart';
 import '../../Product/product.dart';
+import '../../Product/productPage.dart';
+import '../../Routinebar/routinescreen.dart';
+import '../../ProfileSection/editProfile.dart';
+import 'editRole.dart';
 
 class AdminProfile extends StatefulWidget {
   const AdminProfile({Key? key}) : super(key: key);
@@ -66,9 +73,7 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
   }
 
   void _showEditPopup() {
-    print(userInfo!['role'] +'ADMIN'+'hhhhhhhhhh');
     if (userInfo != null && userInfo!['role'] == 'ADMIN') {
-      print(userInfo!['role'] +'ADMIN');
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -97,7 +102,6 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
         },
       );
     } else {
-      print(userInfo!['role'] +'ADMIN'+'this is else');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('You do not have permission to edit.')),
       );
@@ -107,71 +111,274 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Admin Profile'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: _logout,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          if (userInfo != null)
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  Text(
-                    'Welcome, ${userInfo!['name'] ?? 'Admin'}',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Email: ${userInfo!['email'] ?? 'N/A'}',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  SizedBox(height: 16),
-                  if (userInfo!['role'] == 'ADMIN')
-                    ElevatedButton(
-                      onPressed: _showEditPopup,
-                      child: Text('Edit Product'),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  height: 250,
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('assets/bgphoto.jpg'),
+                      fit: BoxFit.cover,
                     ),
+                  ),
+                ),
+                Positioned(
+                  top: 30,
+                  right: 20,
+                  child: PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'logout') _logout();
+                    },
+                    itemBuilder: (BuildContext context) => [
+                      const PopupMenuItem(
+                        value: 'support',
+                        child: Text('Support'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'about_us',
+                        child: Text('About Us'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'logout',
+                        child: Text('Log Out'),
+                      ),
+                    ],
+                    child: const Icon(
+                      Icons.more_vert,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 150,
+                  left: MediaQuery.of(context).size.width / 2 - 75,
+                  child: CircleAvatar(
+                    radius: 75,
+                    backgroundColor: Colors.white,
+                    child: CircleAvatar(
+                      radius: 70,
+                      backgroundColor: Colors.white,
+                      child: CircleAvatar(
+                        radius: 65,
+                        backgroundImage: NetworkImage(userInfo?['profilePicture'] ?? 'assets/profile.jpg'),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 60),
+            Text(
+              userInfo?['username'] ?? 'Admin',
+              style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black),
+            ),
+            Text(
+              userInfo?['email'] ?? '',
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+            if (userInfo?['skinType'] != null) ...[
+              const SizedBox(height: 5),
+              Text(
+                'Skin Type: ${userInfo?['skinType']}',
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+            ],
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditProfile(token: token!),
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 50, vertical: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Edit profile'),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => UserFilterPage(),
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 50, vertical: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('manage Routine'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            TabBar(
+              controller: _tabController,
+              labelColor: Colors.blue,
+              unselectedLabelColor: Colors.grey,
+              tabs: const [
+                Tab(text: 'Saved'),
+
+              ],
+            ),
+            Container(
+              height: 300,
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  ProductTabScreen(
+                    apiUrl: "http://localhost:8080/product/Saved",
+                  ),
+                  const Center(
+                    child: Text('No history available',
+                        style: TextStyle(color: Colors.black)),
+                  ),
                 ],
               ),
             ),
-          TabBar(
-            controller: _tabController,
-            labelColor: Colors.blue,
-            unselectedLabelColor: Colors.grey,
-            tabs: const [
-              Tab(text: 'Saved'),
-              Tab(text: 'History'),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                ProductTabScreen(
-                  apiUrl: "http://localhost:8080/product/Saved",
-                ),
-                const Center(
-                  child: Text('No history available',
-                      style: TextStyle(color: Colors.black)),
+          ],
+        ),
+      ),
+      bottomNavigationBar: CustomBottomNavigationBar(
+        token: token ?? '',
+        userInfo: userInfo ?? {},
+      ),
+    );
+  }
+}
+
+class CustomBottomNavigationBar extends StatelessWidget {
+  final String token;
+  final Map<String, dynamic> userInfo;
+
+  const CustomBottomNavigationBar({
+    super.key,
+    required this.token,
+    required this.userInfo,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        ClipPath(
+          clipper: BottomWaveClipper(),
+          child: Container(
+            height: 70,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 10,
                 ),
               ],
             ),
           ),
-        ],
-      ),
+        ),
+        Positioned(
+          bottom: 25,
+          left: MediaQuery.of(context).size.width / 2 - 30,
+          child: FloatingActionButton(
+            backgroundColor: Colors.blue,
+            onPressed: () {},
+            child: const Icon(Icons.face, color: Colors.white),
+          ),
+        ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            height: 70,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.home, color: Colors.blue),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Home(token: token),
+                      ),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chat, color: Colors.blue),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MessageCard(token: token),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 60),
+                IconButton(
+                  icon: const Icon(Icons.settings, color: Colors.blue),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProductPage(token: token, userInfo: userInfo),
+                      ),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.person, color: Colors.blue),
+                  onPressed: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
+  }
+}
+
+class BottomWaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    Path path = Path();
+    path.lineTo(0, size.height - 20);
+    path.quadraticBezierTo(size.width / 4, size.height, size.width / 2,
+        size.height - 20);
+    path.quadraticBezierTo(size.width * 3 / 4, size.height - 40, size.width,
+        size.height - 20);
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
   }
 
   @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
