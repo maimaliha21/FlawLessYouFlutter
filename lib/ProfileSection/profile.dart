@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:projtry1/ProfileSection/editProfile.dart';
+import 'package:projtry1/ProfileSection/supportTeam.dart';
 import 'package:projtry1/api/google_signin_api.dart';
 import 'package:projtry1/LogIn/login.dart';
 import 'dart:html' as html; // استيراد dart:html للتعامل مع الملفات في الويب
@@ -10,9 +11,11 @@ import 'package:projtry1/Product/product.dart';
 import 'package:projtry1/Product/productPage.dart';
 import 'dart:convert';
 import 'package:projtry1/Card/Card.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../Home_Section/home.dart';
 import '../Routinebar/routinescreen.dart';
+import 'aboutUs.dart';
 
 class Profile extends StatelessWidget {
   final String token;
@@ -132,19 +135,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _handleLogout() async {
-    try {
-      // await GoogleSignInApi.signOut();
-      // Navigator.of(context).pushAndRemoveUntil(
-      //   MaterialPageRoute(builder: (context) => const LoginScreen()),
-      //       (route) => false,
-      // );
-    } catch (e) {
-      print('Error during logout: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to logout')),
-      );
-    }
+  void _handleLogout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove('token'); // حذف التوكن من SharedPreferences
+    await prefs.remove('userInfo'); // حذف معلومات المستخدم من SharedPreferences
+
+    // إعادة التوجيه إلى صفحة تسجيل الخروج
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+          (Route<dynamic> route) => false,
+    );
   }
 
   @override
@@ -160,7 +161,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   height: 250,
                   decoration: const BoxDecoration(
                     image: DecorationImage(
-                      image: AssetImage('assets/bgphoto.jpg'),
+                      image: AssetImage('https://res.cloudinary.com/davwgirjs/image/upload/v1740417378/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417378981_bgphoto.jpg.jpg'),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -170,7 +171,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   right: 20,
                   child: PopupMenuButton<String>(
                     onSelected: (value) {
-                      if (value == 'logout') _handleLogout();
+                      if (value == 'logout') {
+                        _handleLogout();
+                      } else if (value == 'support') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => SupportTeam()),
+                        );
+                      } else if (value == 'about_us') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => aboutUs()),
+                        );
+                      }
                     },
                     itemBuilder: (BuildContext context) => [
                       const PopupMenuItem(
@@ -329,6 +342,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
+
 
   ImageProvider _getProfileImage() {
     if (_profileImage != null) return NetworkImage(_profileImage!.name);
