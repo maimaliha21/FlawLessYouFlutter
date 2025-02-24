@@ -639,6 +639,7 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
                         style: TextStyle(fontSize: 14),
                       ),
                       SizedBox(height: 16),
+
                     ],
                   ),
                 _isLoading
@@ -792,32 +793,39 @@ class _EditProductPopupState extends State<EditProductPopup> {
                   controller: _nameController,
                   decoration: InputDecoration(labelText: 'Product Name'),
                 ),
+                SizedBox(height: 16),
                 TextField(
                   controller: _descriptionController,
                   decoration: InputDecoration(labelText: 'Description'),
                   maxLines: 3,
                 ),
+                SizedBox(height: 16),
                 Text(
                   'Skin Type:',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                Column(
+                SizedBox(height: 8),
+                Row(
                   children: _skinType.entries.map((entry) {
-                    return CheckboxListTile(
-                      title: Text(entry.key),
-                      value: entry.value,
-                      onChanged: (value) {
-                        setState(() {
-                          _skinType[entry.key] = value ?? false;
-                        });
-                      },
+                    return Expanded(
+                      child: CheckboxListTile(
+                        title: Text(entry.key),
+                        value: entry.value,
+                        onChanged: (value) {
+                          setState(() {
+                            _skinType[entry.key] = value ?? false;
+                          });
+                        },
+                      ),
                     );
                   }).toList(),
                 ),
+                SizedBox(height: 16),
                 Text(
                   'Ingredients:',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
+                SizedBox(height: 8),
                 Wrap(
                   spacing: 8.0,
                   children: _ingredients.map((ingredient) {
@@ -835,23 +843,28 @@ class _EditProductPopupState extends State<EditProductPopup> {
                   icon: Icon(Icons.add),
                   onPressed: _addIngredient,
                 ),
+                SizedBox(height: 16),
                 Text(
                   'Usage Time:',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                Column(
+                SizedBox(height: 8),
+                Row(
                   children: _usageTime.entries.map((entry) {
-                    return CheckboxListTile(
-                      title: Text(entry.key),
-                      value: entry.value,
-                      onChanged: (value) {
-                        setState(() {
-                          _usageTime[entry.key] = value ?? false;
-                        });
-                      },
+                    return Expanded(
+                      child: CheckboxListTile(
+                        title: Text(entry.key),
+                        value: entry.value,
+                        onChanged: (value) {
+                          setState(() {
+                            _usageTime[entry.key] = value ?? false;
+                          });
+                        },
+                      ),
                     );
                   }).toList(),
                 ),
+                SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _updateProduct,
                   child: Text('Update Product'),
@@ -864,6 +877,7 @@ class _EditProductPopupState extends State<EditProductPopup> {
     );
   }
 }
+
 
 class CustomBottomNavigationBar extends StatelessWidget {
   final Function(int) onItemTapped;

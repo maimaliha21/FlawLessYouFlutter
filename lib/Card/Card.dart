@@ -122,7 +122,9 @@ class _MessageCardState extends State<MessageCard> {
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/messagesCards.jpg'), // تغيير الخلفية إلى الصورة
+            image: NetworkImage(
+              "https://res.cloudinary.com/davwgirjs/image/upload/v1740424863/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740424863643_messagesCards.jpg.jpg",
+            ),
             fit: BoxFit.cover,
           ),
         ),
