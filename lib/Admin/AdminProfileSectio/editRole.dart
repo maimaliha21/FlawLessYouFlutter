@@ -101,7 +101,7 @@ class _UserFilterPageState extends State<UserFilterPage> {
         decoration: BoxDecoration(
           image: DecorationImage(
             image: NetworkImage(
-              'https://res.cloudinary.com/davwgirjs/image/upload/v1740398445/nhndev/product/Atn5pCQF7VR4KhJCzI4g_1740398442198_aboutusbg.jpg.jpg',
+              'https://res.cloudinary.com/davwgirjs/image/upload/v1740399050/nhndev/product/Atn5pCQF7VR4KhJCzI4g_1740399048265_005bdf0b-38be-4cbd-a016-f0c574659898.jpg.jpg',
             ),
             fit: BoxFit.cover,
           ),
@@ -118,7 +118,7 @@ class _UserFilterPageState extends State<UserFilterPage> {
                     Text(
                       'User Filter',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Colors.black,
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
                       ),
