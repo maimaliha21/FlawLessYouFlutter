@@ -1,8 +1,26 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:ui';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'User Filter App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: UserFilterPage(),
+    );
+  }
+}
+
 class UserFilterPage extends StatefulWidget {
   @override
   _UserFilterPageState createState() => _UserFilterPageState();
@@ -68,7 +86,10 @@ class _UserFilterPageState extends State<UserFilterPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('User Filter'),
+        backgroundColor: Colors.transparent, // جعل شريط التطبيق شفافًا
+        elevation: 0, // إزالة الظل
       ),
+      extendBodyBehindAppBar: true, // لجعل الخلفية تمتد خلف شريط التطبيق
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
@@ -82,8 +103,9 @@ class _UserFilterPageState extends State<UserFilterPage> {
           filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
           child: Column(
             children: [
+              // تم نقل حقل البحث إلى هنا (أسفل AppBar)
               Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.only(top: 80.0, left: 8.0, right: 8.0), // تباعد من الأعلى
                 child: Row(
                   children: [
                     Expanded(
@@ -92,12 +114,17 @@ class _UserFilterPageState extends State<UserFilterPage> {
                         decoration: InputDecoration(
                           labelText: 'Search by username',
                           filled: true,
-                          fillColor: Colors.white.withOpacity(0.8),
+                          fillColor: Colors.black.withOpacity(0.5), // خلفية سوداء شفافة
+                          labelStyle: TextStyle(color: Colors.white), // لون النص الأبيض
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
                         ),
+                        style: TextStyle(color: Colors.white), // لون النص الأبيض
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.search),
+                      icon: Icon(Icons.search, color: Colors.white), // لون الأيقونة أبيض
                       onPressed: _searchUsers,
                     ),
                   ],
@@ -108,27 +135,45 @@ class _UserFilterPageState extends State<UserFilterPage> {
                   itemCount: _users.length,
                   itemBuilder: (context, index) {
                     final user = _users[index];
-                    return Card(
-                      margin: EdgeInsets.all(8.0),
-                      color: Colors.white.withOpacity(0.8),
-                      child: ListTile(
-                        title: Text(user['userName']),
-                        trailing: DropdownButton<String>(
-                          value: _selectedRoles[user['id']],
-                          hint: Text('Select Role'),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              _selectedRoles[user['id']] = newValue;
-                            });
-                            _updateUserRole(user['id'], newValue!);
-                          },
-                          items: <String>['USER', 'SKIN_EXPERT', 'ADMIN']
-                              .map<DropdownMenuItem<String>>((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            );
-                          }).toList(),
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10.0), // زوايا مستديرة
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                          child: Container(
+                            color: Colors.black.withOpacity(0.5), // خلفية سوداء شفافة
+                            child: ListTile(
+                              title: Text(
+                                user['userName'],
+                                style: TextStyle(color: Colors.white), // لون النص الأبيض
+                              ),
+                              trailing: DropdownButton<String>(
+                                value: _selectedRoles[user['id']],
+                                hint: Text(
+                                  'Select Role',
+                                  style: TextStyle(color: Colors.white), // لون النص الأبيض
+                                ),
+                                onChanged: (String? newValue) {
+                                  setState(() {
+                                    _selectedRoles[user['id']] = newValue;
+                                  });
+                                  _updateUserRole(user['id'], newValue!);
+                                },
+                                dropdownColor: Colors.black.withOpacity(0.8), // خلفية القائمة المنسدلة
+                                items: <String>['USER', 'SKIN_EXPERT', 'ADMIN']
+                                    .map<DropdownMenuItem<String>>((String value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(
+                                      value,
+                                      style: TextStyle(color: Colors.white), // لون النص الأبيض
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     );
