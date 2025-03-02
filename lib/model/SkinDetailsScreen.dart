@@ -26,6 +26,7 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
         await http.MultipartFile.fromPath('details_file', widget.imageFile.path),
       );
 
+
       var response = await request.send();
       if (response.statusCode == 200) {
         String responseString = await response.stream.bytesToString();
