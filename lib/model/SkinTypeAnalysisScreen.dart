@@ -16,7 +16,7 @@ class _SkinTypeAnalysisScreenState extends State<SkinTypeAnalysisScreen> {
   final ImagePicker _picker = ImagePicker();
 
   // عنوان الـ API (المسار الأول)
-  final String apiUrl = 'http://127.0.0.1:8000/analyze/';
+  final String apiUrl = 'http://192.168.1.169:8000/analyze/';
 
   /// اختيار الصورة من المصدر المحدد (المعرض أو الكاميرا)
   Future<void> _pickImage(ImageSource source) async {
