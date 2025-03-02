@@ -1,11 +1,11 @@
+import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:projtry1/ProfileSection/editProfile.dart';
-import 'profile.dart';  // تأكد من استيراد الصفحة الجديدة هنا
+import 'profile.dart';  // تأكد من استيراد صفحة البروفايل هنا
 
-void main() {
-  runApp(aboutUs());
-}
+
 
 class aboutUs extends StatelessWidget {
   @override
@@ -21,6 +21,41 @@ class aboutUs extends StatelessWidget {
   }
 }
 
+class SharedPrefs {
+  static final SharedPrefs _instance = SharedPrefs._internal();
+  factory SharedPrefs() {
+    return _instance;
+  }
+
+  SharedPrefs._internal();
+
+  Future<void> saveUserInfo(Map<String, dynamic> userInfo) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('userInfo', json.encode(userInfo));
+  }
+
+  Future<Map<String, dynamic>> getUserInfo() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userInfoString = prefs.getString('userInfo');
+    return json.decode(userInfoString ?? '{}');
+  }
+
+  Future<void> saveToken(String token) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('token', token);
+  }
+
+  Future<String?> getToken() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('token');
+  }
+
+  Future<void> clear() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+  }
+}
+
 class CardScreen extends StatefulWidget {
   @override
   _CardScreenState createState() => _CardScreenState();
@@ -29,6 +64,21 @@ class CardScreen extends StatefulWidget {
 class _CardScreenState extends State<CardScreen> {
   final PageController _pageController = PageController(viewportFraction: 0.9);
   int _currentIndex = 0;
+  String? _token;
+  Map<String, dynamic> _userInfo = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserInfo();
+  }
+
+  Future<void> _loadUserInfo() async {
+    SharedPrefs prefs = SharedPrefs();
+    _token = await prefs.getToken();
+    _userInfo = await prefs.getUserInfo();
+    setState(() {});
+  }
 
   final List<Map<String, dynamic>> cards = [
     {
@@ -79,19 +129,21 @@ class _CardScreenState extends State<CardScreen> {
         title: Row(
           children: [
             IconButton(
-              icon: Icon(Icons.arrow_back, color: Colors.white, size: 26), // السهم
+              icon: Icon(Icons.arrow_back, color: Colors.white, size: 26),
               onPressed: () {
-                // Navigator.push(
-                //                 //   context,
-                //                 //   MaterialPageRoute(builder: (context) => editProfile()), // الانتقال لصفحة Profile
-                //                 // );
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Profile(token: _token!, userInfo: _userInfo),
+                  ),
+                );
               },
             ),
-            SizedBox(width: 8), // مسافة صغيرة بين السهم والنص
+            SizedBox(width: 8),
             Text(
               "About Us",
               style: TextStyle(
-                fontSize: 20, // خط أصغر
+                fontSize: 20,
                 color: Colors.white,
                 fontWeight: FontWeight.w500,
               ),
@@ -105,8 +157,8 @@ class _CardScreenState extends State<CardScreen> {
           Positioned.fill(
             child: Stack(
               children: [
-                Image.asset(
-                  'assets/aboutusbg.jpg', // تأكد من وضع الصورة في مجلد assets
+                Image.network(
+                  "https://res.cloudinary.com/davwgirjs/image/upload/v1740423125/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740423126526_aboutusbg.jpg.jpg", // رابط الصورة من Cloudinary
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: double.infinity,
