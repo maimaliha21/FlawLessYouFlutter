@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:image_picker/image_picker.dart'; // استيراد image_picker
 import 'package:projtry1/ProfileSection/editProfile.dart';
 import 'package:projtry1/ProfileSection/supportTeam.dart';
 import 'package:projtry1/api/google_signin_api.dart';
 import 'package:projtry1/LogIn/login.dart';
-import 'dart:html' as html; // استيراد dart:html للتعامل مع الملفات في الويب
+import 'dart:io'; // استيراد dart:io للتعامل مع الملفات
 import 'dart:typed_data'; // لاستخدام Uint8List
 import 'package:http/http.dart' as http;
 import 'package:projtry1/Product/product.dart';
@@ -51,16 +51,17 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  html.File? _profileImage;
+  File? _profileImage; // استخدام File من dart:io بدلاً من html.File
   final ImagePicker _picker = ImagePicker();
+
   Future<void> _pickImage() async {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
-        print('Selected file: ${image.name}, MIME type: ${image.mimeType}'); // Log MIME type
+        print('Selected file: ${image.path}, MIME type: ${image.mimeType}'); // Log MIME type
         if (image.mimeType?.startsWith('image/') ?? false) {
           setState(() {
-            _profileImage = html.File([image.path], image.name);
+            _profileImage = File(image.path); // تحويل XFile إلى File
           });
           await _uploadProfilePicture(_profileImage!);
         } else {
@@ -80,14 +81,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
-  Future<void> _uploadProfilePicture(html.File imageFile) async {
+
+  Future<void> _uploadProfilePicture(File imageFile) async {
     try {
-      final reader = html.FileReader();
-      reader.readAsArrayBuffer(imageFile);
-      await reader.onLoad.first;
-
-      final fileBytes = reader.result as Uint8List;
-
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('http://localhost:8080/api/users/profilePicture'),
@@ -97,15 +93,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'Authorization': 'Bearer ${widget.token}',
       });
 
-      var multipartFile = http.MultipartFile.fromBytes(
+      var multipartFile = await http.MultipartFile.fromPath(
         'file',
-        fileBytes,
-        filename: imageFile.name,
+        imageFile.path,
+        filename: imageFile.path.split('/').last,
       );
 
       request.files.add(multipartFile);
 
-      print('Sending request with file: ${imageFile.name}, MIME type: ${imageFile.type}'); // Log MIME type
+      print('Sending request with file: ${imageFile.path}'); // Log file path
 
       var response = await request.send();
 
@@ -118,7 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('AdminProfileSectio picture updated successfully')),
+          const SnackBar(content: Text('Profile picture updated successfully')),
         );
       } else {
         var errorResponse = await response.stream.bytesToString();
@@ -342,10 +338,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-
-
   ImageProvider _getProfileImage() {
-    if (_profileImage != null) return NetworkImage(_profileImage!.name);
+    if (_profileImage != null) return FileImage(_profileImage!); // استخدام FileImage
     if (widget.userInfo['profilePicture'] != null) {
       return NetworkImage(widget.userInfo['profilePicture']);
     }
