@@ -9,18 +9,18 @@ import 'firebase_options.dart';
 import 'package:projtry1/Admin/AdminProfileSectio/adminprofile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  runApp(
-    MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: LoginScreen(),
-    ),
-  );
-}
+// void main() async {
+//   WidgetsFlutterBinding.ensureInitialized();
+//   await Firebase.initializeApp(
+//     options: DefaultFirebaseOptions.currentPlatform,
+//   );
+//   runApp(
+//     MaterialApp(
+//       debugShowCheckedModeBanner: false,
+//       home: LoginScreen(),
+//     ),
+//   );
+// }
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
