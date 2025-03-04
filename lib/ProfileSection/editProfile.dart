@@ -42,7 +42,7 @@ class _EditProfileScreenState extends State<EditProfile>
   Future<void> fetchUserData() async {
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:8080/api/users/profile'),
+        Uri.parse('http://192.168.0.13:8080/api/users/profile'),
         headers: {
           'accept': '*/*',
           'Authorization': 'Bearer ${widget.token}',
@@ -90,7 +90,7 @@ class _EditProfileScreenState extends State<EditProfile>
 
       try {
         final response = await http.put(
-          Uri.parse('http://localhost:8080/api/auth/changePassword'),
+          Uri.parse('http://192.168.0.13:8080/api/auth/changePassword'),
           headers: {
             'accept': '*/*',
             'Authorization': 'Bearer ${widget.token}',
@@ -176,7 +176,7 @@ class _EditProfileScreenState extends State<EditProfile>
       try {
         // التحقق من صحة اسم المستخدم وكلمة المرور
         final authResponse = await http.post(
-          Uri.parse('http://localhost:8080/api/auth/signin'),
+          Uri.parse('http://192.168.0.13:8080/api/auth/signin'),
           headers: {
             'accept': '*/*',
             'Content-Type': 'application/json',
@@ -197,7 +197,7 @@ class _EditProfileScreenState extends State<EditProfile>
           };
 
           final updateResponse = await http.put(
-            Uri.parse('http://localhost:8080/api/users/update'),
+            Uri.parse('http://192.168.0.13:8080/api/users/update'),
             headers: {
               'accept': '*/*',
               'Authorization': 'Bearer ${widget.token}',

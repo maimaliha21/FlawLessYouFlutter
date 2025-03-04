@@ -47,7 +47,7 @@ class _SearchPageState extends State<search> with SingleTickerProviderStateMixin
         children: [
           ProductTabScreen(
 
-            apiUrl: "http://localhost:8080/product/search?name=${widget.searchQuery}",
+            apiUrl: "http://192.168.0.13:8080/product/search?name=${widget.searchQuery}",
           ),
 
         ],

@@ -9,18 +9,18 @@ import 'firebase_options.dart';
 import 'package:projtry1/Admin/AdminProfileSectio/adminprofile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  runApp(
-    MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: LoginScreen(),
-    ),
-  );
-}
+// void main() async {
+//   WidgetsFlutterBinding.ensureInitialized();
+//   await Firebase.initializeApp(
+//     options: DefaultFirebaseOptions.currentPlatform,
+//   );
+//   runApp(
+//     MaterialApp(
+//       debugShowCheckedModeBanner: false,
+//       home: LoginScreen(),
+//     ),
+//   );
+// }
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -28,7 +28,7 @@ class LoginScreen extends StatelessWidget {
   Future<Map<String, dynamic>?> fetchUserInfo(String token) async {
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:8080/api/users/me'),
+        Uri.parse('http://192.168.104.46:8080/api/users/me'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -56,7 +56,7 @@ class LoginScreen extends StatelessWidget {
 
   Future<void> loginWithCredentials(
       BuildContext context, String username, String password) async {
-    final url = Uri.parse('http://localhost:8080/api/auth/signin');
+    final url = Uri.parse('http://192.168.104.46:8080/api/auth/signin');
 
     try {
       print('Attempting login for user: $username');
@@ -143,7 +143,7 @@ class LoginScreen extends StatelessWidget {
 
         // Send the email to your backend
         final response = await http.post(
-          Uri.parse('http://localhost:8080/api/auth/google'),
+          Uri.parse('http://192.168.104.46:8080/api/auth/google'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({'email': email}),
         );
