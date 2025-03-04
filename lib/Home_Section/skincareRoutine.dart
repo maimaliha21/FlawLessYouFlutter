@@ -35,7 +35,7 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
   Future<void> _fetchData() async {
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:8080/api/routines/by-time'),
+        Uri.parse('http://192.168.0.13:8080/api/routines/by-time'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
         },
