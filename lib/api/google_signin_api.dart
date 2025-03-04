@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-// import 'package:google_sign_in/google_sign_in.dart';
+import 'package:google_sign_in_web/google_sign_in_web.dart' as web;
+
 class GoogleSignInApi {
   static final _googleSignIn = GoogleSignIn(
     clientId: "631393157394-glrev6a2q6oiquvv15a24minn0j93t51.apps.googleusercontent.com",
