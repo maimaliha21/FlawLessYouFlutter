@@ -229,7 +229,7 @@ class Home extends StatelessWidget {
                           children: [
                             ProductTabScreen(
 
-                              apiUrl: "http://localhost:8080/product/random?limit=6",
+                              apiUrl: "http://192.168.0.13:8080/product/random?limit=6",
                             ),
                             // يمكنك إضافة علامات تبويب إضافية هنا
                             // Center(child: Text('Tab 2 Content')),
