@@ -65,10 +65,11 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-
+    - assets/logoflutter.png
+    - assets/welcomelogo.png
     - assets/p1.png
     - assets/google_logo.png
 
+    - assets/profile.jpg
     - assets/background.png
     - assets/HI.png
-

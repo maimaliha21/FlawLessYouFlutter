@@ -15,7 +15,7 @@ class SkinDetailsScreen extends StatefulWidget {
 
 class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
   String _detailsResult = "";
-  final String apiDetailsUrl = 'http://192.168.1.169:8000/analyze_details/';
+  final String apiDetailsUrl = 'http://192.168.0.13:8000/analyze_details/';
 
   /// إرسال الصورة للمسار الثاني لتحليل تفاصيل البشرة
   Future<void> _analyzeDetails() async {

@@ -5,25 +5,12 @@ import 'package:projtry1/Verification_Account_SignUp/createprofilee.dart';
 import 'package:projtry1/api/google_signin_api.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../SharedPreferences.dart';
 import 'firebase_options.dart';
 import 'package:projtry1/Admin/AdminProfileSectio/adminprofile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
 
-  // حفظ الرابط في SharedPreferences
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  await prefs.setString('baseUrl', 'https://44c2-5-43-193-232.ngrok-free.app');
-
-  // طباعة الرابط للتأكد من حفظه
-  print('Base URL saved: ${prefs.getString('baseUrl')}');
-
-  runApp(MyApp());
-}
 
 class MyApp extends StatelessWidget {
   @override
@@ -44,8 +31,7 @@ class LoginScreen extends StatelessWidget {
   // دالة لاسترجاع الرابط من SharedPreferences
   Future<String> getBaseUrl() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    // استخدام قيمة افتراضية إذا لم يتم العثور على الرابط
-    return prefs.getString('baseUrl') ?? 'https://44c2-5-43-193-232.ngrok-free.app';
+    return prefs.getString('baseUrl') ?? '';
   }
 
   // دالة لجلب معلومات المستخدم

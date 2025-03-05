@@ -35,6 +35,12 @@ class _UserFilterPageState extends State<UserFilterPage> {
   List<dynamic> _users = [];
   Map<String, String?> _selectedRoles = {};
 
+  // دالة لاسترجاع الرابط من SharedPreferences
+  Future<String> getBaseUrl() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('baseUrl') ?? ''; // قيمة افتراضية إذا لم يتم العثور على الرابط
+  }
+
   Future<Object> _getUserInfo() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? userInfoJson = prefs.getString('token');
@@ -47,9 +53,10 @@ class _UserFilterPageState extends State<UserFilterPage> {
   Future<void> _searchUsers() async {
     final userInfo = await _getUserInfo();
     final token = userInfo;
+    final baseUrl = await getBaseUrl(); // استرجاع الرابط من SharedPreferences
 
     final response = await http.get(
-      Uri.parse('http://localhost:8080/api/users/Search/username?username=${_searchController.text}'),
+      Uri.parse('$baseUrl/api/users/Search/username?username=${_searchController.text}'),
       headers: {
         'accept': '*/*',
         'Authorization': 'Bearer $token',
@@ -72,9 +79,10 @@ class _UserFilterPageState extends State<UserFilterPage> {
   Future<void> _updateUserRole(String userId, String newRole) async {
     final userInfo = await _getUserInfo();
     final token = userInfo;
+    final baseUrl = await getBaseUrl(); // استرجاع الرابط من SharedPreferences
 
     final response = await http.put(
-      Uri.parse('http://localhost:8080/api/users/$userId/role?newRole=$newRole'),
+      Uri.parse('$baseUrl/api/users/$userId/role?newRole=$newRole'),
       headers: {
         'accept': '*/*',
         'Authorization': 'Bearer $token',
@@ -349,5 +357,3 @@ class BottomWaveClipper extends CustomClipper<Path> {
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
-
-
