@@ -53,6 +53,20 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   File? _profileImage; // استخدام File من dart:io بدلاً من html.File
   final ImagePicker _picker = ImagePicker();
+  String? _baseUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBaseUrl();
+  }
+
+  Future<void> _loadBaseUrl() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _baseUrl = prefs.getString('baseUrl') ?? 'https://44c2-5-43-193-232.ngrok-free.app';
+    });
+  }
 
   Future<void> _pickImage() async {
     try {
@@ -83,10 +97,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _uploadProfilePicture(File imageFile) async {
+    if (_baseUrl == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Base URL is not available')),
+      );
+      return;
+    }
+
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('https://44c2-5-43-193-232.ngrok-free.app/api/users/profilePicture'),
+        Uri.parse('$_baseUrl/api/users/profilePicture'),
       );
 
       request.headers.addAll({
@@ -327,7 +348,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
             const SizedBox(height: 20),
-            TabBarSection(token: widget.token),
+            TabBarSection(token: widget.token, baseUrl: _baseUrl),
           ],
         ),
       ),
@@ -465,8 +486,9 @@ class BottomWaveClipper extends CustomClipper<Path> {
 
 class TabBarSection extends StatefulWidget {
   final String token;
+  final String? baseUrl;
 
-  const TabBarSection({super.key, required this.token});
+  const TabBarSection({super.key, required this.token, this.baseUrl});
 
   @override
   _TabBarSectionState createState() => _TabBarSectionState();
@@ -501,8 +523,10 @@ class _TabBarSectionState extends State<TabBarSection>
             controller: _tabController,
             children: [
               ProductTabScreen(
-
-                apiUrl: "https://44c2-5-43-193-232.ngrok-free.app/product/Saved",
+                apiUrl: widget.baseUrl != null
+                    ? '${widget.baseUrl}/product/Saved'
+                    : '',
+                // token: widget.token,
               ),
               const Center(
                 child: Text('No history available',

@@ -6,41 +6,7 @@ import 'package:projtry1/ProfileSection/profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class SharedPrefs {
-  static final SharedPrefs _instance = SharedPrefs._internal();
-
-  factory SharedPrefs() {
-    return _instance;
-  }
-
-  SharedPrefs._internal();
-
-  Future<void> saveUserInfo(Map<String, dynamic> userInfo) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('userInfo', json.encode(userInfo));
-  }
-
-  Future<Map<String, dynamic>> getUserInfo() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? userInfoString = prefs.getString('userInfo');
-    return json.decode(userInfoString ?? '{}');
-  }
-
-  Future<void> saveToken(String token) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('token', token);
-  }
-
-  Future<String?> getToken() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token');
-  }
-
-  Future<void> clear() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-  }
-}
+import '../SharedPreferences.dart';
 
 class SupportTeam extends StatelessWidget {
   @override
@@ -117,10 +83,13 @@ class _SupportTeamScreenState extends State<SupportTeamScreen> {
   }
 
   Future<void> _loadUserInfo() async {
-    SharedPrefs prefs = SharedPrefs();
-    _token = await prefs.getToken();
-    _userInfo = await prefs.getUserInfo();
-    setState(() {});
+    final userData = await getUserData();
+    if (userData != null) {
+      setState(() {
+        _token = userData['token'];
+        _userInfo = userData['userInfo'];
+      });
+    }
   }
 
   @override

@@ -1,11 +1,8 @@
 import 'dart:convert';
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:projtry1/ProfileSection/editProfile.dart';
-import 'profile.dart';  // تأكد من استيراد صفحة البروفايل هنا
+import 'package:projtry1/ProfileSection/profile.dart';
 
-
+import '../SharedPreferences.dart';  // تأكد من استيراد صفحة البروفايل هنا
 
 class aboutUs extends StatelessWidget {
   @override
@@ -18,41 +15,6 @@ class aboutUs extends StatelessWidget {
       ),
       home: CardScreen(),
     );
-  }
-}
-
-class SharedPrefs {
-  static final SharedPrefs _instance = SharedPrefs._internal();
-  factory SharedPrefs() {
-    return _instance;
-  }
-
-  SharedPrefs._internal();
-
-  Future<void> saveUserInfo(Map<String, dynamic> userInfo) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('userInfo', json.encode(userInfo));
-  }
-
-  Future<Map<String, dynamic>> getUserInfo() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? userInfoString = prefs.getString('userInfo');
-    return json.decode(userInfoString ?? '{}');
-  }
-
-  Future<void> saveToken(String token) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('token', token);
-  }
-
-  Future<String?> getToken() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token');
-  }
-
-  Future<void> clear() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
   }
 }
 
@@ -74,10 +36,13 @@ class _CardScreenState extends State<CardScreen> {
   }
 
   Future<void> _loadUserInfo() async {
-    SharedPrefs prefs = SharedPrefs();
-    _token = await prefs.getToken();
-    _userInfo = await prefs.getUserInfo();
-    setState(() {});
+    final userData = await getUserData();
+    if (userData != null) {
+      setState(() {
+        _token = userData['token'];
+        _userInfo = userData['userInfo'];
+      });
+    }
   }
 
   final List<Map<String, dynamic>> cards = [

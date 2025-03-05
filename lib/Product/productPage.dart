@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:projtry1/Product/product.dart'; // Ensure this import is correct
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:projtry1/Product/product.dart'; // تأكد من صحة هذا الاستيراد
 
 class ProductPage extends StatelessWidget {
   final String token;
@@ -19,9 +20,21 @@ class ProductPage extends StatelessWidget {
         title: const Text('Product Page'),
         backgroundColor: Colors.blue,
       ),
-      body: ProductTabScreen(
-
-        apiUrl: "http://localhost:8080/product/random?limit=6",
+      body: FutureBuilder<String?>(
+        future: getBaseUrl(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data == null) {
+            return Center(child: Text('No base URL found'));
+          } else {
+            return ProductTabScreen(
+              apiUrl: "${snapshot.data}/product/random?limit=6",
+            );
+          }
+        },
       ),
       bottomNavigationBar: CustomBottomNavigationBar(
         token: token,
@@ -29,18 +42,12 @@ class ProductPage extends StatelessWidget {
       ),
     );
   }
-}
 
-
-
-  @override
-  Widget build(BuildContext context) {
-    // Implement API call and display products here
-    return Center(
-      child: Text("Products will be displayed here"), // Placeholder
-    );
+  Future<String?> getBaseUrl() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('baseUrl');
   }
-
+}
 
 class CustomBottomNavigationBar extends StatelessWidget {
   final String token;
