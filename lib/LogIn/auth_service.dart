@@ -21,7 +21,7 @@ class AuthService {
       if (idToken == null) throw Exception('No ID token found');
 
       final response = await http.post(
-        Uri.parse('http://192.168.104.46:8080/api/auth/google'),
+        Uri.parse('https://44c2-5-43-193-232.ngrok-free.app/api/auth/google'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'idToken': idToken}),
       );

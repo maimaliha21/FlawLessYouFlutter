@@ -9,26 +9,53 @@ import 'firebase_options.dart';
 import 'package:projtry1/Admin/AdminProfileSectio/adminprofile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// void main() async {
-//   WidgetsFlutterBinding.ensureInitialized();
-//   await Firebase.initializeApp(
-//     options: DefaultFirebaseOptions.currentPlatform,
-//   );
-//   runApp(
-//     MaterialApp(
-//       debugShowCheckedModeBanner: false,
-//       home: LoginScreen(),
-//     ),
-//   );
-// }
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // حفظ الرابط في SharedPreferences
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.setString('baseUrl', 'https://44c2-5-43-193-232.ngrok-free.app');
+
+  // طباعة الرابط للتأكد من حفظه
+  print('Base URL saved: ${prefs.getString('baseUrl')}');
+
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Login App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: LoginScreen(),
+    );
+  }
+}
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
+  // دالة لاسترجاع الرابط من SharedPreferences
+  Future<String> getBaseUrl() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    // استخدام قيمة افتراضية إذا لم يتم العثور على الرابط
+    return prefs.getString('baseUrl') ?? 'https://44c2-5-43-193-232.ngrok-free.app';
+  }
+
+  // دالة لجلب معلومات المستخدم
   Future<Map<String, dynamic>?> fetchUserInfo(String token) async {
     try {
+      final baseUrl = await getBaseUrl();
+      print('Using baseUrl: $baseUrl');
+
       final response = await http.get(
-        Uri.parse('http://192.168.104.46:8080/api/users/me'),
+        Uri.parse('$baseUrl/api/users/me'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -54,9 +81,13 @@ class LoginScreen extends StatelessWidget {
     }
   }
 
+  // دالة لتسجيل الدخول باستخدام اسم المستخدم وكلمة المرور
   Future<void> loginWithCredentials(
       BuildContext context, String username, String password) async {
-    final url = Uri.parse('http://192.168.104.46:8080/api/auth/signin');
+    final baseUrl = await getBaseUrl();
+    print('Using baseUrl for login: $baseUrl');
+
+    final url = Uri.parse('$baseUrl/api/auth/signin');
 
     try {
       print('Attempting login for user: $username');
@@ -72,9 +103,9 @@ class LoginScreen extends StatelessWidget {
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         final token = responseBody['accessToken'];
-        print('Login successful, JWT Token received , $response.body');
+        print('Login successful, JWT Token received: $token');
 
-        // Fetch user details
+        // جلب معلومات المستخدم
         final userInfo = await fetchUserInfo(token);
 
         if (userInfo != null) {
@@ -82,9 +113,7 @@ class LoginScreen extends StatelessWidget {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => AdminProfile(
-
-                ),
+                builder: (context) => AdminProfile(),
               ),
             );
           } else {
@@ -117,6 +146,8 @@ class LoginScreen extends StatelessWidget {
       );
     }
   }
+
+  // دالة لتسجيل الدخول باستخدام Google
   Future<void> loginWithGoogle(BuildContext context) async {
     try {
       print('Starting Google Sign-In process');
@@ -132,7 +163,7 @@ class LoginScreen extends StatelessWidget {
         return;
       }
 
-      // Fetch user info from Google using the ID token
+      // جلب معلومات المستخدم من Google باستخدام التوكن
       final googleResponse = await http.post(
         Uri.parse('https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=$idToken'),
       );
@@ -141,14 +172,16 @@ class LoginScreen extends StatelessWidget {
         final googleUserInfo = jsonDecode(googleResponse.body);
         final email = googleUserInfo['email'];
 
-        // Send the email to your backend
+        final baseUrl = await getBaseUrl();
+        print('Using baseUrl for Google login: $baseUrl');
+
+        // إرسال البريد الإلكتروني إلى الخادم
         final response = await http.post(
-          Uri.parse('http://192.168.104.46:8080/api/auth/google'),
+          Uri.parse('$baseUrl/api/auth/google'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({'email': email}),
         );
 
-        print('Received email, authenticating with backend');
         print('Received email, authenticating with backend');
 
         if (response.statusCode == 200) {
@@ -188,6 +221,7 @@ class LoginScreen extends StatelessWidget {
       );
     }
   }
+
   @override
   Widget build(BuildContext context) {
     final usernameController = TextEditingController();
@@ -195,145 +229,151 @@ class LoginScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          Positioned(
-            top: -60,
-            left: -60,
-            child: CircleAvatar(
-              radius: 100,
-              backgroundColor: Colors.cyan.withOpacity(0.3),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          print('Refreshing data...');
+          await fetchUserInfo('your_token_here');
+        },
+        child: Stack(
+          children: [
+            Positioned(
+              top: -60,
+              left: -60,
+              child: CircleAvatar(
+                radius: 100,
+                backgroundColor: Colors.cyan.withOpacity(0.3),
+              ),
             ),
-          ),
-          Positioned(
-            top: 50,
-            left: 50,
-            child: CircleAvatar(
-              radius: 80,
-              backgroundColor: Colors.cyan.withOpacity(0.4),
+            Positioned(
+              top: 50,
+              left: 50,
+              child: CircleAvatar(
+                radius: 80,
+                backgroundColor: Colors.cyan.withOpacity(0.4),
+              ),
             ),
-          ),
-          Center(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset(
-                      'assets/logoflutter.png',
-                      height: 100,
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'Login to Your Account',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
+            Center(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        'assets/logoflutter.png',
+                        height: 100,
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: usernameController,
-                      decoration: InputDecoration(
-                        labelText: 'Username or email',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Login to Your Account',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 15),
-                    TextField(
-                      controller: passwordController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        suffixIcon: Icon(Icons.visibility_off),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          final username = usernameController.text.trim();
-                          final password = passwordController.text.trim();
-                          if (username.isEmpty || password.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please fill in all fields'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            return;
-                          }
-                          loginWithCredentials(context, username, password);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          shape: RoundedRectangleBorder(
+                      const SizedBox(height: 20),
+                      TextField(
+                        controller: usernameController,
+                        decoration: InputDecoration(
+                          labelText: 'Username or email',
+                          border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                        ),
-                        child: const Text(
-                          'Login',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () => loginWithGoogle(context),
-                        icon: Image.asset(
-                          'assets/google_logo.png',
-                          height: 24,
-                        ),
-                        label: const Text(
-                          'Sign in with Google',
-                          style: TextStyle(fontSize: 16, color: Colors.black),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
+                      const SizedBox(height: 15),
+                      TextField(
+                        controller: passwordController,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          suffixIcon: Icon(Icons.visibility_off),
+                          border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 15),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => Signup()),
-                        );
-                      },
-                      child: const Text.rich(
-                        TextSpan(
-                          text: "Don't have an account? ",
-                          style: TextStyle(color: Colors.black),
-                          children: [
-                            TextSpan(
-                              text: 'Sign Up',
-                              style: TextStyle(color: Colors.blue),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            final username = usernameController.text.trim();
+                            final password = passwordController.text.trim();
+                            if (username.isEmpty || password.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please fill in all fields'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+                            loginWithCredentials(context, username, password);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                          ],
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                          ),
+                          child: const Text(
+                            'Login',
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () => loginWithGoogle(context),
+                          icon: Image.asset(
+                            'assets/google_logo.png',
+                            height: 24,
+                          ),
+                          label: const Text(
+                            'Sign in with Google',
+                            style: TextStyle(fontSize: 16, color: Colors.black),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => Signup()),
+                          );
+                        },
+                        child: const Text.rich(
+                          TextSpan(
+                            text: "Don't have an account? ",
+                            style: TextStyle(color: Colors.black),
+                            children: [
+                              TextSpan(
+                                text: 'Sign Up',
+                                style: TextStyle(color: Colors.blue),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
