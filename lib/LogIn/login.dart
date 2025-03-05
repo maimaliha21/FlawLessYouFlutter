@@ -28,7 +28,7 @@ class LoginScreen extends StatelessWidget {
   Future<Map<String, dynamic>?> fetchUserInfo(String token) async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.0.13:8080/api/users/me'),
+        Uri.parse('http://localhost:8080/api/users/me'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -56,7 +56,7 @@ class LoginScreen extends StatelessWidget {
 
   Future<void> loginWithCredentials(
       BuildContext context, String username, String password) async {
-    final url = Uri.parse('http://192.168.0.13:8080/api/auth/signin');
+    final url = Uri.parse('http://localhost:8080/api/auth/signin');
 
     try {
       print('Attempting login for user: $username');
