@@ -86,7 +86,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://192.168.104.46:8080/api/users/profilePicture'),
+        Uri.parse('https://44c2-5-43-193-232.ngrok-free.app/api/users/profilePicture'),
       );
 
       request.headers.addAll({
@@ -502,7 +502,7 @@ class _TabBarSectionState extends State<TabBarSection>
             children: [
               ProductTabScreen(
 
-                apiUrl: "http://192.168.104.46:8080/product/Saved",
+                apiUrl: "https://44c2-5-43-193-232.ngrok-free.app/product/Saved",
               ),
               const Center(
                 child: Text('No history available',
