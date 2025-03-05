@@ -31,7 +31,8 @@ class LoginScreen extends StatelessWidget {
   // دالة لاسترجاع الرابط من SharedPreferences
   Future<String> getBaseUrl() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getString('baseUrl') ?? '';
+    return 'http://localhost:8080';
+      //prefs.getString('baseUrl') ?? '';
   }
 
   // دالة لجلب معلومات المستخدم
