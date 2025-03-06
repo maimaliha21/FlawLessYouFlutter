@@ -8,9 +8,6 @@ import 'dart:convert';
 import '../SharedPreferences.dart';
 import 'firebase_options.dart';
 import 'package:projtry1/Admin/AdminProfileSectio/adminprofile.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-
 
 class MyApp extends StatelessWidget {
   @override
@@ -27,13 +24,6 @@ class MyApp extends StatelessWidget {
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
-
-  // دالة لاسترجاع الرابط من SharedPreferences
-  Future<String> getBaseUrl() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    return 'http://localhost:8080';
-      //prefs.getString('baseUrl') ?? '';
-  }
 
   // دالة لجلب معلومات المستخدم
   Future<Map<String, dynamic>?> fetchUserInfo(String token) async {
@@ -53,9 +43,7 @@ class LoginScreen extends StatelessWidget {
       if (response.statusCode == 200) {
         final userInfo = jsonDecode(response.body);
         print('Fetched user info: $userInfo');
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', token); // حفظ التوكن
-        await prefs.setString('userInfo', jsonEncode(userInfo));
+        await saveUserData(token, userInfo); // حفظ بيانات المستخدم
         return userInfo;
       } else {
         print('Failed to fetch user info: ${response.statusCode}');
@@ -72,6 +60,7 @@ class LoginScreen extends StatelessWidget {
   Future<void> loginWithCredentials(
       BuildContext context, String username, String password) async {
     final baseUrl = await getBaseUrl();
+
     print('Using baseUrl for login: $baseUrl');
 
     final url = Uri.parse('$baseUrl/api/auth/signin');
