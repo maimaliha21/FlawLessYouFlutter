@@ -1,14 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:projtry1/ProfileSection/editProfile.dart';
-import 'profile.dart';
+import 'package:projtry1/ProfileSection/profile.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-void main() {
-  runApp(supportTeam());
-}
+import '../SharedPreferences.dart';
 
-class supportTeam extends StatelessWidget {
+class SupportTeam extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -31,22 +31,27 @@ class _SupportTeamScreenState extends State<SupportTeamScreen> {
   final PageController _pageController = PageController(viewportFraction: 0.9);
   int _currentIndex = 0;
   late Timer _timer;
+  String? _token;
+  Map<String, dynamic> _userInfo = {};
 
   final List<Map<String, dynamic>> cards = [
     {
-      'image': 'assets/mai1.jpg',
+      'image':
+      'https://res.cloudinary.com/davwgirjs/image/upload/v1740417703/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417704566_mai1.jpg.jpg',
       'name': 'Mai Maliha',
       'role': 'Software Engineer',
       'email': 'maimaliha8@gmail.com',
     },
     {
-      'image': 'assets/fatma.jpg',
+      'image':
+      'https://res.cloudinary.com/davwgirjs/image/upload/v1740417791/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417792239_fatma.jpg.jpg',
       'name': 'Fatma Qunnies',
       'role': 'Software Engineer',
       'email': 'fatima.n.qunnies@gmail.com',
     },
     {
-      'image': 'assets/celina.jpg',
+      'image':
+      'https://res.cloudinary.com/davwgirjs/image/upload/v1740417824/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417825049_celina.jpg.jpg',
       'name': 'Celina Nassif',
       'role': 'Software Engineer',
       'email': 'celinanassif0@gmail.com',
@@ -54,7 +59,8 @@ class _SupportTeamScreenState extends State<SupportTeamScreen> {
     {
       'name': 'About Our Team',
       'role': 'Meet the creators of Skin Project',
-      'description': "Mai Maliha, Fatma Qunnies, and Celina Nassif.\n\nUnited by a passion for innovation, we designed this app to provide personalized skincare solutions using advanced technology.\n\nOur goal is to make expert skincare advice accessible, empowering users to achieve healthier, more confident skin.",
+      'description':
+      "Mai Maliha, Fatma Qunnies, and Celina Nassif.\n\nUnited by a passion for innovation, we designed this app to provide personalized skincare solutions using advanced technology.\n\nOur goal is to make expert skincare advice accessible, empowering users to achieve healthier, more confident skin.",
       'email': 'SupportT_flawlessyou@gmail.com',
       'phone': '+970 59 999 001 1\n02-27747741'
     }
@@ -63,6 +69,7 @@ class _SupportTeamScreenState extends State<SupportTeamScreen> {
   @override
   void initState() {
     super.initState();
+    _loadUserInfo();
     _timer = Timer.periodic(Duration(seconds: 6), (timer) {
       setState(() {
         _currentIndex = (_currentIndex + 1) % cards.length;
@@ -73,6 +80,16 @@ class _SupportTeamScreenState extends State<SupportTeamScreen> {
         curve: Curves.easeInOut,
       );
     });
+  }
+
+  Future<void> _loadUserInfo() async {
+    final userData = await getUserData();
+    if (userData != null) {
+      setState(() {
+        _token = userData['token'];
+        _userInfo = userData['userInfo'];
+      });
+    }
   }
 
   @override
@@ -100,10 +117,12 @@ class _SupportTeamScreenState extends State<SupportTeamScreen> {
             IconButton(
               icon: Icon(Icons.arrow_back, color: Colors.white, size: 26),
               onPressed: () {
-                // Navigator.push(
-                //   context,
-                //   MaterialPageRoute(builder: (context) => editProfile()),
-                // );
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Profile(token: _token!, userInfo: _userInfo),
+                  ),
+                );
               },
             ),
             SizedBox(width: 8),
@@ -123,8 +142,8 @@ class _SupportTeamScreenState extends State<SupportTeamScreen> {
           Positioned.fill(
             child: Stack(
               children: [
-                Image.asset(
-                  'assets/supbg.jpg',
+                Image.network(
+                  'https://res.cloudinary.com/davwgirjs/image/upload/v1740417948/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417948735_supbg.jpg.jpg',
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: double.infinity,
@@ -167,7 +186,7 @@ class _SupportTeamScreenState extends State<SupportTeamScreen> {
                               if (cards[index]['image'] != null && index != 3) ...[
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(15),
-                                  child: Image.asset(
+                                  child: Image.network(
                                     cards[index]['image'],
                                     height: 300,
                                     width: double.infinity,

@@ -26,6 +26,20 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 1;
+  String? _baseUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBaseUrl();
+  }
+
+  Future<void> _loadBaseUrl() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _baseUrl = prefs.getString('baseUrl') ?? 'http://localhost:8080';
+    });
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -124,11 +138,13 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
   String? token;
   String? userRole;
   bool _isLoading = true;
+  String? _baseUrl;
 
   @override
   void initState() {
     super.initState();
     _loadToken();
+    _loadBaseUrl();
   }
 
   Future<void> _loadToken() async {
@@ -140,6 +156,13 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
       token = prefs.getString('token');
       userRole = userInfoMap['role'];
       _isLoading = false;
+    });
+  }
+
+  Future<void> _loadBaseUrl() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _baseUrl = prefs.getString('baseUrl') ?? 'http://localhost:8080';
     });
   }
 
@@ -164,7 +187,7 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
 
           for (var product in products) {
             final savedResponse = await http.get(
-              Uri.parse('http://localhost:8080/product/${product.productId}/isSaved'),
+              Uri.parse('$_baseUrl/product/${product.productId}/isSaved'),
               headers: {
                 'Authorization': 'Bearer $token',
                 'Content-Type': 'application/json',
@@ -214,6 +237,7 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
             products: snapshot.data!,
             token: token!,
             userRole: userRole!,
+            baseUrl: _baseUrl!,
           );
         },
       ),
@@ -225,12 +249,14 @@ class ProductList extends StatelessWidget {
   final List<Product> products;
   final String token;
   final String userRole;
+  final String baseUrl;
 
   const ProductList({
     Key? key,
     required this.products,
     required this.token,
     required this.userRole,
+    required this.baseUrl,
   }) : super(key: key);
 
   @override
@@ -250,6 +276,7 @@ class ProductList extends StatelessWidget {
             product: products[index],
             token: token,
             userRole: userRole,
+            baseUrl: baseUrl,
           );
         },
       ),
@@ -261,12 +288,14 @@ class ProductCard extends StatefulWidget {
   final Product product;
   final String token;
   final String userRole;
+  final String baseUrl;
 
   const ProductCard({
     Key? key,
     required this.product,
     required this.token,
     required this.userRole,
+    required this.baseUrl,
   }) : super(key: key);
 
   @override
@@ -289,14 +318,14 @@ class _ProductCardState extends State<ProductCard> {
     try {
       final response = await (newState
           ? http.post(
-        Uri.parse('http://localhost:8080/product/${widget.product.productId}/savedProduct'),
+        Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/savedProduct'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
         },
       )
           : http.post(
-        Uri.parse('http://localhost:8080/product/${widget.product.productId}/savedProduct'),
+        Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/savedProduct'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
@@ -325,7 +354,7 @@ class _ProductCardState extends State<ProductCard> {
         builder: (context) {
           return Dialog(
             insetPadding: EdgeInsets.all(16),
-            child: EditProductPopup(product: widget.product, token: widget.token),
+            child: EditProductPopup(product: widget.product, token: widget.token, baseUrl: widget.baseUrl),
           );
         },
       );
@@ -336,7 +365,7 @@ class _ProductCardState extends State<ProductCard> {
         builder: (context) {
           return Dialog(
             insetPadding: EdgeInsets.all(16),
-            child: ProductDetailsPopup(product: widget.product, token: widget.token),
+            child: ProductDetailsPopup(product: widget.product, token: widget.token, baseUrl: widget.baseUrl),
           );
         },
       );
@@ -478,8 +507,9 @@ class _ProductCardState extends State<ProductCard> {
 class ProductDetailsPopup extends StatefulWidget {
   final Product product;
   final String token;
+  final String baseUrl;
 
-  const ProductDetailsPopup({Key? key, required this.product, required this.token}) : super(key: key);
+  const ProductDetailsPopup({Key? key, required this.product, required this.token, required this.baseUrl}) : super(key: key);
 
   @override
   _ProductDetailsPopupState createState() => _ProductDetailsPopupState();
@@ -517,7 +547,7 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
   Future<void> _fetchUserRating() async {
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:8080/product/${widget.product.productId}/userReview'),
+        Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/userReview'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
@@ -551,7 +581,7 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
   Future<void> _submitRating(double rating) async {
     try {
       final response = await http.put(
-        Uri.parse('http://localhost:8080/product/${widget.product.productId}/reviews'),
+        Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/reviews'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
@@ -639,6 +669,7 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
                         style: TextStyle(fontSize: 14),
                       ),
                       SizedBox(height: 16),
+
                     ],
                   ),
                 _isLoading
@@ -673,8 +704,8 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
 class EditProductPopup extends StatefulWidget {
   final Product product;
   final String token;
-
-  const EditProductPopup({Key? key, required this.product, required this.token}) : super(key: key);
+  final String baseUrl;
+  const EditProductPopup({Key? key, required this.product, required this.token,required this.baseUrl}) : super(key: key);
 
   @override
   _EditProductPopupState createState() => _EditProductPopupState();
@@ -792,32 +823,39 @@ class _EditProductPopupState extends State<EditProductPopup> {
                   controller: _nameController,
                   decoration: InputDecoration(labelText: 'Product Name'),
                 ),
+                SizedBox(height: 16),
                 TextField(
                   controller: _descriptionController,
                   decoration: InputDecoration(labelText: 'Description'),
                   maxLines: 3,
                 ),
+                SizedBox(height: 16),
                 Text(
                   'Skin Type:',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                Column(
+                SizedBox(height: 8),
+                Row(
                   children: _skinType.entries.map((entry) {
-                    return CheckboxListTile(
-                      title: Text(entry.key),
-                      value: entry.value,
-                      onChanged: (value) {
-                        setState(() {
-                          _skinType[entry.key] = value ?? false;
-                        });
-                      },
+                    return Expanded(
+                      child: CheckboxListTile(
+                        title: Text(entry.key),
+                        value: entry.value,
+                        onChanged: (value) {
+                          setState(() {
+                            _skinType[entry.key] = value ?? false;
+                          });
+                        },
+                      ),
                     );
                   }).toList(),
                 ),
+                SizedBox(height: 16),
                 Text(
                   'Ingredients:',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
+                SizedBox(height: 8),
                 Wrap(
                   spacing: 8.0,
                   children: _ingredients.map((ingredient) {
@@ -835,23 +873,28 @@ class _EditProductPopupState extends State<EditProductPopup> {
                   icon: Icon(Icons.add),
                   onPressed: _addIngredient,
                 ),
+                SizedBox(height: 16),
                 Text(
                   'Usage Time:',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                Column(
+                SizedBox(height: 8),
+                Row(
                   children: _usageTime.entries.map((entry) {
-                    return CheckboxListTile(
-                      title: Text(entry.key),
-                      value: entry.value,
-                      onChanged: (value) {
-                        setState(() {
-                          _usageTime[entry.key] = value ?? false;
-                        });
-                      },
+                    return Expanded(
+                      child: CheckboxListTile(
+                        title: Text(entry.key),
+                        value: entry.value,
+                        onChanged: (value) {
+                          setState(() {
+                            _usageTime[entry.key] = value ?? false;
+                          });
+                        },
+                      ),
                     );
                   }).toList(),
                 ),
+                SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _updateProduct,
                   child: Text('Update Product'),
@@ -864,6 +907,7 @@ class _EditProductPopupState extends State<EditProductPopup> {
     );
   }
 }
+
 
 class CustomBottomNavigationBar extends StatelessWidget {
   final Function(int) onItemTapped;

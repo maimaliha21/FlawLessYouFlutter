@@ -1,11 +1,8 @@
-import 'dart:ui';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:projtry1/ProfileSection/editProfile.dart';
-import 'profile.dart';  // تأكد من استيراد الصفحة الجديدة هنا
+import 'package:projtry1/ProfileSection/profile.dart';
 
-void main() {
-  runApp(aboutUs());
-}
+import '../SharedPreferences.dart';  // تأكد من استيراد صفحة البروفايل هنا
 
 class aboutUs extends StatelessWidget {
   @override
@@ -29,6 +26,24 @@ class CardScreen extends StatefulWidget {
 class _CardScreenState extends State<CardScreen> {
   final PageController _pageController = PageController(viewportFraction: 0.9);
   int _currentIndex = 0;
+  String? _token;
+  Map<String, dynamic> _userInfo = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserInfo();
+  }
+
+  Future<void> _loadUserInfo() async {
+    final userData = await getUserData();
+    if (userData != null) {
+      setState(() {
+        _token = userData['token'];
+        _userInfo = userData['userInfo'];
+      });
+    }
+  }
 
   final List<Map<String, dynamic>> cards = [
     {
@@ -79,19 +94,21 @@ class _CardScreenState extends State<CardScreen> {
         title: Row(
           children: [
             IconButton(
-              icon: Icon(Icons.arrow_back, color: Colors.white, size: 26), // السهم
+              icon: Icon(Icons.arrow_back, color: Colors.white, size: 26),
               onPressed: () {
-                // Navigator.push(
-                //                 //   context,
-                //                 //   MaterialPageRoute(builder: (context) => editProfile()), // الانتقال لصفحة Profile
-                //                 // );
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Profile(token: _token!, userInfo: _userInfo),
+                  ),
+                );
               },
             ),
-            SizedBox(width: 8), // مسافة صغيرة بين السهم والنص
+            SizedBox(width: 8),
             Text(
               "About Us",
               style: TextStyle(
-                fontSize: 20, // خط أصغر
+                fontSize: 20,
                 color: Colors.white,
                 fontWeight: FontWeight.w500,
               ),
@@ -105,8 +122,8 @@ class _CardScreenState extends State<CardScreen> {
           Positioned.fill(
             child: Stack(
               children: [
-                Image.asset(
-                  'assets/aboutusbg.jpg', // تأكد من وضع الصورة في مجلد assets
+                Image.network(
+                  "https://res.cloudinary.com/davwgirjs/image/upload/v1740423125/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740423126526_aboutusbg.jpg.jpg", // رابط الصورة من Cloudinary
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: double.infinity,

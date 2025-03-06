@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:ui';
+import 'package:shared_preferences/shared_preferences.dart'; // أضف هذه المكتبة
 
 import '../Home_Section/home.dart';
 import '../Product/productPage.dart'; // للوصول إلى ImageFilter
@@ -21,6 +22,12 @@ class _MessageCardState extends State<MessageCard> {
   List<dynamic> cards = [];
   final TextEditingController messageController = TextEditingController();
 
+  // دالة لاسترجاع الرابط من SharedPreferences
+  Future<String> getBaseUrl() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('baseUrl') ?? 'http://localhost:8080'; // قيمة افتراضية إذا لم يتم العثور على الرابط
+  }
+
   @override
   void initState() {
     super.initState();
@@ -30,8 +37,9 @@ class _MessageCardState extends State<MessageCard> {
 
   Future<void> fetchExperts() async {
     try {
+      final baseUrl = await getBaseUrl(); // استرجاع الرابط من SharedPreferences
       final response = await http.get(
-        Uri.parse('http://localhost:8080/api/users/experts'),
+        Uri.parse('$baseUrl/api/users/experts'), // استخدام الرابط المسترجع
         headers: {
           'accept': '*/*',
           'Authorization': 'Bearer ${widget.token}',
@@ -55,8 +63,9 @@ class _MessageCardState extends State<MessageCard> {
 
   Future<void> fetchCards() async {
     try {
+      final baseUrl = await getBaseUrl(); // استرجاع الرابط من SharedPreferences
       final response = await http.get(
-        Uri.parse('http://localhost:8080/cards/user'),
+        Uri.parse('$baseUrl/cards/user'), // استخدام الرابط المسترجع
         headers: {
           'accept': '*/*',
           'Authorization': 'Bearer ${widget.token}',
@@ -87,8 +96,9 @@ class _MessageCardState extends State<MessageCard> {
     }
 
     try {
+      final baseUrl = await getBaseUrl(); // استرجاع الرابط من SharedPreferences
       final response = await http.post(
-        Uri.parse('http://localhost:8080/cards/send?message=${Uri.encodeComponent(messageController.text)}&name=${Uri.encodeComponent(selectedExpert!)}'),
+        Uri.parse('$baseUrl/cards/send?message=${Uri.encodeComponent(messageController.text)}&name=${Uri.encodeComponent(selectedExpert!)}'), // استخدام الرابط المسترجع
         headers: {
           'accept': '*/*',
           'Authorization': 'Bearer ${widget.token}',
@@ -122,7 +132,9 @@ class _MessageCardState extends State<MessageCard> {
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/messagesCards.jpg'), // تغيير الخلفية إلى الصورة
+            image: NetworkImage(
+              "https://res.cloudinary.com/davwgirjs/image/upload/v1740424863/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740424863643_messagesCards.jpg.jpg",
+            ),
             fit: BoxFit.cover,
           ),
         ),

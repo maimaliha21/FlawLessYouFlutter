@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:image_picker/image_picker.dart'; // استيراد image_picker
 import 'package:projtry1/ProfileSection/editProfile.dart';
+import 'package:projtry1/ProfileSection/supportTeam.dart';
 import 'package:projtry1/api/google_signin_api.dart';
 import 'package:projtry1/LogIn/login.dart';
-import 'dart:html' as html; // استيراد dart:html للتعامل مع الملفات في الويب
+import 'dart:io'; // استيراد dart:io للتعامل مع الملفات
 import 'dart:typed_data'; // لاستخدام Uint8List
 import 'package:http/http.dart' as http;
 import 'package:projtry1/Product/product.dart';
 import 'package:projtry1/Product/productPage.dart';
 import 'dart:convert';
 import 'package:projtry1/Card/Card.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../Home_Section/home.dart';
 import '../Routinebar/routinescreen.dart';
+import 'aboutUs.dart';
 
 class Profile extends StatelessWidget {
   final String token;
@@ -48,16 +51,31 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  html.File? _profileImage;
+  File? _profileImage; // استخدام File من dart:io بدلاً من html.File
   final ImagePicker _picker = ImagePicker();
+  String? _baseUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBaseUrl();
+  }
+
+  Future<void> _loadBaseUrl() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _baseUrl = prefs.getString('baseUrl') ?? 'https://44c2-5-43-193-232.ngrok-free.app';
+    });
+  }
+
   Future<void> _pickImage() async {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
-        print('Selected file: ${image.name}, MIME type: ${image.mimeType}'); // Log MIME type
+        print('Selected file: ${image.path}, MIME type: ${image.mimeType}'); // Log MIME type
         if (image.mimeType?.startsWith('image/') ?? false) {
           setState(() {
-            _profileImage = html.File([image.path], image.name);
+            _profileImage = File(image.path); // تحويل XFile إلى File
           });
           await _uploadProfilePicture(_profileImage!);
         } else {
@@ -77,32 +95,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
-  Future<void> _uploadProfilePicture(html.File imageFile) async {
+
+  Future<void> _uploadProfilePicture(File imageFile) async {
+    if (_baseUrl == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Base URL is not available')),
+      );
+      return;
+    }
+
     try {
-      final reader = html.FileReader();
-      reader.readAsArrayBuffer(imageFile);
-      await reader.onLoad.first;
-
-      final fileBytes = reader.result as Uint8List;
-
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://localhost:8080/api/users/profilePicture'),
+        Uri.parse('$_baseUrl/api/users/profilePicture'),
       );
 
       request.headers.addAll({
         'Authorization': 'Bearer ${widget.token}',
       });
 
-      var multipartFile = http.MultipartFile.fromBytes(
+      var multipartFile = await http.MultipartFile.fromPath(
         'file',
-        fileBytes,
-        filename: imageFile.name,
+        imageFile.path,
+        filename: imageFile.path.split('/').last,
       );
 
       request.files.add(multipartFile);
 
-      print('Sending request with file: ${imageFile.name}, MIME type: ${imageFile.type}'); // Log MIME type
+      print('Sending request with file: ${imageFile.path}'); // Log file path
 
       var response = await request.send();
 
@@ -115,7 +135,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('AdminProfileSectio picture updated successfully')),
+          const SnackBar(content: Text('Profile picture updated successfully')),
         );
       } else {
         var errorResponse = await response.stream.bytesToString();
@@ -132,19 +152,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _handleLogout() async {
-    try {
-      // await GoogleSignInApi.signOut();
-      // Navigator.of(context).pushAndRemoveUntil(
-      //   MaterialPageRoute(builder: (context) => const LoginScreen()),
-      //       (route) => false,
-      // );
-    } catch (e) {
-      print('Error during logout: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to logout')),
-      );
-    }
+  void _handleLogout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove('token'); // حذف التوكن من SharedPreferences
+    await prefs.remove('userInfo'); // حذف معلومات المستخدم من SharedPreferences
+
+    // إعادة التوجيه إلى صفحة تسجيل الخروج
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+          (Route<dynamic> route) => false,
+    );
   }
 
   @override
@@ -158,19 +176,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Container(
                   height: 250,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     image: DecorationImage(
-                      image: AssetImage('assets/bgphoto.jpg'),
+                      image: NetworkImage('https://res.cloudinary.com/davwgirjs/image/upload/v1740417378/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417378981_bgphoto.jpg.jpg'),
                       fit: BoxFit.cover,
                     ),
-                  ),
-                ),
+                  ),),
                 Positioned(
                   top: 30,
                   right: 20,
                   child: PopupMenuButton<String>(
                     onSelected: (value) {
-                      if (value == 'logout') _handleLogout();
+                      if (value == 'logout') {
+                        _handleLogout();
+                      } else if (value == 'support') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => SupportTeam()),
+                        );
+                      } else if (value == 'about_us') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => aboutUs()),
+                        );
+                      }
                     },
                     itemBuilder: (BuildContext context) => [
                       const PopupMenuItem(
@@ -255,7 +284,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 60),
             Text(
-              widget.userInfo['username'] ?? 'User',
+              widget.userInfo['userName'] ?? 'User',
               style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -319,7 +348,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
             const SizedBox(height: 20),
-            TabBarSection(token: widget.token),
+            TabBarSection(token: widget.token, baseUrl: _baseUrl),
           ],
         ),
       ),
@@ -331,7 +360,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   ImageProvider _getProfileImage() {
-    if (_profileImage != null) return NetworkImage(_profileImage!.name);
+    if (_profileImage != null) return FileImage(_profileImage!); // استخدام FileImage
     if (widget.userInfo['profilePicture'] != null) {
       return NetworkImage(widget.userInfo['profilePicture']);
     }
@@ -457,8 +486,9 @@ class BottomWaveClipper extends CustomClipper<Path> {
 
 class TabBarSection extends StatefulWidget {
   final String token;
+  final String? baseUrl;
 
-  const TabBarSection({super.key, required this.token});
+  const TabBarSection({super.key, required this.token, this.baseUrl});
 
   @override
   _TabBarSectionState createState() => _TabBarSectionState();
@@ -493,8 +523,10 @@ class _TabBarSectionState extends State<TabBarSection>
             controller: _tabController,
             children: [
               ProductTabScreen(
-
-                apiUrl: "http://localhost:8080/product/Saved",
+                apiUrl: widget.baseUrl != null
+                    ? '${widget.baseUrl}/product/Saved'
+                    : '',
+                // token: widget.token,
               ),
               const Center(
                 child: Text('No history available',
