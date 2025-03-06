@@ -10,6 +10,7 @@ import '../../Product/product.dart';
 import '../../Product/productPage.dart';
 import '../../Routinebar/routinescreen.dart';
 import '../../ProfileSection/editProfile.dart';
+import '../../Treatment/treatment.dart';
 import 'editRole.dart';
 
 class AdminProfile extends StatefulWidget {
@@ -352,7 +353,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => MessageCard(token: token),
+                        builder: (context) => TreatmentScreen(),
                       ),
                     );
                   },
