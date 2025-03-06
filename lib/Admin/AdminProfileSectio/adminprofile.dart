@@ -46,6 +46,12 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
     }
   }
 
+  // دالة لاسترجاع الرابط من SharedPreferences
+  Future<String> getBaseUrl() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('baseUrl') ?? '';
+  }
+
   Future<Map<String, dynamic>> loadUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
@@ -174,7 +180,7 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
             ),
             const SizedBox(height: 60),
             Text(
-              userInfo?['username'] ?? 'Admin',
+              userInfo?['userName'] ?? 'Admin',
               style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -241,23 +247,34 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
               unselectedLabelColor: Colors.grey,
               tabs: const [
                 Tab(text: 'Saved'),
-
               ],
             ),
-            Container(
-              height: 300,
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  ProductTabScreen(
-                    apiUrl: "http://localhost:8080/product/Saved",
-                  ),
-                  const Center(
-                    child: Text('No history available',
-                        style: TextStyle(color: Colors.black)),
-                  ),
-                ],
-              ),
+            FutureBuilder<String>(
+              future: getBaseUrl(), // استرجاع الرابط من SharedPreferences
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                } else {
+                  final baseUrl = snapshot.data!;
+                  return Container(
+                    height: 300,
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        ProductTabScreen(
+                          apiUrl: '$baseUrl/product/Saved',
+                        ),
+                        const Center(
+                          child: Text('No history available',
+                              style: TextStyle(color: Colors.black)),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              },
             ),
           ],
         ),

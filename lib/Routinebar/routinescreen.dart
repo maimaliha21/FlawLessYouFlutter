@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'dart:async';
 
+import '../SharedPreferences.dart';
+
 class RoutineScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -148,8 +150,16 @@ class _RoutineTabScreenState extends State<RoutineTabScreen> {
     }
 
     try {
+      String? baseUrl = await getBaseUrl();
+      if (baseUrl == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Base URL is not set')),
+        );
+        return;
+      }
+
       final response = await http.get(
-        Uri.parse('http://localhost:8080/api/routines/by-time'),
+        Uri.parse('$baseUrl/api/routines/by-time'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
         },
@@ -189,8 +199,16 @@ class _RoutineTabScreenState extends State<RoutineTabScreen> {
     }
 
     try {
+      String? baseUrl = await getBaseUrl();
+      if (baseUrl == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Base URL is not set')),
+        );
+        return;
+      }
+
       final response = await http.get(
-        Uri.parse('http://localhost:8080/api/routines/userRoutine'),
+        Uri.parse('$baseUrl/api/routines/userRoutine'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
         },
@@ -511,8 +529,16 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
 
   Future<void> _fetchUserRating() async {
     try {
+      String? baseUrl = await getBaseUrl();
+      if (baseUrl == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Base URL is not set')),
+        );
+        return;
+      }
+
       final response = await http.get(
-        Uri.parse('http://localhost:8080/product/${widget.product.productId}/userReview'),
+        Uri.parse('$baseUrl/product/${widget.product.productId}/userReview'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
@@ -545,8 +571,16 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
 
   Future<void> _submitRating(double rating) async {
     try {
+      String? baseUrl = await getBaseUrl();
+      if (baseUrl == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Base URL is not set')),
+        );
+        return;
+      }
+
       final response = await http.put(
-        Uri.parse('http://localhost:8080/product/${widget.product.productId}/reviews'),
+        Uri.parse('$baseUrl/product/${widget.product.productId}/reviews'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
