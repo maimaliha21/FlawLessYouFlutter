@@ -15,7 +15,7 @@ import 'SkinTypeAnalysisScreen.dart';
 void main() {
   runApp(MaterialApp(
     debugShowCheckedModeBanner: false,
-    home: SkinTypeAnalysisScreen(),
+    // home: SkinTypeAnalysisScreen(),
   ));
 }
 

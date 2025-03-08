@@ -12,7 +12,6 @@ import 'package:projtry1/Product/productPage.dart';
 import 'dart:convert';
 import 'package:projtry1/Card/Card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../model/SkinTypeAnalysisScreen.dart';
 
 import '../Home_Section/home.dart';
 import '../Routinebar/routinescreen.dart';
@@ -467,8 +466,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
       ],
     );
   }
-}
-void _showImagePickerOptions(BuildContext context) {
+}void _showImagePickerOptions(BuildContext context) {
   showModalBottomSheet(
     context: context,
     builder: (BuildContext context) {
@@ -479,7 +477,7 @@ void _showImagePickerOptions(BuildContext context) {
               leading: const Icon(Icons.photo_camera),
               title: const Text('Camera'),
               onTap: () {
-                _pickImage(ImageSource.camera, context);
+                _pickImageAndNavigate(ImageSource.camera, context);
                 Navigator.of(context).pop();
               },
             ),
@@ -487,7 +485,7 @@ void _showImagePickerOptions(BuildContext context) {
               leading: const Icon(Icons.photo_library),
               title: const Text('Gallery'),
               onTap: () {
-                _pickImage(ImageSource.gallery, context);
+                _pickImageAndNavigate(ImageSource.gallery, context);
                 Navigator.of(context).pop();
               },
             ),
@@ -496,23 +494,6 @@ void _showImagePickerOptions(BuildContext context) {
       );
     },
   );
-}
-Future<void> _pickImage(ImageSource source, BuildContext context) async {
-  final ImagePicker _picker = ImagePicker();
-  try {
-    final XFile? image = await _picker.pickImage(source: source);
-    if (image != null) {
-      File imageFile = File(image.path);
-      // يمكنك هنا التعامل مع الصورة الملتقطة أو المختارة
-      print('Image path: ${imageFile.path}');
-      // يمكنك عرض الصورة أو تحميلها إلى الخادم
-    }
-  } catch (e) {
-    print('Error picking image: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Failed to pick image')),
-    );
-  }
 }
 
 class BottomWaveClipper extends CustomClipper<Path> {
