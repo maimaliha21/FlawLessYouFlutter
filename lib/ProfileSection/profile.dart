@@ -12,6 +12,7 @@ import 'package:projtry1/Product/productPage.dart';
 import 'dart:convert';
 import 'package:projtry1/Card/Card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../model/SkinTypeAnalysisScreen.dart';
 
 import '../Home_Section/home.dart';
 import '../Routinebar/routinescreen.dart';
@@ -378,6 +379,52 @@ class CustomBottomNavigationBar extends StatelessWidget {
     required this.userInfo,
   });
 
+  Future<void> _openCamera(BuildContext context) async {
+    final ImagePicker _picker = ImagePicker();
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+      if (image != null) {
+        // يمكنك هنا التعامل مع الصورة الملتقطة
+        print('Image path: ${image.path}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Image captured: ${image.path}')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No image captured')),
+        );
+      }
+    } catch (e) {
+      print('Error capturing image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to capture image: $e')),
+      );
+    }
+  }
+
+  Future<void> _openGallery(BuildContext context) async {
+    final ImagePicker _picker = ImagePicker();
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        // يمكنك هنا التعامل مع الصورة المختارة
+        print('Image path: ${image.path}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Image selected: ${image.path}')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No image selected')),
+        );
+      }
+    } catch (e) {
+      print('Error selecting image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to select image: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -403,7 +450,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
           left: MediaQuery.of(context).size.width / 2 - 30,
           child: FloatingActionButton(
             backgroundColor: Colors.blue,
-            onPressed: () {},
+            onPressed: () => _openCamera(context), // فتح الكاميرا مباشرة
             child: const Icon(Icons.face, color: Colors.white),
           ),
         ),
@@ -424,7 +471,6 @@ class CustomBottomNavigationBar extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) => Home(
                           token: token,
-
                         ),
                       ),
                     );
@@ -454,8 +500,8 @@ class CustomBottomNavigationBar extends StatelessWidget {
                   },
                 ),
                 IconButton(
-                  icon: const Icon(Icons.person, color: Colors.blue),
-                  onPressed: () {},
+                  icon: const Icon(Icons.photo_library, color: Colors.blue), // أيقونة المعرض
+                  onPressed: () => _openGallery(context), // فتح المعرض
                 ),
               ],
             ),
