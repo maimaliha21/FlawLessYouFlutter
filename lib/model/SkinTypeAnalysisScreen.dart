@@ -6,6 +6,10 @@ import 'dart:convert';
 import 'SkinDetailsScreen.dart';
 
 class SkinTypeAnalysisScreen extends StatefulWidget {
+  final File imageFile;
+
+  const SkinTypeAnalysisScreen({Key? key, required this.imageFile}) : super(key: key);
+
   @override
   _SkinTypeAnalysisScreenState createState() => _SkinTypeAnalysisScreenState();
 }
@@ -18,15 +22,10 @@ class _SkinTypeAnalysisScreenState extends State<SkinTypeAnalysisScreen> {
   // عنوان الـ API (المسار الأول)
   final String apiUrl = 'http://192.168.0.13:8000/analyze/';
 
-  /// اختيار الصورة من المصدر المحدد (المعرض أو الكاميرا)
-  Future<void> _pickImage(ImageSource source) async {
-    final XFile? image = await _picker.pickImage(source: source);
-    if (image != null) {
-      setState(() {
-        _selectedImage = File(image.path);
-        _analysisResult = "";
-      });
-    }
+  @override
+  void initState() {
+    super.initState();
+    _selectedImage = widget.imageFile;
   }
 
   /// إرسال الصورة للمسار الأول وتحليل نوع البشرة
@@ -72,20 +71,6 @@ class _SkinTypeAnalysisScreenState extends State<SkinTypeAnalysisScreen> {
                 : Image.file(
               _selectedImage!,
               height: 300,
-            ),
-            SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                ElevatedButton(
-                  onPressed: () => _pickImage(ImageSource.gallery),
-                  child: Text("اختيار من المعرض"),
-                ),
-                ElevatedButton(
-                  onPressed: () => _pickImage(ImageSource.camera),
-                  child: Text("التقاط من الكاميرا"),
-                ),
-              ],
             ),
             SizedBox(height: 20),
             ElevatedButton(
