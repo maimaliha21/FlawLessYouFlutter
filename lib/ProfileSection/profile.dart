@@ -379,52 +379,6 @@ class CustomBottomNavigationBar extends StatelessWidget {
     required this.userInfo,
   });
 
-  Future<void> _openCamera(BuildContext context) async {
-    final ImagePicker _picker = ImagePicker();
-    try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.camera);
-      if (image != null) {
-        // يمكنك هنا التعامل مع الصورة الملتقطة
-        print('Image path: ${image.path}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Image captured: ${image.path}')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No image captured')),
-        );
-      }
-    } catch (e) {
-      print('Error capturing image: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to capture image: $e')),
-      );
-    }
-  }
-
-  Future<void> _openGallery(BuildContext context) async {
-    final ImagePicker _picker = ImagePicker();
-    try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-      if (image != null) {
-        // يمكنك هنا التعامل مع الصورة المختارة
-        print('Image path: ${image.path}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Image selected: ${image.path}')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No image selected')),
-        );
-      }
-    } catch (e) {
-      print('Error selecting image: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to select image: $e')),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -450,7 +404,9 @@ class CustomBottomNavigationBar extends StatelessWidget {
           left: MediaQuery.of(context).size.width / 2 - 30,
           child: FloatingActionButton(
             backgroundColor: Colors.blue,
-            onPressed: () => _openCamera(context), // فتح الكاميرا مباشرة
+            onPressed: () {
+              _showImagePickerOptions(context); // عرض خيارات الكاميرا والمعرض
+            },
             child: const Icon(Icons.face, color: Colors.white),
           ),
         ),
@@ -471,6 +427,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) => Home(
                           token: token,
+
                         ),
                       ),
                     );
@@ -500,14 +457,60 @@ class CustomBottomNavigationBar extends StatelessWidget {
                   },
                 ),
                 IconButton(
-                  icon: const Icon(Icons.photo_library, color: Colors.blue), // أيقونة المعرض
-                  onPressed: () => _openGallery(context), // فتح المعرض
+                  icon: const Icon(Icons.person, color: Colors.blue),
+                  onPressed: () {},
                 ),
               ],
             ),
           ),
         ),
       ],
+    );
+  }
+}
+void _showImagePickerOptions(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    builder: (BuildContext context) {
+      return SafeArea(
+        child: Wrap(
+          children: <Widget>[
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text('Camera'),
+              onTap: () {
+                _pickImage(ImageSource.camera, context);
+                Navigator.of(context).pop();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Gallery'),
+              onTap: () {
+                _pickImage(ImageSource.gallery, context);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+Future<void> _pickImage(ImageSource source, BuildContext context) async {
+  final ImagePicker _picker = ImagePicker();
+  try {
+    final XFile? image = await _picker.pickImage(source: source);
+    if (image != null) {
+      File imageFile = File(image.path);
+      // يمكنك هنا التعامل مع الصورة الملتقطة أو المختارة
+      print('Image path: ${imageFile.path}');
+      // يمكنك عرض الصورة أو تحميلها إلى الخادم
+    }
+  } catch (e) {
+    print('Error picking image: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Failed to pick image')),
     );
   }
 }
