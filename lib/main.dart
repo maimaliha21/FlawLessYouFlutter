@@ -9,7 +9,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  await saveBaseUrl('http://localhost:8080');
+  await saveBaseUrl('https://b768-84-242-56-27.ngrok-free.app');
 
   // طباعة الرابط للتأكد من حفظه
   final baseUrl = await getBaseUrl();
