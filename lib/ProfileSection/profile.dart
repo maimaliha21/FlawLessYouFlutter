@@ -15,7 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../Home_Section/home.dart';
 import '../Routinebar/routinescreen.dart';
-import '../model/SkinDetailsScreen.dart';
+import '../model/SkinDetailsScreen.dart'; // استيراد شاشة تحليل البشرة
 import 'aboutUs.dart';
 
 class Profile extends StatelessWidget {
@@ -60,7 +60,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadBaseUrl();
-    _showImagePickerOptions(); // عرض خيارات الصورة فور فتح الشاشة
+
+    // تأجيل عرض خيارات الصورة حتى يتم بناء الشجرة بالكامل
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showImagePickerOptions();
+    });
   }
 
   Future<void> _loadBaseUrl() async {
@@ -400,6 +404,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return const AssetImage('assets/profile.jpg');
   }
 }
+
 class CustomBottomNavigationBar extends StatelessWidget {
   final String token;
   final Map<String, dynamic> userInfo;
