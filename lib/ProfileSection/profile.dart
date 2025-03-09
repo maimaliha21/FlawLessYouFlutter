@@ -15,6 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../Home_Section/home.dart';
 import '../Routinebar/routinescreen.dart';
+import '../model/SkinDetailsScreen.dart';
 import 'aboutUs.dart';
 
 class Profile extends StatelessWidget {
@@ -59,6 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadBaseUrl();
+    _showImagePickerOptions(); // عرض خيارات الصورة فور فتح الشاشة
   }
 
   Future<void> _loadBaseUrl() async {
@@ -68,9 +70,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  Future<void> _pickImage() async {
+  Future<void> _pickImage(ImageSource source) async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? image = await _picker.pickImage(source: source);
       if (image != null) {
         print('Selected file: ${image.path}, MIME type: ${image.mimeType}'); // Log MIME type
         if (image.mimeType?.startsWith('image/') ?? false) {
@@ -150,6 +152,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
         SnackBar(content: Text('Failed to upload profile picture: $e')),
       );
     }
+  }
+
+  void _showImagePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: Icon(Icons.camera),
+                title: Text('التقاط صورة من الكاميرا'),
+                onTap: () {
+                  _pickImage(ImageSource.camera);
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library),
+                title: Text('تحميل صورة من المعرض'),
+                onTap: () {
+                  _pickImage(ImageSource.gallery);
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _handleLogout() async {
@@ -249,7 +282,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               left: 50,
                               right: 50,
                               child: ElevatedButton(
-                                onPressed: _pickImage,
+                                onPressed: _showImagePickerOptions,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFB0BEC5),
                                   foregroundColor: Colors.white,
@@ -367,7 +400,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return const AssetImage('assets/profile.jpg');
   }
 }
-
 class CustomBottomNavigationBar extends StatelessWidget {
   final String token;
   final Map<String, dynamic> userInfo;
@@ -403,9 +435,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
           left: MediaQuery.of(context).size.width / 2 - 30,
           child: FloatingActionButton(
             backgroundColor: Colors.blue,
-            onPressed: () {
-              _showImagePickerOptions(context); // عرض خيارات الكاميرا والمعرض
-            },
+            onPressed: () => _showImagePickerOptions(context), // عرض خيارات الصورة
             child: const Icon(Icons.face, color: Colors.white),
           ),
         ),
@@ -426,7 +456,6 @@ class CustomBottomNavigationBar extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) => Home(
                           token: token,
-
                         ),
                       ),
                     );
@@ -466,34 +495,47 @@ class CustomBottomNavigationBar extends StatelessWidget {
       ],
     );
   }
-}void _showImagePickerOptions(BuildContext context) {
-  showModalBottomSheet(
-    context: context,
-    builder: (BuildContext context) {
-      return SafeArea(
-        child: Wrap(
-          children: <Widget>[
-            ListTile(
-              leading: const Icon(Icons.photo_camera),
-              title: const Text('Camera'),
-              onTap: () {
-                _pickImageAndNavigate(ImageSource.camera, context);
-                Navigator.of(context).pop();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Gallery'),
-              onTap: () {
-                _pickImageAndNavigate(ImageSource.gallery, context);
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
+
+  void _showImagePickerOptions(BuildContext context) async {
+    final ImagePicker _picker = ImagePicker();
+    final XFile? image = await showModalBottomSheet<XFile>(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: Icon(Icons.camera),
+                title: Text('التقاط صورة من الكاميرا'),
+                onTap: () async {
+                  final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+                  Navigator.pop(context, image);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library),
+                title: Text('تحميل صورة من المعرض'),
+                onTap: () async {
+                  final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+                  Navigator.pop(context, image);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (image != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SkinDetailsScreen(imageFile: File(image.path)),
         ),
       );
-    },
-  );
+    }
+  }
 }
 
 class BottomWaveClipper extends CustomClipper<Path> {
