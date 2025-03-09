@@ -1,14 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'SkinDetailsScreen.dart'; // إذا كنت تحتاج إلى شاشة تفاصيل البشرة
+import 'SkinDetailsScreen.dart';
 
 class SkinTypeAnalysisScreen extends StatefulWidget {
-  final File imageFile;
-
-  const SkinTypeAnalysisScreen({Key? key, required this.imageFile}) : super(key: key);
-
   @override
   _SkinTypeAnalysisScreenState createState() => _SkinTypeAnalysisScreenState();
 }
@@ -16,21 +13,27 @@ class SkinTypeAnalysisScreen extends StatefulWidget {
 class _SkinTypeAnalysisScreenState extends State<SkinTypeAnalysisScreen> {
   File? _selectedImage;
   String _analysisResult = "";
+  final ImagePicker _picker = ImagePicker();
 
-  @override
-  void initState() {
-    super.initState();
-    _selectedImage = widget.imageFile; // استخدام الصورة الممررة
+  // عنوان الـ API (المسار الأول)
+  final String apiUrl = 'http://192.168.0.13:8000/analyze/';
+
+  /// اختيار الصورة من المصدر المحدد (المعرض أو الكاميرا)
+  Future<void> _pickImage(ImageSource source) async {
+    final XFile? image = await _picker.pickImage(source: source);
+    if (image != null) {
+      setState(() {
+        _selectedImage = File(image.path);
+        _analysisResult = "";
+      });
+    }
   }
 
   /// إرسال الصورة للمسار الأول وتحليل نوع البشرة
   Future<void> _analyzeImage() async {
     if (_selectedImage == null) return;
     try {
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('http://192.168.0.13:8000/analyze/'), // تأكد من عنوان الـ API
-      );
+      var request = http.MultipartRequest('POST', Uri.parse(apiUrl));
       request.files.add(
         await http.MultipartFile.fromPath('skin_type', _selectedImage!.path),
       );
@@ -71,6 +74,20 @@ class _SkinTypeAnalysisScreenState extends State<SkinTypeAnalysisScreen> {
               height: 300,
             ),
             SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                ElevatedButton(
+                  onPressed: () => _pickImage(ImageSource.gallery),
+                  child: Text("اختيار من المعرض"),
+                ),
+                ElevatedButton(
+                  onPressed: () => _pickImage(ImageSource.camera),
+                  child: Text("التقاط من الكاميرا"),
+                ),
+              ],
+            ),
+            SizedBox(height: 20),
             ElevatedButton(
               onPressed: _analyzeImage,
               child: Text("تحليل الصورة"),
@@ -81,6 +98,8 @@ class _SkinTypeAnalysisScreenState extends State<SkinTypeAnalysisScreen> {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 20),
+            // زر "التالي" للانتقال لشاشة تفاصيل البشرة
+            // سنمرر الصورة المختارة (_selectedImage) للشاشة الثانية
             ElevatedButton(
               onPressed: _selectedImage == null
                   ? null
