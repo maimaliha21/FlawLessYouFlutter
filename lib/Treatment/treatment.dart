@@ -1,105 +1,68 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class TreatmentScreen extends StatefulWidget {
+class TreatmentsPage extends StatefulWidget {
   @override
-  _TreatmentScreenState createState() => _TreatmentScreenState();
+  _TreatmentsPageState createState() => _TreatmentsPageState();
 }
 
-class _TreatmentScreenState extends State<TreatmentScreen> {
-  String? token;
+class _TreatmentsPageState extends State<TreatmentsPage> {
+  String baseUrl = '';
+  String token = '';
+  List<Map<String, dynamic>> treatments = [];
 
   @override
   void initState() {
     super.initState();
-    _loadToken();
+    fetchTreatments();
   }
 
-  Future<void> _loadToken() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      token = prefs.getString("auth_token");
-    });
-  }
+  Future<void> fetchTreatments() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      baseUrl = prefs.getString('base_url') ?? 'http://default_url.com';
+      token = prefs.getString('auth_token') ?? '';
 
-  Future<List<Map<String, dynamic>>> fetchTreatments(String skinType) async {
-    if (token == null) return [];
-    final response = await http.get(
-      Uri.parse('http://localhost:8080/api/treatments/skinType/$skinType'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      },
-    );
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/treatments/skinType/DRY'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'accept': 'application/json',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      return List<Map<String, dynamic>>.from(json.decode(response.body));
-    } else {
-      throw Exception('Failed to load treatments');
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          treatments = data.map((treatment) => treatment as Map<String, dynamic>).toList();
+        });
+      } else {
+        print('Error: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('Exception: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text('Treatments'),
-          bottom: TabBar(
-            tabs: [
-              Tab(text: 'Oily'),
-              Tab(text: 'Normal'),
-              Tab(text: 'Dry'),
-            ],
-          ),
-        ),
-        body: TabBarView(
-          children: [
-            TreatmentList(skinType: 'OILY', fetchTreatments: fetchTreatments),
-            TreatmentList(skinType: 'NORMAL', fetchTreatments: fetchTreatments),
-            TreatmentList(skinType: 'DRY', fetchTreatments: fetchTreatments),
-          ],
-        ),
+    return Scaffold(
+      appBar: AppBar(title: Text('Treatments for Dry Skin')),
+      body: treatments.isEmpty
+          ? Center(child: CircularProgressIndicator())
+          : ListView.builder(
+        itemCount: treatments.length,
+        itemBuilder: (context, index) {
+          final treatment = treatments[index];
+          return ListTile(
+            title: Text(treatment['problem'] ?? 'Unknown Problem'),
+            subtitle: Text('Treatment ID: ${treatment['treatmentId']}'),
+            trailing: Text('${treatment['productIds'].length} Products'),
+          );
+        },
       ),
-    );
-  }
-}
-
-class TreatmentList extends StatelessWidget {
-  final String skinType;
-  final Future<List<Map<String, dynamic>>> Function(String) fetchTreatments;
-
-  TreatmentList({required this.skinType, required this.fetchTreatments});
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: fetchTreatments(skinType),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(child: Text('No treatments found'));
-        }
-
-        return ListView.builder(
-          itemCount: snapshot.data!.length,
-          itemBuilder: (context, index) {
-            final treatment = snapshot.data![index];
-            return Card(
-              child: ListTile(
-                title: Text(treatment['problem']),
-                subtitle: Text('ID: ${treatment['treatmentId']}'),
-              ),
-            );
-          },
-        );
-      },
     );
   }
 }

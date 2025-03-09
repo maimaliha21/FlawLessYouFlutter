@@ -348,12 +348,12 @@ class CustomBottomNavigationBar extends StatelessWidget {
                   },
                 ),
                 IconButton(
-                  icon: const Icon(Icons.chat, color: Colors.blue),
+                  icon: Icon(Icons.medical_services, size: 50),
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => TreatmentScreen(),
+                        builder: (context) => TreatmentsPage(),
                       ),
                     );
                   },
