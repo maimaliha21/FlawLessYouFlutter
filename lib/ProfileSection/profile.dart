@@ -16,6 +16,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../Home_Section/home.dart';
 import '../Routinebar/routinescreen.dart';
 import '../model/SkinDetailsScreen.dart';
+import '../model/SkinTypeAnalysisScreen.dart';
 import 'aboutUs.dart';
 
 class Profile extends StatelessWidget {
@@ -376,6 +377,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: const Text('View Routine'),
                 ),
               ],
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SkinTypeAnalysisScreen(),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Analyze Skin Type'),
             ),
             const SizedBox(height: 20),
             TabBarSection(token: widget.token, baseUrl: _baseUrl),
