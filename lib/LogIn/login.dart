@@ -8,7 +8,7 @@ import 'dart:convert';
 import '../SharedPreferences.dart';
 import 'firebase_options.dart';
 import 'package:projtry1/Admin/AdminProfileSectio/adminprofile.dart';
-
+import 'package:projtry1/Expert/ExpertChat/chatexpert.dart';
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -92,7 +92,19 @@ class LoginScreen extends StatelessWidget {
                 builder: (context) => AdminProfile(),
               ),
             );
-          } else {
+
+          }
+          else if (userInfo['role'] == 'SKIN_EXPERT') {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => chatexpert(),
+              ),
+            );
+          }
+
+
+          else {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
