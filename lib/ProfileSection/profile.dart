@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart'; // استيراد image_picker
+import 'package:image_picker/image_picker.dart';
 import 'package:projtry1/ProfileSection/editProfile.dart';
 import 'package:projtry1/ProfileSection/supportTeam.dart';
 import 'package:projtry1/api/google_signin_api.dart';
 import 'package:projtry1/LogIn/login.dart';
-import 'dart:io'; // استيراد dart:io للتعامل مع الملفات
-import 'dart:typed_data'; // لاستخدام Uint8List
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:projtry1/Product/product.dart';
 import 'package:projtry1/Product/productPage.dart';
@@ -15,7 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../Home_Section/home.dart';
 import '../Routinebar/routinescreen.dart';
-import '../model/SkinDetailsScreen.dart'; // استيراد شاشة تحليل البشرة
+import '../model/SkinDetailsScreen.dart';
 import 'aboutUs.dart';
 
 class Profile extends StatelessWidget {
@@ -52,7 +52,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  File? _profileImage; // استخدام File من dart:io بدلاً من html.File
+  File? _profileImage;
   final ImagePicker _picker = ImagePicker();
   String? _baseUrl;
 
@@ -60,11 +60,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadBaseUrl();
-
-    // تأجيل عرض خيارات الصورة حتى يتم بناء الشجرة بالكامل
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showImagePickerOptions();
-    });
   }
 
   Future<void> _loadBaseUrl() async {
@@ -78,10 +73,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final XFile? image = await _picker.pickImage(source: source);
       if (image != null) {
-        print('Selected file: ${image.path}, MIME type: ${image.mimeType}'); // Log MIME type
+        print('Selected file: ${image.path}, MIME type: ${image.mimeType}');
         if (image.mimeType?.startsWith('image/') ?? false) {
           setState(() {
-            _profileImage = File(image.path); // تحويل XFile إلى File
+            _profileImage = File(image.path);
           });
           await _uploadProfilePicture(_profileImage!);
         } else {
@@ -128,7 +123,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       request.files.add(multipartFile);
 
-      print('Sending request with file: ${imageFile.path}'); // Log file path
+      print('Sending request with file: ${imageFile.path}');
 
       var response = await request.send();
 
@@ -191,10 +186,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _handleLogout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token'); // حذف التوكن من SharedPreferences
-    await prefs.remove('userInfo'); // حذف معلومات المستخدم من SharedPreferences
+    await prefs.remove('token');
+    await prefs.remove('userInfo');
 
-    // إعادة التوجيه إلى صفحة تسجيل الخروج
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => LoginScreen()),
@@ -286,7 +280,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               left: 50,
                               right: 50,
                               child: ElevatedButton(
-                                onPressed: _showImagePickerOptions,
+                                onPressed: _showImagePickerOptions, // بدون معاملات
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFB0BEC5),
                                   foregroundColor: Colors.white,
@@ -348,7 +342,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     MaterialPageRoute(
                       builder: (context) => EditProfile(
                         token: widget.token,
-                        // userInfo: widget.userInfo
                       ),
                     ),
                   ),
@@ -397,7 +390,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   ImageProvider _getProfileImage() {
-    if (_profileImage != null) return FileImage(_profileImage!); // استخدام FileImage
+    if (_profileImage != null) return FileImage(_profileImage!);
     if (widget.userInfo['profilePicture'] != null) {
       return NetworkImage(widget.userInfo['profilePicture']);
     }
@@ -440,7 +433,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
           left: MediaQuery.of(context).size.width / 2 - 30,
           child: FloatingActionButton(
             backgroundColor: Colors.blue,
-            onPressed: () => _showImagePickerOptions(context), // عرض خيارات الصورة
+            onPressed: () => _showImagePickerOptions(context),
             child: const Icon(Icons.face, color: Colors.white),
           ),
         ),
@@ -533,13 +526,35 @@ class CustomBottomNavigationBar extends StatelessWidget {
     );
 
     if (image != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SkinDetailsScreen(imageFile: File(image.path)),
-        ),
-      );
+      _showImagePreviewDialog(context, File(image.path));
     }
+  }
+
+  void _showImagePreviewDialog(BuildContext context, File imageFile) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.file(imageFile),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SkinDetailsScreen(imageFile: imageFile),
+                  ),
+                );
+              },
+              child: Text('التالي'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -603,7 +618,6 @@ class _TabBarSectionState extends State<TabBarSection>
                 apiUrl: widget.baseUrl != null
                     ? '${widget.baseUrl}/product/Saved'
                     : '',
-                // token: widget.token,
               ),
               const Center(
                 child: Text('No history available',
