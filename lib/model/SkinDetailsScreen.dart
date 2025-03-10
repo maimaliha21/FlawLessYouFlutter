@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SkinDetailsScreen extends StatefulWidget {
   final File imageFile;
@@ -21,7 +22,7 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
   String _detailsResult = "";
   String _treatmentResult = "";
   final String apiDetailsUrl = 'http://192.168.0.102:8000/analyze_details/';
-  final String apiTreatmentUrl = 'http://localhost:8080/api/skin-analysis/recommend-treatments';
+  String apiTreatmentUrl = '';
 
   Future<void> _analyzeDetails() async {
     try {
@@ -58,11 +59,25 @@ normal: ${data['NORMAL']}%
 
   Future<void> _fetchTreatmentRecommendations(Map<String, dynamic> skinData) async {
     try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+      String? baseUrl = prefs.getString('baseUrl');
+
+      if (token == null || baseUrl == null) {
+        setState(() {
+          _treatmentResult = 'Error: Token or base URL not found';
+        });
+        return;
+      }
+
+      apiTreatmentUrl = '$baseUrl/api/skin-analysis/recommend-treatments';
+      // String capitalizedSkinType = widget.skinType;
+
       final response = await http.post(
-        Uri.parse('$apiTreatmentUrl?skinType=${widget.skinType}'),
+        Uri.parse('$apiTreatmentUrl?skinType=${widget.skinType.toUpperCase()}'),
         headers: {
           'accept': '*/*',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6WyJST0xFX1VTRVIiXSwic3ViIjoiZmF0bWEiLCJpYXQiOjE3NDE2MjUyOTIsImV4cCI6MTc0MTcxMTY5Mn0.xevQ8yvbbIVMLKh0QbZwR3DKDWwjP4i2CNMmTo-Vr_0',
+          'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
         body: json.encode({
