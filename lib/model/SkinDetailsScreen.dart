@@ -23,6 +23,8 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
   String _treatmentResult = "";
   final String apiDetailsUrl = 'http://192.168.0.102:8000/analyze_details/';
   String apiTreatmentUrl = '';
+  List<Map<String, dynamic>> treatments = [];
+  Map<String, bool> selectedProducts = {};
 
   Future<void> _analyzeDetails() async {
     try {
@@ -71,7 +73,6 @@ normal: ${data['NORMAL']}%
       }
 
       apiTreatmentUrl = '$baseUrl/api/skin-analysis/recommend-treatments';
-      // String capitalizedSkinType = widget.skinType;
 
       final response = await http.post(
         Uri.parse('$apiTreatmentUrl?skinType=${widget.skinType.toUpperCase()}'),
@@ -91,7 +92,12 @@ normal: ${data['NORMAL']}%
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
-          _treatmentResult = "Treatment Recommendations:\n${data['treatmentId'].map((t) => "Problem: ${t['problem']}, Products: ${t['productIds'].join(', ')}").join('\n')}";
+          treatments = List<Map<String, dynamic>>.from(data['treatmentId']);
+          treatments.forEach((treatment) {
+            treatment['productIds'].forEach((productId) {
+              selectedProducts[productId] = false;
+            });
+          });
         });
       } else {
         setState(() {
@@ -133,9 +139,43 @@ normal: ${data['NORMAL']}%
               style: TextStyle(fontSize: 16),
             ),
             SizedBox(height: 20),
-            Text(
-              _treatmentResult,
-              style: TextStyle(fontSize: 16),
+            Expanded(
+              child: ListView.builder(
+                itemCount: treatments.length,
+                itemBuilder: (context, index) {
+                  final treatment = treatments[index];
+                  return Card(
+                    margin: EdgeInsets.symmetric(vertical: 8.0),
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Problem: ${treatment['problem']}',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 8),
+                          Text('Skin Type: ${treatment['skinType']}'),
+                          SizedBox(height: 8),
+                          Text('Products:'),
+                          ...treatment['productIds'].map<Widget>((productId) {
+                            return CheckboxListTile(
+                              title: Text(productId),
+                              value: selectedProducts[productId],
+                              onChanged: (bool? value) {
+                                setState(() {
+                                  selectedProducts[productId] = value!;
+                                });
+                              },
+                            );
+                          }).toList(),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
           ],
         ),
