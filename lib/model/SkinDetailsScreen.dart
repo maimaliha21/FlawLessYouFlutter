@@ -19,7 +19,9 @@ class SkinDetailsScreen extends StatefulWidget {
 
 class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
   String _detailsResult = "";
-  final String apiDetailsUrl = 'http://192.168.104.46:8000/analyze_details/';
+  String _treatmentResult = "";
+  final String apiDetailsUrl = 'http://192.168.0.102:8000/analyze_details/';
+  final String apiTreatmentUrl = 'http://localhost:8080/api/skin-analysis/recommend-treatments';
 
   Future<void> _analyzeDetails() async {
     try {
@@ -34,12 +36,14 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
         final data = json.decode(responseString);
         setState(() {
           _detailsResult = """
-تصبغات: ${data['pigmentation']}%
-تجاعيد: ${data['wrinkles']}%
-حب شباب: ${data['acne']}%
-طبيعي: ${data['normal']}%
+pigmentation: ${data['PIGMENTATION']}%
+wrinkles: ${data['WRINKLES']}%
+acne: ${data['ACNE']}%
+normal: ${data['NORMAL']}%
 """;
         });
+        // بعد الحصول على النتائج، نرسلها إلى API التوصيات
+        _fetchTreatmentRecommendations(data);
       } else {
         setState(() {
           _detailsResult = 'Error: ${response.statusCode}';
@@ -48,6 +52,40 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
     } catch (e) {
       setState(() {
         _detailsResult = 'Exception: $e';
+      });
+    }
+  }
+
+  Future<void> _fetchTreatmentRecommendations(Map<String, dynamic> skinData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$apiTreatmentUrl?skinType=${widget.skinType}'),
+        headers: {
+          'accept': '*/*',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6WyJST0xFX1VTRVIiXSwic3ViIjoiZmF0bWEiLCJpYXQiOjE3NDE2MjUyOTIsImV4cCI6MTc0MTcxMTY5Mn0.xevQ8yvbbIVMLKh0QbZwR3DKDWwjP4i2CNMmTo-Vr_0',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          "WRINKLES": skinData['WRINKLES'],
+          "PIGMENTATION": skinData['PIGMENTATION'],
+          "ACNE": skinData['ACNE'],
+          "NORMAL": skinData['NORMAL'],
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _treatmentResult = "Treatment Recommendations:\n${data['treatmentId'].map((t) => "Problem: ${t['problem']}, Products: ${t['productIds'].join(', ')}").join('\n')}";
+        });
+      } else {
+        setState(() {
+          _treatmentResult = 'Error fetching treatments: ${response.statusCode}';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _treatmentResult = 'Exception fetching treatments: $e';
       });
     }
   }
@@ -77,6 +115,11 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
             SizedBox(height: 10),
             Text(
               _detailsResult,
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 20),
+            Text(
+              _treatmentResult,
               style: TextStyle(fontSize: 16),
             ),
           ],
