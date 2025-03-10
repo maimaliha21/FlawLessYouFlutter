@@ -413,26 +413,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                // Navigator.push(
-                //   context,
-                //   MaterialPageRoute(
-                //     builder: (context) => SkinTypeAnalysisScreen(imageFile: ),
-                //   ),
-                // );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('Analyze Skin Type'),
-            ),
+
+
             const SizedBox(height: 20),
             TabBarSection(token: widget.token, baseUrl: _baseUrl),
           ],
@@ -475,7 +457,7 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://192.168.104.46:8000/analyze/'),
+        Uri.parse('http://192.168.0.102:8000/analyze/'),
       );
 
       request.files.add(
@@ -630,10 +612,13 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
       _showImagePreviewDialog(context, File(image.path));
     }
   }
-
   void _showImagePreviewDialog(BuildContext context, File imageFile) async {
     // تحليل نوع البشرة
     final skinType = await _analyzeSkinType(imageFile);
+
+    // القائمة المنسدلة تحتوي على النوع الذي تم تحليله بالإضافة إلى الخيارات الأخرى
+    List<String> skinTypes = [skinType, 'Normal', 'Dry', 'Oily'];
+    String selectedSkinType = skinType; // القيمة الافتراضية
 
     // عرض البوب-أب مع الصورة ونتيجة التحليل
     showDialog(
@@ -649,6 +634,21 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
+            DropdownButton<String>(
+              value: selectedSkinType,
+              onChanged: (String? newValue) {
+                setState(() {
+                  selectedSkinType = newValue!;
+                });
+              },
+              items: skinTypes.map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context); // إغلاق البوب-أب
@@ -657,7 +657,7 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
                   MaterialPageRoute(
                     builder: (context) => SkinDetailsScreen(
                       imageFile: imageFile,
-                      skinType: skinType,
+                      skinType: selectedSkinType, // تمرير القيمة المختارة
                     ),
                   ),
                 );
@@ -668,7 +668,8 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
         ),
       ),
     );
-  }}
+  }
+  }
 
 class BottomWaveClipper extends CustomClipper<Path> {
   @override
