@@ -19,7 +19,7 @@ class SkinDetailsScreen extends StatefulWidget {
 
 class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
   String _detailsResult = "";
-  final String apiDetailsUrl = 'http://192.168.114.6:8000/analyze_details/';
+  final String apiDetailsUrl = 'http://192.168.104.46:8000/analyze_details/';
 
   Future<void> _analyzeDetails() async {
     try {
