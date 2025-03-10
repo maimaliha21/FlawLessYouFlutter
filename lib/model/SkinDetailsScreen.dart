@@ -19,7 +19,7 @@ class SkinDetailsScreen extends StatefulWidget {
 
 class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
   String _detailsResult = "";
-  final String apiDetailsUrl = 'http://192.168.0.102:8000/analyze_details/';
+  final String apiDetailsUrl = 'http://192.168.104.46:8000/analyze_details/';
 
   Future<void> _analyzeDetails() async {
     try {
@@ -34,10 +34,10 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
         final data = json.decode(responseString);
         setState(() {
           _detailsResult = """
-pigmentation: ${data['pigmentation']}%
-wrinkles: ${data['wrinkles']}%
-acne: ${data['acne']}%
-normal: ${data['normal']}%
+تصبغات: ${data['pigmentation']}%
+تجاعيد: ${data['wrinkles']}%
+حب شباب: ${data['acne']}%
+طبيعي: ${data['normal']}%
 """;
         });
       } else {
