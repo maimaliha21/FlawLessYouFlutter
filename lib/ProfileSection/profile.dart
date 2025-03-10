@@ -281,7 +281,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               left: 50,
                               right: 50,
                               child: ElevatedButton(
-                                onPressed: _showImagePickerOptions, // بدون معاملات
+                                onPressed: _showImagePickerOptions,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFB0BEC5),
                                   foregroundColor: Colors.white,
@@ -419,7 +419,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-class CustomBottomNavigationBar extends StatelessWidget {
+class CustomBottomNavigationBar extends StatefulWidget {
   final String token;
   final Map<String, dynamic> userInfo;
 
@@ -428,6 +428,13 @@ class CustomBottomNavigationBar extends StatelessWidget {
     required this.token,
     required this.userInfo,
   });
+
+  @override
+  _CustomBottomNavigationBarState createState() => _CustomBottomNavigationBarState();
+}
+
+class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
+  String selectedSkinType = 'Normal'; // القيمة الافتراضية
 
   @override
   Widget build(BuildContext context) {
@@ -474,7 +481,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => Home(
-                          token: token,
+                          token: widget.token,
                         ),
                       ),
                     );
@@ -486,7 +493,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => MessageCard(token: token),
+                        builder: (context) => MessageCard(token: widget.token),
                       ),
                     );
                   },
@@ -498,7 +505,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ProductPage(token: token, userInfo: userInfo),
+                        builder: (context) => ProductPage(token: widget.token, userInfo: widget.userInfo),
                       ),
                     );
                   },
@@ -559,18 +566,39 @@ class CustomBottomNavigationBar extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Image.file(imageFile),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
+            DropdownButton<String>(
+              value: selectedSkinType,
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  setState(() {
+                    selectedSkinType = newValue;
+                  });
+                }
+              },
+              items: <String>['Normal', 'Oily', 'Dry', 'Combination', 'Sensitive']
+                  .map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => SkinDetailsScreen(imageFile: imageFile),
+                    builder: (context) => SkinDetailsScreen(
+                      imageFile: imageFile,
+                      skinType: selectedSkinType,
+                    ),
                   ),
                 );
               },
-              child: Text('التالي'),
+              child: const Text('التالي'),
             ),
           ],
         ),
