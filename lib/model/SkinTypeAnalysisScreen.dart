@@ -16,7 +16,7 @@ class _SkinTypeAnalysisScreenState extends State<SkinTypeAnalysisScreen> {
   final ImagePicker _picker = ImagePicker();
 
   // عنوان الـ API (المسار الأول)
-  final String apiUrl = 'http://192.168.1.13:8000/analyze/';
+  final String apiUrl = 'http://192.168.114.6:8000/analyze/';
 
   /// اختيار الصورة من المصدر المحدد (المعرض أو الكاميرا)
   Future<void> _pickImage(ImageSource source) async {
@@ -108,7 +108,7 @@ class _SkinTypeAnalysisScreenState extends State<SkinTypeAnalysisScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) =>
-                        SkinDetailsScreen(imageFile: _selectedImage!),
+                        SkinDetailsScreen(imageFile: _selectedImage!, skinType:_analysisResult),
                   ),
                 );
               },
