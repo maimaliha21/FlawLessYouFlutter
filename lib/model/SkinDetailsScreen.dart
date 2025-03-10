@@ -5,8 +5,13 @@ import 'dart:convert';
 
 class SkinDetailsScreen extends StatefulWidget {
   final File imageFile;
+  final String skinType;
 
-  SkinDetailsScreen({required this.imageFile});
+  const SkinDetailsScreen({
+    Key? key,
+    required this.imageFile,
+    required this.skinType,
+  }) : super(key: key);
 
   @override
   _SkinDetailsScreenState createState() => _SkinDetailsScreenState();
@@ -14,7 +19,7 @@ class SkinDetailsScreen extends StatefulWidget {
 
 class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
   String _detailsResult = "";
-  final String apiDetailsUrl = 'http://192.168.1.13:8000/analyze_details/';
+  final String apiDetailsUrl = 'http://192.168.114.6:8000/analyze_details/';
 
   Future<void> _analyzeDetails() async {
     try {
@@ -68,10 +73,7 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
               height: 300,
             ),
             SizedBox(height: 20),
-            Text(
-              "نتائج التحليل التفصيلي:",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
+            Text('Skin Type: ${widget.skinType}'),
             SizedBox(height: 10),
             Text(
               _detailsResult,
