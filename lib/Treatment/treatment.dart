@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:projtry1/SharedPreferences.dart'; // استيراد الملف المساعد
+import 'package:projtry1/SharedPreferences.dart';
+
+import '../Product/product.dart'; // استيراد الملف المساعد
+
+void main() {
+  runApp(MaterialApp(
+    home: TreatmentPage(),
+  ));
+}
 
 class TreatmentPage extends StatefulWidget {
   @override
@@ -60,20 +68,20 @@ class _TreatmentPageState extends State<TreatmentPage> {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Skin Treatments'),
+          title: Text('Skin Treatments', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
           bottom: TabBar(
             tabs: [
-              Tab(text: 'Oily'),
-              Tab(text: 'Normal'),
-              Tab(text: 'Dry'),
+              Tab(text: 'Oily', icon: Icon(Icons.opacity)),
+              Tab(text: 'Normal', icon: Icon(Icons.balance)),
+              Tab(text: 'Dry', icon: Icon(Icons.water_drop)),
             ],
           ),
         ),
         body: TabBarView(
           children: [
-            TreatmentList(treatments: oilyTreatments),
-            TreatmentList(treatments: normalTreatments),
-            TreatmentList(treatments: dryTreatments),
+            TreatmentCategoryList(treatments: oilyTreatments),
+            TreatmentCategoryList(treatments: normalTreatments),
+            TreatmentCategoryList(treatments: dryTreatments),
           ],
         ),
       ),
@@ -81,26 +89,253 @@ class _TreatmentPageState extends State<TreatmentPage> {
   }
 }
 
-class TreatmentList extends StatelessWidget {
+class TreatmentCategoryList extends StatelessWidget {
   final List<dynamic> treatments;
 
-  TreatmentList({required this.treatments});
+  TreatmentCategoryList({required this.treatments});
+
+  // تصنيف العلاجات حسب المشكلة
+  Map<String, List<dynamic>> categorizeTreatments(List<dynamic> treatments) {
+    Map<String, List<dynamic>> categorized = {
+      'ACNE': [],
+      'WRINKLES': [],
+      'PIGMENTATION': [],
+      'NORMAL': [],
+    };
+
+    for (var treatment in treatments) {
+      if (categorized.containsKey(treatment['problem'])) {
+        categorized[treatment['problem']]!.add(treatment);
+      }
+    }
+
+    return categorized;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      itemCount: treatments.length,
-      itemBuilder: (context, index) {
-        final treatment = treatments[index];
-        return Card(
-          margin: EdgeInsets.all(8),
-          child: ListTile(
-            title: Text(treatment['description'] ?? 'No Description'),
-            subtitle: Text('Problem: ${treatment['problem']}'),
-            trailing: Icon(Icons.arrow_forward),
-          ),
+    final categorizedTreatments = categorizeTreatments(treatments);
+
+    return ListView(
+      padding: EdgeInsets.all(12),
+      children: categorizedTreatments.entries.map((entry) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: InkWell(
+                onTap: () {
+                  // الانتقال إلى صفحة جديدة لعرض جميع العلاجات لهذه المشكلة
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProblemDetailsPage(
+                        problem: entry.key,
+                        treatments: entry.value,
+                      ),
+                    ),
+                  );
+                },
+                child: Text(
+                  entry.key,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                ),
+              ),
+            ),
+            ...entry.value.map((treatment) {
+              return GestureDetector(
+                onTap: () {
+                  // الانتقال إلى صفحة تفاصيل العلاج
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TreatmentDetailsPage(
+                        treatment: treatment,
+                      ),
+                    ),
+                  );
+                },
+                child: Container(
+                  margin: EdgeInsets.symmetric(vertical: 6),
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.3),
+                        spreadRadius: 2,
+                        blurRadius: 5,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        treatment['description'] ?? 'No Description',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Problem: ${treatment['problem']}',
+                        style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ],
         );
-      },
+      }).toList(),
     );
   }
 }
+
+class ProblemDetailsPage extends StatelessWidget {
+  final String problem;
+  final List<dynamic> treatments;
+
+  ProblemDetailsPage({required this.problem, required this.treatments});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(problem, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+      ),
+      body: ListView(
+        padding: EdgeInsets.all(12),
+        children: treatments.map((treatment) {
+          return GestureDetector(
+            onTap: () {
+              // الانتقال إلى صفحة تفاصيل العلاج
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TreatmentDetailsPage(
+                    treatment: treatment,
+                  ),
+                ),
+              );
+            },
+            child: Container(
+              margin: EdgeInsets.symmetric(vertical: 6),
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.3),
+                    spreadRadius: 2,
+                    blurRadius: 5,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    treatment['description'] ?? 'No Description',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Problem: ${treatment['problem']}',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class TreatmentDetailsPage extends StatefulWidget {
+  final dynamic treatment;
+
+  TreatmentDetailsPage({required this.treatment});
+
+  @override
+  _TreatmentDetailsPageState createState() => _TreatmentDetailsPageState();
+}
+
+class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 1, vsync: this); // طول التبويب 1 لأن لدينا تبويب واحد فقط
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Treatment Details', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.treatment['description'] ?? 'No Description',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Problem: ${widget.treatment['problem']}',
+              style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Details: ${widget.treatment['details'] ?? 'No details available'}',
+              style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Skin Type: ${widget.treatment['skinType']}',
+              style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Products: ${widget.treatment['treatmentId']}',
+              style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+            ),
+            SizedBox(height: 20), // مسافة بين النص و TabBarView
+            Container(
+              height: 300,
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  ProductTabScreen(
+                    apiUrl: widget.treatment['treatmentId'] != null
+                        ? 'http://localhost:8080/api/treatments/${widget.treatment['treatmentId']}/products'
+                        : '',
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
