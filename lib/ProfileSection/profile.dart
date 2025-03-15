@@ -5,15 +5,14 @@ import 'package:projtry1/ProfileSection/supportTeam.dart';
 import 'package:projtry1/api/google_signin_api.dart';
 import 'package:projtry1/LogIn/login.dart';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:http/http.dart' as http;
-import 'package:projtry1/Product/product.dart';
 import 'package:projtry1/Product/productPage.dart';
 import 'dart:convert';
 import 'package:projtry1/Card/Card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../Home_Section/home.dart';
+import '../Product/product.dart';
 import '../Routinebar/routinescreen.dart';
 import '../model/SkinDetailsScreen.dart';
 import '../model/SkinTypeAnalysisScreen.dart';
@@ -56,6 +55,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   File? _profileImage;
   final ImagePicker _picker = ImagePicker();
   String? _baseUrl;
+  String? _skinType;
 
   @override
   void initState() {
@@ -80,6 +80,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _profileImage = File(image.path);
           });
           await _uploadProfilePicture(_profileImage!);
+          // await _analyzeSkinType(_profileImage!);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Please select a valid image file')),
@@ -154,8 +155,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _showImagePickerOptions() {
-    showModalBottomSheet(
+
+
+
+  void _showSkinTypeResult(BuildContext context, String skinType) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('نتيجة تحليل نوع البشرة'),
+        content: Text('نوع بشرتك هو: $skinType'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('حسناً'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showImagePickerOptions(BuildContext context) async {
+    final ImagePicker _picker = ImagePicker();
+    final XFile? image = await showModalBottomSheet<XFile>(
       context: context,
       builder: (BuildContext context) {
         return SafeArea(
@@ -165,17 +186,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ListTile(
                 leading: Icon(Icons.camera),
                 title: Text('التقاط صورة من الكاميرا'),
-                onTap: () {
-                  _pickImage(ImageSource.camera);
-                  Navigator.pop(context);
+                onTap: () async {
+                  final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+                  Navigator.pop(context, image);
                 },
               ),
               ListTile(
                 leading: Icon(Icons.photo_library),
                 title: Text('تحميل صورة من المعرض'),
-                onTap: () {
-                  _pickImage(ImageSource.gallery);
-                  Navigator.pop(context);
+                onTap: () async {
+                  final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+                  Navigator.pop(context, image);
                 },
               ),
             ],
@@ -183,6 +204,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       },
     );
+
+
   }
 
   void _handleLogout() async {
@@ -231,6 +254,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           context,
                           MaterialPageRoute(builder: (context) => aboutUs()),
                         );
+                      } else if (value == 'skin_type') {
+                        if (_skinType != null) {
+                          _showSkinTypeResult(context, _skinType!);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('No skin type analysis available')),
+                          );
+                        }
                       }
                     },
                     itemBuilder: (BuildContext context) => [
@@ -241,6 +272,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const PopupMenuItem(
                         value: 'about_us',
                         child: Text('About Us'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'skin_type',
+                        child: Text('Show Skin Type'),
                       ),
                       const PopupMenuItem(
                         value: 'logout',
@@ -281,7 +316,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               left: 50,
                               right: 50,
                               child: ElevatedButton(
-                                onPressed: _showImagePickerOptions, // بدون معاملات
+                                onPressed: null,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFB0BEC5),
                                   foregroundColor: Colors.white,
@@ -378,26 +413,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SkinTypeAnalysisScreen(),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('Analyze Skin Type'),
-            ),
+
+
             const SizedBox(height: 20),
             TabBarSection(token: widget.token, baseUrl: _baseUrl),
           ],
@@ -419,7 +436,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-class CustomBottomNavigationBar extends StatelessWidget {
+class CustomBottomNavigationBar extends StatefulWidget {
   final String token;
   final Map<String, dynamic> userInfo;
 
@@ -428,6 +445,51 @@ class CustomBottomNavigationBar extends StatelessWidget {
     required this.token,
     required this.userInfo,
   });
+
+  @override
+  _CustomBottomNavigationBarState createState() => _CustomBottomNavigationBarState();
+}
+
+class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
+  String selectedSkinType = 'Failed to analyze skin type'; // القيمة الافتراضية
+
+  Future<String> _analyzeSkinType(File imageFile) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('http://192.168.114.6:8000/analyze/'),
+      );
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'skin_type',
+          imageFile.path,
+        ),
+      );
+
+      var response = await request.send();
+
+      if (response.statusCode == 200) {
+        // حول الـ StreamedResponse لـ String
+        final responseData = await response.stream.bytesToString();
+
+        // حول الـ JSON لـ Map
+        final jsonResponse = jsonDecode(responseData);
+
+        // استخرج قيمة skin_type
+        String skinType = jsonResponse['skin_type'];
+
+        // أرجع القيمة
+        return skinType;
+      } else {
+        print('Failed to analyze skin type1: ${response.statusCode}');
+        return 'Failed to analyze skin type2'; // Default to 'Normal' on failure
+      }
+    } catch (e) {
+      print('Error analyzing skin type: $e');
+      return e.toString(); // Default to 'Normal' on error
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -474,7 +536,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => Home(
-                          token: token,
+                          token: widget.token,
                         ),
                       ),
                     );
@@ -486,7 +548,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => MessageCard(token: token),
+                        builder: (context) => MessageCard(token: widget.token),
                       ),
                     );
                   },
@@ -498,7 +560,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ProductPage(token: token, userInfo: userInfo),
+                        builder: (context) => ProductPage(token: widget.token, userInfo: widget.userInfo),
                       ),
                     );
                   },
@@ -550,34 +612,64 @@ class CustomBottomNavigationBar extends StatelessWidget {
       _showImagePreviewDialog(context, File(image.path));
     }
   }
+  void _showImagePreviewDialog(BuildContext context, File imageFile) async {
+    // تحليل نوع البشرة
+    final skinType = await _analyzeSkinType(imageFile);
 
-  void _showImagePreviewDialog(BuildContext context, File imageFile) {
+    // القائمة المنسدلة تحتوي على النوع الذي تم تحليله بالإضافة إلى الخيارات الأخرى
+    List<String> skinTypes = [skinType, 'Normal', 'Dry', 'Oily'];
+    String selectedSkinType = skinType; // القيمة الافتراضية
+
+    // عرض البوب-أب مع الصورة ونتيجة التحليل
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.file(imageFile),
-            SizedBox(height: 20),
+            Image.file(imageFile), // عرض الصورة
+            const SizedBox(height: 20),
+            Text(
+              'نوع بشرتك هو: $skinType', // عرض نتيجة التحليل
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            DropdownButton<String>(
+              value: selectedSkinType,
+              onChanged: (String? newValue) {
+                setState(() {
+                  selectedSkinType = newValue!;
+                });
+              },
+              items: skinTypes.map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.pop(context); // إغلاق البوب-أب
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => SkinDetailsScreen(imageFile: imageFile),
+                    builder: (context) => SkinDetailsScreen(
+                      imageFile: imageFile,
+                      skinType: selectedSkinType, // تمرير القيمة المختارة
+                    ),
                   ),
                 );
               },
-              child: Text('التالي'),
+              child: const Text('التالي'),
             ),
           ],
         ),
       ),
     );
   }
-}
+  }
 
 class BottomWaveClipper extends CustomClipper<Path> {
   @override
