@@ -353,7 +353,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => TreatmentsPage(),
+                        builder: (context) => TreatmentPage(),
                       ),
                     );
                   },
