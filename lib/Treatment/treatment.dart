@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:projtry1/SharedPreferences.dart';
-
+import '../Home_Section/search.dart';
 import '../Product/product.dart'; // استيراد الملف المساعد
 
 void main() {
@@ -160,32 +160,31 @@ class TreatmentCategoryList extends StatelessWidget {
                   margin: EdgeInsets.symmetric(vertical: 6),
                   padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.3),
-                        spreadRadius: 2,
-                        blurRadius: 5,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        treatment['description'] ?? 'No Description',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Problem: ${treatment['problem']}',
-                        style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                      ),
-                    ],
-                  ),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                  BoxShadow(
+                  color: Colors.grey.withOpacity(0.3),
+                  spreadRadius: 2,
+                  blurRadius: 5,
+                  offset: Offset(0, 3),
+                  )],
                 ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      treatment['description'] ?? 'No Description',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Problem: ${treatment['problem']}',
+                      style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                    ),
+                  ],
+                ),
+              ),
               );
             }).toList(),
           ],
@@ -226,32 +225,31 @@ class ProblemDetailsPage extends StatelessWidget {
               margin: EdgeInsets.symmetric(vertical: 6),
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.3),
-                    spreadRadius: 2,
-                    blurRadius: 5,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    treatment['description'] ?? 'No Description',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Problem: ${treatment['problem']}',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                  ),
-                ],
-              ),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+              BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              spreadRadius: 2,
+              blurRadius: 5,
+              offset: Offset(0, 3),
+              )],
             ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  treatment['description'] ?? 'No Description',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Problem: ${treatment['problem']}',
+                  style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                ),
+              ],
+            ),
+          ),
           );
         }).toList(),
       ),
@@ -313,21 +311,23 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
               'Skin Type: ${widget.treatment['skinType']}',
               style: TextStyle(fontSize: 18, color: Colors.grey[700]),
             ),
-            SizedBox(height: 16),
-            Text(
-              'Products: ${widget.treatment['treatmentId']}',
-              style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-            ),
+
+
             SizedBox(height: 20), // مسافة بين النص و TabBarView
-            Container(
-              height: 300,
+            Text(
+              'Treatment Products ',
+              style: TextStyle(
+                fontStyle: FontStyle.italic,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Expanded(
               child: TabBarView(
                 controller: _tabController,
                 children: [
                   ProductTabScreen(
-                    apiUrl: widget.treatment['treatmentId'] != null
-                        ? 'http://localhost:8080/api/treatments/${widget.treatment['treatmentId']}/products'
-                        : '',
+                    apiUrl: "http://localhost:8080/api/treatments/${widget.treatment['treatmentId']}/products", // استخدام الرابط المسترجع
                   ),
                 ],
               ),
@@ -335,7 +335,50 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _openSearchPage(context);
+        },
+        child: Icon(Icons.add),
+      ),
     );
   }
+
+  void _openSearchPage(BuildContext context) {
+    Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: searchController,
+            decoration: InputDecoration(
+              hintText: 'Search products',
+              prefixIcon: Icon(Icons.search, color: Color(0xFF88A383)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(width: 10),
+        IconButton(
+          icon: Icon(Icons.search, color: Color(0xFF88A383)),
+          onPressed: () {
+            if (searchController.text.isNotEmpty) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => search(
+                    token: token,
+                    searchQuery: searchController.text,
+                  ),
+                ),
+              );
+            }
+          },
+        ),
+      ],
+    ),
 }
+
+
 
