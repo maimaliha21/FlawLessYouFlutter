@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import '../Card/Card.dart';
+import '../FaceAnalysisManager.dart';
 import '../Product/product.dart';
 import '../Product/productPage.dart';
 import '../Home_Section/search.dart';
 import '../Home_Section/skincareRoutine.dart';
+import '../ProfileSection/profile.dart';
 
 class Home extends StatelessWidget {
   final String token;
@@ -314,7 +317,8 @@ class TipCard extends StatelessWidget {
 }
 
 // شريط التنقل السفلي
-class CustomBottomNavigationBar extends StatelessWidget {
+
+class CustomBottomNavigationBar extends StatefulWidget {
   final String token;
   final Map<String, dynamic> userInfo;
 
@@ -325,6 +329,11 @@ class CustomBottomNavigationBar extends StatelessWidget {
   });
 
   @override
+  _CustomBottomNavigationBarState createState() => _CustomBottomNavigationBarState();
+}
+
+class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
+  @override
   Widget build(BuildContext context) {
     return Stack(
       clipBehavior: Clip.none,
@@ -334,7 +343,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
           child: Container(
             height: 70,
             decoration: BoxDecoration(
-              color: Color(0xFFC7C7BB),
+              color: Colors.white,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black26,
@@ -348,11 +357,15 @@ class CustomBottomNavigationBar extends StatelessWidget {
           bottom: 25,
           left: MediaQuery.of(context).size.width / 2 - 30,
           child: FloatingActionButton(
-            backgroundColor: Color(0xFF88A383),
+            backgroundColor: Colors.blue,
             onPressed: () {
-              // إضافة أي تفاعل تريده هنا
+              FaceAnalysisManager(
+                context: context,
+                token: widget.token,
+                userInfo: widget.userInfo,
+              ).analyzeFace();
             },
-            child: const Icon(Icons.face, color: Color(0xFF9EA684)),
+            child: const Icon(Icons.face, color: Colors.white),
           ),
         ),
         Positioned(
@@ -365,43 +378,50 @@ class CustomBottomNavigationBar extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 IconButton(
-                  icon: Icon(Icons.home, color: Color(0xFF88A383)),
+                  icon: const Icon(Icons.home, color: Colors.blue),
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => Home(
-                          token: token,
+                          token: widget.token,
                         ),
                       ),
                     );
                   },
                 ),
                 IconButton(
-                  icon: Icon(Icons.chat, color: Color(0xFF88A383)),
-                  onPressed: () {
-                    // إضافة تفاعل للذهاب إلى صفحة الدردشة
-                  },
-                ),
-                SizedBox(width: 60), // مساحة فارغة لتجنب تداخل الأيقونات
-                IconButton(
-                  icon: Icon(Icons.settings, color: Color(0xFF88A383)),
+                  icon: const Icon(Icons.chat, color: Colors.blue),
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>  ProductPage(
-                          token: token,
-                          userInfo: userInfo,
-                        ),
+                        builder: (context) => MessageCard(token: widget.token),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 60),
+                IconButton(
+                  icon: const Icon(Icons.settings, color: Colors.blue),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProductPage(token: widget.token, userInfo: widget.userInfo),
                       ),
                     );
                   },
                 ),
                 IconButton(
-                  icon: Icon(Icons.person, color: Color(0xFF88A383)),
+                  icon: const Icon(Icons.person, color: Colors.blue),
                   onPressed: () {
-                    // إضافة تفاعل للذهاب إلى صفحة الملف الشخصي
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Profile(token: widget.token, userInfo: widget.userInfo),
+                      ),
+                    );
                   },
                 ),
               ],
