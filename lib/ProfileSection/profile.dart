@@ -457,7 +457,7 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://192.168.114.6:8000/analyze/'),
+        Uri.parse('http://192.168.0.106:8000/analyze/'),
       );
 
       request.files.add(
@@ -669,7 +669,7 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
       ),
     );
   }
-  }
+}
 
 class BottomWaveClipper extends CustomClipper<Path> {
   @override
