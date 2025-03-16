@@ -316,8 +316,6 @@ class TipCard extends StatelessWidget {
   }
 }
 
-// شريط التنقل السفلي
-
 class CustomBottomNavigationBar extends StatefulWidget {
   final String token;
   final Map<String, dynamic> userInfo;
