@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../CustomBottomNavigationBar.dart';
+
 class SkinDetailsScreen extends StatefulWidget {
   final File imageFile;
   final String skinType;
@@ -180,6 +182,7 @@ normal: ${data['NORMAL']}%
           ],
         ),
       ),
+      bottomNavigationBar: CustomBottomNavigationBar2(), // استخدام CustomBottomNavigationBar
     );
   }
 }
