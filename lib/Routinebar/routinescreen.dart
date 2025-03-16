@@ -5,7 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'dart:async';
 
-import '../SharedPreferences.dart';
+import '../CustomBottomNavigationBar.dart';
+import '../ProfileSection/profile.dart';
+import '../SharedPreferences.dart'; // تأكد من أن هذا الملف موجود ويحتوي على دالة getBaseUrl
 
 class RoutineScreen extends StatelessWidget {
   @override
@@ -13,6 +15,10 @@ class RoutineScreen extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: HomeScreen(),
+      routes: {
+        '/home': (context) => HomeScreen(),
+        // '/profile': (context) => ProfileScreen(), // قم بتعريف ProfileScreen هنا
+      },
     );
   }
 }
@@ -50,62 +56,24 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _selectedIndex = index;
     });
-  }
 
-  final List<Widget> _pages = [
-    Center(child: Text("Home")),
-    Center(child: Text("Routine")),
-    Center(child: Text("Settings")),
-  ];
+    // Handle navigation based on the selected index
+    if (index == 0) {
+      // Navigate to Home Screen
+      Navigator.pushNamed(context, '/home');
+    } else if (index == 2) {
+      // Navigate to Profile Screen
+      Navigator.pushNamed(context, '/profile');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    _pages[1] = RoutineTabScreen(token: token, userName: userInfo);
-
     return Scaffold(
-      body: _pages[_selectedIndex],
-      bottomNavigationBar: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-            child: BottomNavigationBar(
-              type: BottomNavigationBarType.fixed,
-              backgroundColor: Colors.white,
-              selectedItemColor: Color(0xFF2A5E38),
-              unselectedItemColor: Colors.grey,
-              currentIndex: _selectedIndex,
-              onTap: _onItemTapped,
-              items: const [
-                BottomNavigationBarItem(icon: Icon(Icons.home), label: ""),
-                BottomNavigationBarItem(icon: Icon(Icons.article), label: "Routine"),
-                BottomNavigationBarItem(icon: SizedBox.shrink(), label: ""),
-                BottomNavigationBarItem(icon: Icon(Icons.settings), label: ""),
-                BottomNavigationBarItem(icon: Icon(Icons.person), label: ""),
-              ],
-            ),
-          ),
-          Positioned(
-            top: -30,
-            left: MediaQuery.of(context).size.width / 2 - 32,
-            child: Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Color(0xFF8A794D),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 4),
-              ),
-              child: Icon(Icons.face, color: Colors.white, size: 32),
-            ),
-          ),
-        ],
-      ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : RoutineTabScreen(token: token, userName: userInfo),
+
     );
   }
 }
@@ -133,6 +101,22 @@ class _RoutineTabScreenState extends State<RoutineTabScreen> {
   ];
 
   Map<String, dynamic>? userRoutine;
+  int _selectedIndex = 1; // Default to the Routine tab
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    // Handle navigation based on the selected index
+    if (index == 0) {
+      // Navigate to Home Screen
+      Navigator.pushNamed(context, '/home');
+    } else if (index == 2) {
+      // Navigate to Profile Screen
+      Navigator.pushNamed(context, '/profile');
+    }
+  }
 
   @override
   void initState() {
@@ -267,6 +251,9 @@ class _RoutineTabScreenState extends State<RoutineTabScreen> {
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: CustomBottomNavigationBar2(
+
       ),
     );
   }
@@ -700,3 +687,4 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
     );
   }
 }
+
