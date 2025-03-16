@@ -275,10 +275,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         value: 'about_us',
                         child: Text('About Us'),
                       ),
-                      const PopupMenuItem(
-                        value: 'skin_type',
-                        child: Text('Show Skin Type'),
-                      ),
+
                       const PopupMenuItem(
                         value: 'logout',
                         child: Text('Log Out'),
