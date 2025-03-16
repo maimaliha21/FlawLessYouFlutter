@@ -11,6 +11,7 @@ import 'dart:convert';
 import 'package:projtry1/Card/Card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../FaceAnalysisManager.dart';
 import '../Home_Section/home.dart';
 import '../Product/product.dart';
 import '../Routinebar/routinescreen.dart';
@@ -451,46 +452,6 @@ class CustomBottomNavigationBar extends StatefulWidget {
 }
 
 class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
-  String selectedSkinType = 'Failed to analyze skin type'; // القيمة الافتراضية
-
-  Future<String> _analyzeSkinType(File imageFile) async {
-    try {
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('http://192.168.0.106:8000/analyze/'),
-      );
-
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'skin_type',
-          imageFile.path,
-        ),
-      );
-
-      var response = await request.send();
-
-      if (response.statusCode == 200) {
-        // حول الـ StreamedResponse لـ String
-        final responseData = await response.stream.bytesToString();
-
-        // حول الـ JSON لـ Map
-        final jsonResponse = jsonDecode(responseData);
-
-        // استخرج قيمة skin_type
-        String skinType = jsonResponse['skin_type'];
-
-        // أرجع القيمة
-        return skinType;
-      } else {
-        print('Failed to analyze skin type1: ${response.statusCode}');
-        return 'Failed to analyze skin type2'; // Default to 'Normal' on failure
-      }
-    } catch (e) {
-      print('Error analyzing skin type: $e');
-      return e.toString(); // Default to 'Normal' on error
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -516,7 +477,13 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
           left: MediaQuery.of(context).size.width / 2 - 30,
           child: FloatingActionButton(
             backgroundColor: Colors.blue,
-            onPressed: () => _showImagePickerOptions(context),
+            onPressed: () {
+              FaceAnalysisManager(
+                context: context,
+                token: widget.token,
+                userInfo: widget.userInfo,
+              ).analyzeFace();
+            },
             child: const Icon(Icons.face, color: Colors.white),
           ),
         ),
@@ -567,106 +534,20 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.person, color: Colors.blue),
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Profile(token: widget.token, userInfo: widget.userInfo),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
           ),
         ),
       ],
-    );
-  }
-
-  void _showImagePickerOptions(BuildContext context) async {
-    final ImagePicker _picker = ImagePicker();
-    final XFile? image = await showModalBottomSheet<XFile>(
-      context: context,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              ListTile(
-                leading: Icon(Icons.camera),
-                title: Text('التقاط صورة من الكاميرا'),
-                onTap: () async {
-                  final XFile? image = await _picker.pickImage(source: ImageSource.camera);
-                  Navigator.pop(context, image);
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.photo_library),
-                title: Text('تحميل صورة من المعرض'),
-                onTap: () async {
-                  final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-                  Navigator.pop(context, image);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (image != null) {
-      _showImagePreviewDialog(context, File(image.path));
-    }
-  }
-  void _showImagePreviewDialog(BuildContext context, File imageFile) async {
-    // تحليل نوع البشرة
-    final skinType = await _analyzeSkinType(imageFile);
-
-    // القائمة المنسدلة تحتوي على النوع الذي تم تحليله بالإضافة إلى الخيارات الأخرى
-    List<String> skinTypes = [skinType, 'Normal', 'Dry', 'Oily'];
-    String selectedSkinType = skinType; // القيمة الافتراضية
-
-    // عرض البوب-أب مع الصورة ونتيجة التحليل
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.file(imageFile), // عرض الصورة
-            const SizedBox(height: 20),
-            Text(
-              'نوع بشرتك هو: $skinType', // عرض نتيجة التحليل
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            DropdownButton<String>(
-              value: selectedSkinType,
-              onChanged: (String? newValue) {
-                setState(() {
-                  selectedSkinType = newValue!;
-                });
-              },
-              items: skinTypes.map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context); // إغلاق البوب-أب
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SkinDetailsScreen(
-                      imageFile: imageFile,
-                      skinType: selectedSkinType, // تمرير القيمة المختارة
-                    ),
-                  ),
-                );
-              },
-              child: const Text('التالي'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

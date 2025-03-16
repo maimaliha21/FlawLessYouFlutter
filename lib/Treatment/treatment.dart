@@ -160,31 +160,31 @@ class TreatmentCategoryList extends StatelessWidget {
                   margin: EdgeInsets.symmetric(vertical: 6),
                   padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                  BoxShadow(
-                  color: Colors.grey.withOpacity(0.3),
-                  spreadRadius: 2,
-                  blurRadius: 5,
-                  offset: Offset(0, 3),
-                  )],
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.3),
+                        spreadRadius: 2,
+                        blurRadius: 5,
+                        offset: Offset(0, 3),
+                      )],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        treatment['description'] ?? 'No Description',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Problem: ${treatment['problem']}',
+                        style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      treatment['description'] ?? 'No Description',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Problem: ${treatment['problem']}',
-                      style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                    ),
-                  ],
-                ),
-              ),
               );
             }).toList(),
           ],
@@ -225,31 +225,31 @@ class ProblemDetailsPage extends StatelessWidget {
               margin: EdgeInsets.symmetric(vertical: 6),
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-              BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              spreadRadius: 2,
-              blurRadius: 5,
-              offset: Offset(0, 3),
-              )],
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.3),
+                    spreadRadius: 2,
+                    blurRadius: 5,
+                    offset: Offset(0, 3),
+                  )],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    treatment['description'] ?? 'No Description',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Problem: ${treatment['problem']}',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                  ),
+                ],
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  treatment['description'] ?? 'No Description',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Problem: ${treatment['problem']}',
-                  style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                ),
-              ],
-            ),
-          ),
           );
         }).toList(),
       ),
@@ -268,16 +268,27 @@ class TreatmentDetailsPage extends StatefulWidget {
 
 class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final TextEditingController searchController = TextEditingController();
+  String token = '';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 1, vsync: this); // طول التبويب 1 لأن لدينا تبويب واحد فقط
+    _loadToken();
+  }
+
+  Future<void> _loadToken() async {
+    final userData = await getUserData();
+    setState(() {
+      token = userData?['token'];
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    searchController.dispose();
     super.dispose();
   }
 
@@ -311,8 +322,6 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
               'Skin Type: ${widget.treatment['skinType']}',
               style: TextStyle(fontSize: 18, color: Colors.grey[700]),
             ),
-
-
             SizedBox(height: 20), // مسافة بين النص و TabBarView
             Text(
               'Treatment Products ',
@@ -327,7 +336,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
                 controller: _tabController,
                 children: [
                   ProductTabScreen(
-                    apiUrl: "http://localhost:8080/api/treatments/${widget.treatment['treatmentId']}/products", // استخدام الرابط المسترجع
+                    apiUrl: "http://192.168.1.169/api/treatments/${widget.treatment['treatmentId']}/products", // استخدام الرابط المسترجع
                   ),
                 ],
               ),
@@ -345,40 +354,44 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
   }
 
   void _openSearchPage(BuildContext context) {
-    Row(
-      children: [
-        Expanded(
-          child: TextField(
-            controller: searchController,
-            decoration: InputDecoration(
-              hintText: 'Search products',
-              prefixIcon: Icon(Icons.search, color: Color(0xFF88A383)),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
-        ),
-        SizedBox(width: 10),
-        IconButton(
-          icon: Icon(Icons.search, color: Color(0xFF88A383)),
-          onPressed: () {
-            if (searchController.text.isNotEmpty) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => search(
-                    token: token,
-                    searchQuery: searchController.text,
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search products',
+                  prefixIcon: Icon(Icons.search, color: Color(0xFF88A383)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-              );
-            }
-          },
-        ),
-      ],
-    ),
+              ),
+              SizedBox(height: 10),
+              IconButton(
+                icon: Icon(Icons.search, color: Color(0xFF88A383)),
+                onPressed: () {
+                  if (searchController.text.isNotEmpty) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => search(
+                          token: token,
+                          searchQuery: searchController.text,
+                        ),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
-
-
-
