@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../CustomBottomNavigationBar.dart';
 import '../LogIn/login.dart';
 import '../Product/product.dart';
 import '../SharedPreferences.dart';
@@ -390,6 +391,7 @@ class _EditProfileScreenState extends State<EditProfile>
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      bottomNavigationBar: CustomBottomNavigationBar2(), // استخدام CustomBottomNavigationBar
     );
   }
 
@@ -434,5 +436,6 @@ class _EditProfileScreenState extends State<EditProfile>
         ),
       ),
     );
+
   }
 }
