@@ -27,6 +27,7 @@ class CreateProfileScreen extends StatefulWidget {
 class _CreateProfileScreenState extends State<CreateProfileScreen> {
   bool isChecked = false;
   final _formKey = GlobalKey<FormState>();
+  final _usernameController = TextEditingController(); // متحكم جديد لـ Username
   final _emailController = TextEditingController();
   final _phoneNumberController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -53,7 +54,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         Uri.parse(signUpUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          "username": _emailController.text.split('@')[0], // استخدام جزء من الإيميل كاسم مستخدم
+          "username": _usernameController.text, // استخدام حقل Username
           "email": _emailController.text,
           "password": _passwordController.text,
           "phoneNumber": _phoneNumberController.text,
@@ -78,7 +79,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       Uri.parse(signInUrl),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        "username": _emailController.text.split('@')[0],
+        "username": _usernameController.text, // استخدام حقل Username
         "password": _passwordController.text,
       }),
     );
@@ -145,6 +146,8 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                     width: 280,
                     child: Column(
                       children: [
+                        _buildTextField('Username', _usernameController, false), // إضافة حقل Username
+                        const SizedBox(height: 10),
                         _buildTextField('Email', _emailController, false),
                         const SizedBox(height: 10),
                         _buildTextField('Phone Number', _phoneNumberController, false),
