@@ -163,6 +163,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             top: -50,
             left: -50,
             child: Container(
+
               width: 200,
               height: 200,
               decoration: BoxDecoration(
@@ -171,6 +172,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
               ),
             ),
           ),
+
           Positioned(
             bottom: -100,
             right: -100,
@@ -193,14 +195,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _buildImagePicker(),
-                      const SizedBox(height: 20),
                       Image.asset(
                         'assets/p1.png',
                         width: 150,
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
+                      ),  Text(
                         'Create your account',
                         style: GoogleFonts.poppins(
                           fontSize: 14,
@@ -208,7 +206,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      const SizedBox(height: 50),
+                      const SizedBox(height: 20),_buildImagePicker(),
+
+
+                      const SizedBox(height: 10),
                       Container(
                         width: 280,
                         child: Column(
