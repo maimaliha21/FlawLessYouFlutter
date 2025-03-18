@@ -1,11 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import 'dart:ui';
 import 'package:shared_preferences/shared_preferences.dart'; // أضف هذه المكتبة
 
+import '../FaceAnalysisManager.dart';
 import '../Home_Section/home.dart';
-import '../Product/productPage.dart'; // للوصول إلى ImageFilter
+import '../Product/productPage.dart';
+import '../ProfileSection/profile.dart';
+import '../model/SkinDetailsScreen.dart'; // للوصول إلى ImageFilter
 
 class MessageCard extends StatefulWidget {
   final String token;
@@ -280,7 +286,7 @@ class _MessageCardState extends State<MessageCard> {
   }
 }
 
-class CustomBottomNavigationBar extends StatelessWidget {
+class CustomBottomNavigationBar extends StatefulWidget {
   final String token;
   final Map<String, dynamic> userInfo;
 
@@ -290,6 +296,11 @@ class CustomBottomNavigationBar extends StatelessWidget {
     required this.userInfo,
   });
 
+  @override
+  _CustomBottomNavigationBarState createState() => _CustomBottomNavigationBarState();
+}
+
+class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -315,7 +326,13 @@ class CustomBottomNavigationBar extends StatelessWidget {
           left: MediaQuery.of(context).size.width / 2 - 30,
           child: FloatingActionButton(
             backgroundColor: Colors.blue,
-            onPressed: () {},
+            onPressed: () {
+              FaceAnalysisManager(
+                context: context,
+                token: widget.token,
+                userInfo: widget.userInfo,
+              ).analyzeFace();
+            },
             child: const Icon(Icons.face, color: Colors.white),
           ),
         ),
@@ -335,8 +352,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => Home(
-                          token: token,
-
+                          token: widget.token,
                         ),
                       ),
                     );
@@ -348,7 +364,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => MessageCard(token: token),
+                        builder: (context) => MessageCard(token: widget.token),
                       ),
                     );
                   },
@@ -360,14 +376,21 @@ class CustomBottomNavigationBar extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ProductPage(token: token, userInfo: userInfo),
+                        builder: (context) => ProductPage(token: widget.token, userInfo: widget.userInfo),
                       ),
                     );
                   },
                 ),
                 IconButton(
                   icon: const Icon(Icons.person, color: Colors.blue),
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Profile(token: widget.token, userInfo: widget.userInfo),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -377,6 +400,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
     );
   }
 }
+
 
 class BottomWaveClipper extends CustomClipper<Path> {
   @override

@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../CustomBottomNavigationBar.dart';
+
 class SkinDetailsScreen extends StatefulWidget {
   final File imageFile;
   final String skinType;
@@ -21,7 +23,7 @@ class SkinDetailsScreen extends StatefulWidget {
 class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
   String _detailsResult = "";
   String _treatmentResult = "";
-  final String apiDetailsUrl = 'http://192.168.114.6:8000/analyze_details/';
+  final String apiDetailsUrl = 'http://192.168.1.169:8000/analyze_details/';
   String apiTreatmentUrl = '';
   List<Map<String, dynamic>> treatments = [];
   Map<String, bool> selectedProducts = {};
@@ -180,6 +182,7 @@ normal: ${data['NORMAL']}%
           ],
         ),
       ),
+      bottomNavigationBar: CustomBottomNavigationBar2(), // استخدام CustomBottomNavigationBar
     );
   }
 }
