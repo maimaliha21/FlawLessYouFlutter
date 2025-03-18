@@ -6,6 +6,7 @@ import 'package:projtry1/api/google_signin_api.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../SharedPreferences.dart';
+import '../SignUp/signUp.dart';
 import 'firebase_options.dart';
 import 'package:projtry1/Admin/AdminProfileSectio/adminprofile.dart';
 import 'package:projtry1/Expert/ExpertChat/chatexpert.dart';
@@ -339,7 +340,7 @@ class LoginScreen extends StatelessWidget {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => Signup()),
+                            MaterialPageRoute(builder: (context) => signup()),
                           );
                         },
                         child: const Text.rich(

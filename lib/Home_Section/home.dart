@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import '../Card/Card.dart';
+import '../CustomBottomNavigationBar.dart';
+import '../FaceAnalysisManager.dart';
 import '../Product/product.dart';
 import '../Product/productPage.dart';
 import '../Home_Section/search.dart';
 import '../Home_Section/skincareRoutine.dart';
+import '../ProfileSection/profile.dart';
 
 class Home extends StatelessWidget {
   final String token;
@@ -260,10 +264,8 @@ class Home extends StatelessWidget {
                     ),
                   ],
                 ),
-                bottomNavigationBar: CustomBottomNavigationBar(
-                  token: token,
-                  userInfo: userInfo,
-                ),
+                bottomNavigationBar: CustomBottomNavigationBar2(), // استخدام CustomBottomNavigationBar
+
               ),
             );
           },
@@ -313,119 +315,4 @@ class TipCard extends StatelessWidget {
   }
 }
 
-// شريط التنقل السفلي
-class CustomBottomNavigationBar extends StatelessWidget {
-  final String token;
-  final Map<String, dynamic> userInfo;
 
-  const CustomBottomNavigationBar({
-    super.key,
-    required this.token,
-    required this.userInfo,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        ClipPath(
-          clipper: BottomWaveClipper(),
-          child: Container(
-            height: 70,
-            decoration: BoxDecoration(
-              color: Color(0xFFC7C7BB),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: 25,
-          left: MediaQuery.of(context).size.width / 2 - 30,
-          child: FloatingActionButton(
-            backgroundColor: Color(0xFF88A383),
-            onPressed: () {
-              // إضافة أي تفاعل تريده هنا
-            },
-            child: const Icon(Icons.face, color: Color(0xFF9EA684)),
-          ),
-        ),
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            height: 70,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.home, color: Color(0xFF88A383)),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => Home(
-                          token: token,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: Icon(Icons.chat, color: Color(0xFF88A383)),
-                  onPressed: () {
-                    // إضافة تفاعل للذهاب إلى صفحة الدردشة
-                  },
-                ),
-                SizedBox(width: 60), // مساحة فارغة لتجنب تداخل الأيقونات
-                IconButton(
-                  icon: Icon(Icons.settings, color: Color(0xFF88A383)),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>  ProductPage(
-                          token: token,
-                          userInfo: userInfo,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: Icon(Icons.person, color: Color(0xFF88A383)),
-                  onPressed: () {
-                    // إضافة تفاعل للذهاب إلى صفحة الملف الشخصي
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// تصميم الشريط السفلي
-class BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height - 20);
-    path.quadraticBezierTo(size.width / 4, size.height, size.width / 2, size.height - 20);
-    path.quadraticBezierTo(size.width * 3 / 4, size.height - 40, size.width, size.height - 20);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
