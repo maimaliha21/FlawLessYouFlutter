@@ -90,7 +90,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
 
     final response = await http.post(
       Uri.parse(signInUrl),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
       body: jsonEncode({
         "username": _usernameController.text,
         "password": _passwordController.text,
