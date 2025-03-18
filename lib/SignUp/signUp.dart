@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import '../ProfileSection/profile.dart';
 import '../SharedPreferences.dart'; // تأكد من أن هذا الملف موجود ويحتوي على الدوال المطلوبة
 
 class signup extends StatelessWidget {
@@ -158,6 +159,12 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       if (response.statusCode == 200) {
         final userInfo = jsonDecode(response.body);
         await saveUserData(token, userInfo);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Profile(token: token, userInfo: userInfo),
+          ),
+        );
         _showSnackBar('User info fetched successfully!');
       } else {
         _showSnackBar('Failed to fetch user info: ${response.body}');
