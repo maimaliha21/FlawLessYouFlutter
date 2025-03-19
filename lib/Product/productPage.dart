@@ -34,7 +34,7 @@ class ProductPage extends StatelessWidget {
             return Center(child: Text('No base URL found'));
           } else {
             return ProductTabScreen(
-              apiUrl: "${snapshot.data}/product/random?limit=6",
+              apiUrl: "${snapshot.data}/product/random?limit=6", pageName: 'home',
             );
           }
         },
