@@ -130,7 +130,7 @@ class Home extends StatelessWidget {
                                       MaterialPageRoute(
                                         builder: (context) => search(
                                           token: token,
-                                          searchQuery: searchController.text,
+                                          searchQuery: searchController.text, pageName: 'home',
                                         ),
                                       ),
                                     );

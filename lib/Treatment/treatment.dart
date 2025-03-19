@@ -384,7 +384,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
                       MaterialPageRoute(
                         builder: (context) => search(
                           token: token,
-                          searchQuery: searchController.text,
+                          searchQuery: searchController.text, pageName: 'add',
                         ),
                       ),
                     );
