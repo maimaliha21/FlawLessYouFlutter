@@ -82,7 +82,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _profileImage = File(image.path);
           });
           await _uploadProfilePicture(_profileImage!);
-          // await _analyzeSkinType(_profileImage!);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Please select a valid image file')),
@@ -157,9 +156,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-
-
-
   void _showSkinTypeResult(BuildContext context, String skinType) {
     showDialog(
       context: context,
@@ -176,39 +172,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showImagePickerOptions(BuildContext context) async {
-    final ImagePicker _picker = ImagePicker();
-    final XFile? image = await showModalBottomSheet<XFile>(
-      context: context,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              ListTile(
-                leading: Icon(Icons.camera),
-                title: Text('التقاط صورة من الكاميرا'),
-                onTap: () async {
-                  final XFile? image = await _picker.pickImage(source: ImageSource.camera);
-                  Navigator.pop(context, image);
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.photo_library),
-                title: Text('تحميل صورة من المعرض'),
-                onTap: () async {
-                  final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-                  Navigator.pop(context, image);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-
-  }
 
   void _handleLogout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -224,6 +187,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
@@ -232,13 +198,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               clipBehavior: Clip.none,
               children: [
                 Container(
-                  height: 250,
+                  height: screenHeight * 0.25, // 30% من ارتفاع الشاشة
                   decoration: BoxDecoration(
                     image: DecorationImage(
-                      image: NetworkImage('https://res.cloudinary.com/davwgirjs/image/upload/v1740417378/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417378981_bgphoto.jpg.jpg'),
+                      image: NetworkImage(
+                          'https://res.cloudinary.com/davwgirjs/image/upload/v1740417378/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417378981_bgphoto.jpg.jpg'),
                       fit: BoxFit.cover,
                     ),
-                  ),),
+                  ),
+                ),
                 Positioned(
                   top: 30,
                   right: 20,
@@ -275,7 +243,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         value: 'about_us',
                         child: Text('About Us'),
                       ),
-
                       const PopupMenuItem(
                         value: 'logout',
                         child: Text('Log Out'),
@@ -289,8 +256,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 Positioned(
-                  top: 150,
-                  left: MediaQuery.of(context).size.width / 2 - 75,
+                  top: screenHeight * 0.18, // 15% من ارتفاع الشاشة
+                  left: screenWidth / 2 - (screenWidth * 0.15), // في المنتصف مع تعديل بسيط
                   child: GestureDetector(
                     onTap: () => showDialog(
                       context: context,
@@ -300,7 +267,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           children: [
                             Container(
                               width: 300,
-                              height: 300,
+                              height: 200,
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.8),
                                 borderRadius: BorderRadius.circular(20),
@@ -315,7 +282,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               left: 50,
                               right: 50,
                               child: ElevatedButton(
-                                onPressed: null,
+                                onPressed: () => _pickImage(ImageSource.gallery),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFB0BEC5),
                                   foregroundColor: Colors.white,
@@ -333,13 +300,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     child: CircleAvatar(
-                      radius: 75,
+                      radius: screenWidth * 0.15, // 15% من عرض الشاشة
                       backgroundColor: Colors.white,
                       child: CircleAvatar(
-                        radius: 70,
+                        radius: screenWidth * 0.14, // 14% من عرض الشاشة
                         backgroundColor: Colors.white,
                         child: CircleAvatar(
-                          radius: 65,
+                          radius: screenWidth * 0.13, // 13% من عرض الشاشة
                           backgroundImage: _getProfileImage(),
                         ),
                       ),
@@ -396,7 +363,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>  RoutineScreen(),
+                      builder: (context) => RoutineScreen(),
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
@@ -412,15 +379,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ],
             ),
-
-
             const SizedBox(height: 20),
             TabBarSection(token: widget.token, baseUrl: _baseUrl),
           ],
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigationBar2(), // استخدام CustomBottomNavigationBar
-
+      bottomNavigationBar: CustomBottomNavigationBar2(),
     );
   }
 
@@ -432,7 +396,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return const AssetImage('assets/profile.jpg');
   }
 }
-
 
 class TabBarSection extends StatefulWidget {
   final String token;
@@ -468,7 +431,7 @@ class _TabBarSectionState extends State<TabBarSection>
           ],
         ),
         Container(
-          height: 300,
+          height: MediaQuery.of(context).size.height * 0.40,
           child: TabBarView(
             controller: _tabController,
             children: [
