@@ -182,7 +182,7 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                 ),
               ],
             ),
-            const SizedBox(height: 60),
+            const SizedBox(height: 90),
             Text(
               userInfo?['userName'] ?? 'Admin',
               style: const TextStyle(
