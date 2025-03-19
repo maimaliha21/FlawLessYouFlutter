@@ -5,18 +5,22 @@ import '../Product/product.dart';
 class search extends StatefulWidget {
   final String token;
   final String searchQuery;
+  final String pageName; // إضافة مدخل اسم الصفحة
+  final String? treatmentId; // إضافة treatmentId كمعامل اختياري
 
   const search({
     Key? key,
     required this.token,
     required this.searchQuery,
+    required this.pageName,
+    this.treatmentId, // تمرير treatmentId
   }) : super(key: key);
 
   @override
-  _SearchPageState createState() => _SearchPageState();
+  _searchState createState() => _searchState();
 }
 
-class _SearchPageState extends State<search> with SingleTickerProviderStateMixin {
+class _searchState extends State<search> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   // دالة لاسترجاع الرابط من SharedPreferences
@@ -41,10 +45,10 @@ class _SearchPageState extends State<search> with SingleTickerProviderStateMixin
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Search Results for "${widget.searchQuery}"'),
+        title: Text('search Results for "${widget.searchQuery}"'),
         bottom: TabBar(
           controller: _tabController,
-          tabs: [
+          tabs: const [
             Tab(text: 'Products'),
           ],
         ),
@@ -53,21 +57,26 @@ class _SearchPageState extends State<search> with SingleTickerProviderStateMixin
         future: getBaseUrl(), // استرجاع الرابط من SharedPreferences
         builder: (context, baseUrlSnapshot) {
           if (baseUrlSnapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (baseUrlSnapshot.hasError) {
-            return Center(child: Text('Error loading base URL'));
+            return const Center(child: Text('Error loading base URL'));
           }
 
           final baseUrl = baseUrlSnapshot.data!;
+
+          // بناء الـ apiUrl بناءً على وجود treatmentId
+          String  apiUrl = "$baseUrl/product/search?name=${widget.searchQuery}";
+
 
           return TabBarView(
             controller: _tabController,
             children: [
               ProductTabScreen(
-                apiUrl: "$baseUrl/product/search?name=${widget.searchQuery}", // استخدام الرابط المسترجع
-              //  emptyStateMessage: 'No products found for "${widget.searchQuery}"', // رسالة إذا لم يتم العثور على منتجات
+                apiUrl: apiUrl,
+                pageName: widget.pageName == 'add' ? "add" : "home",
+                treatmentId: widget.treatmentId.toString() ?? '', // تمرير treatmentId إلى ProductTabScreen
               ),
             ],
           );

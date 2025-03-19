@@ -130,7 +130,7 @@ class Home extends StatelessWidget {
                                       MaterialPageRoute(
                                         builder: (context) => search(
                                           token: token,
-                                          searchQuery: searchController.text,
+                                          searchQuery: searchController.text, pageName: 'home',
                                         ),
                                       ),
                                     );
@@ -251,7 +251,7 @@ class Home extends StatelessWidget {
                             child: TabBarView(
                               children: [
                                 ProductTabScreen(
-                                  apiUrl: "$baseUrl/product/random?limit=6", // استخدام الرابط المسترجع
+                                  apiUrl: "$baseUrl/product/random?limit=6", pageName: 'home', // استخدام الرابط المسترجع
                                 ),
                                 // يمكنك إضافة علامات تبويب إضافية هنا
                                 // Center(child: Text('Tab 2 Content')),
