@@ -5,18 +5,20 @@ import '../Product/product.dart';
 class search extends StatefulWidget {
   final String token;
   final String searchQuery;
+  final String pageName; // إضافة مدخل اسم الصفحة
 
   const search({
     Key? key,
     required this.token,
     required this.searchQuery,
+    required this.pageName, // تمرير اسم الصفحة
   }) : super(key: key);
 
   @override
-  _SearchPageState createState() => _SearchPageState();
+  _searchState createState() => _searchState();
 }
 
-class _SearchPageState extends State<search> with SingleTickerProviderStateMixin {
+class _searchState extends State<search> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   // دالة لاسترجاع الرابط من SharedPreferences
@@ -62,12 +64,19 @@ class _SearchPageState extends State<search> with SingleTickerProviderStateMixin
 
           final baseUrl = baseUrlSnapshot.data!;
 
+          // تحديد الـ apiUrl بناءً على اسم الصفحة
+          final add = widget.pageName == 'add'
+              ? "add" // إذا كانت الصفحة هي 'add'
+              : "home";
+          final apiUrl ="$baseUrl/product/search?name=${widget.searchQuery}"; // إذا كانت الصفحة هي 'home' أو أي شيء آخر
+
           return TabBarView(
             controller: _tabController,
             children: [
               ProductTabScreen(
-                apiUrl: "$baseUrl/product/search?name=${widget.searchQuery}", pageName: 'home', // استخدام الرابط المسترجع
-              //  emptyStateMessage: 'No products found for "${widget.searchQuery}"', // رسالة إذا لم يتم العثور على منتجات
+                apiUrl: apiUrl, // تمرير الـ apiUrl المناسب
+                pageName: add, // تمرير اسم الصفحة
+                // emptyStateMessage: 'No products found for "${widget.searchQuery}"', // رسالة إذا لم يتم العثور على منتجات
               ),
             ],
           );
