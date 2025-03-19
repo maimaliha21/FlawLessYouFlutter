@@ -339,7 +339,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
                 controller: _tabController,
                 children: [
                   ProductTabScreen(
-                    apiUrl: "$baseUrl/api/treatments/${widget.treatment['treatmentId']}/products", pageName: 'treatment', // استخدام baseUrl
+                    apiUrl: "$baseUrl/api/treatments/${widget.treatment['treatmentId']}/products", pageName: 'treatment' ,treatmentId:widget.treatment['treatmentId'], // استخدام baseUrl
                   ),
                 ],
               ),

@@ -124,12 +124,14 @@ class Product {
 
 class ProductTabScreen extends StatefulWidget {
   final String apiUrl;
-  final String pageName; // New parameter for page name
+  final String pageName;
+  final String? treatmentId;
 
   const ProductTabScreen({
     Key? key,
     required this.apiUrl,
-    required this.pageName, // Add this parameter
+    required this.pageName,
+    this.treatmentId,
   }) : super(key: key);
 
   @override
@@ -173,8 +175,15 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
       throw Exception('Token is not available');
     }
 
+    final Uri uri;
+    if (widget.treatmentId != null) {
+      uri = Uri.parse('${widget.apiUrl}?treatmentId=${widget.treatmentId}');
+    } else {
+      uri = Uri.parse(widget.apiUrl);
+    }
+
     final response = await http.get(
-      Uri.parse(widget.apiUrl),
+      uri,
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -218,6 +227,16 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
     }
   }
 
+  Future<void> _refreshProducts() async {
+    setState(() {
+      _isLoading = true;
+    });
+    await fetchProducts();
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -240,7 +259,9 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
             token: token!,
             userRole: userRole!,
             baseUrl: _baseUrl!,
-            pageName: widget.pageName, // Pass pageName to ProductList
+            pageName: widget.pageName,
+            treatmentId: widget.treatmentId,
+            onDelete: _refreshProducts, // تمرير دالة التحديث
           );
         },
       ),
@@ -253,7 +274,9 @@ class ProductList extends StatelessWidget {
   final String token;
   final String userRole;
   final String baseUrl;
-  final String pageName; // New parameter for page name
+  final String pageName;
+  final String? treatmentId;
+  final VoidCallback onDelete; // إضافة Callback
 
   const ProductList({
     Key? key,
@@ -261,7 +284,9 @@ class ProductList extends StatelessWidget {
     required this.token,
     required this.userRole,
     required this.baseUrl,
-    required this.pageName, // Add this parameter
+    required this.pageName,
+    this.treatmentId,
+    required this.onDelete, // تمرير Callback
   }) : super(key: key);
 
   @override
@@ -282,7 +307,9 @@ class ProductList extends StatelessWidget {
             token: token,
             userRole: userRole,
             baseUrl: baseUrl,
-            pageName: pageName, // Pass pageName to ProductCard
+            pageName: pageName,
+            treatmentId: treatmentId,
+            onDelete: onDelete, // تمرير Callback
           );
         },
       ),
@@ -295,7 +322,9 @@ class ProductCard extends StatefulWidget {
   final String token;
   final String userRole;
   final String baseUrl;
-  final String pageName; // New parameter for page name
+  final String pageName;
+  final String? treatmentId;
+  final VoidCallback onDelete; // إضافة Callback
 
   const ProductCard({
     Key? key,
@@ -303,7 +332,9 @@ class ProductCard extends StatefulWidget {
     required this.token,
     required this.userRole,
     required this.baseUrl,
-    required this.pageName, // Add this parameter
+    required this.pageName,
+    this.treatmentId,
+    required this.onDelete, // تمرير Callback
   }) : super(key: key);
 
   @override
@@ -354,26 +385,60 @@ class _ProductCardState extends State<ProductCard> {
     }
   }
 
+  Future<void> _deleteProduct() async {
+    try {
+      final response = await http.delete(
+        Uri.parse('${widget.baseUrl}/api/treatments/${widget.treatmentId}/products/${widget.product.productId}'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Product deleted successfully')),
+        );
+        widget.onDelete(); // استدعاء Callback لتحديث الواجهة
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete product')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Connection error')),
+      );
+    }
+  }
+
   void _showProductDetails(BuildContext context) {
     if (widget.userRole == 'ADMIN') {
-      // Open Edit Popup for Admin
       showDialog(
         context: context,
         builder: (context) {
           return Dialog(
             insetPadding: EdgeInsets.all(16),
-            child: EditProductPopup(product: widget.product, token: widget.token, baseUrl: widget.baseUrl),
+            child: EditProductPopup(
+              product: widget.product,
+              token: widget.token,
+              baseUrl: widget.baseUrl,
+            ),
           );
         },
       );
     } else {
-      // Open Product Details Popup for User
       showDialog(
         context: context,
         builder: (context) {
           return Dialog(
             insetPadding: EdgeInsets.all(16),
-            child: ProductDetailsPopup(product: widget.product, token: widget.token, baseUrl: widget.baseUrl),
+            child: ProductDetailsPopup(
+              product: widget.product,
+              token: widget.token,
+              baseUrl: widget.baseUrl,
+              treatmentId: widget.treatmentId,
+            ),
           );
         },
       );
@@ -505,9 +570,8 @@ class _ProductCardState extends State<ProductCard> {
                     widget.pageName == 'add' ? Colors.green :
                     isSaved ? Colors.yellow : Colors.white,
                   ),
-                  onPressed: widget.pageName == 'treatment' ? () {
-                    // Handle delete action
-                  } : widget.pageName == 'add' ? () {
+                  onPressed: widget.pageName == 'treatment' ? _deleteProduct : // استدعاء دالة الحذف
+                  widget.pageName == 'add' ? () {
                     // Handle add action
                   } : toggleSave,
                 ),
@@ -520,13 +584,20 @@ class _ProductCardState extends State<ProductCard> {
   }
 }
 
-// باقي الأكواد (ProductDetailsPopup, EditProductPopup, CustomBottomNavigationBar, BottomWaveClipper) تبقى كما هي دون تغيير.
+// باقي الأكواد (ProductDetailsPopup, EditProductPopup, CustomBottomNavigationBar, BottomWaveClipper) تبقى كما هي.
 class ProductDetailsPopup extends StatefulWidget {
   final Product product;
   final String token;
   final String baseUrl;
+  final String? treatmentId; // إضافة treatmentId هنا
 
-  const ProductDetailsPopup({Key? key, required this.product, required this.token, required this.baseUrl}) : super(key: key);
+  const ProductDetailsPopup({
+    Key? key,
+    required this.product,
+    required this.token,
+    required this.baseUrl,
+    this.treatmentId, // إضافة treatmentId هنا
+  }) : super(key: key);
 
   @override
   _ProductDetailsPopupState createState() => _ProductDetailsPopupState();
@@ -656,6 +727,12 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
                   style: TextStyle(fontSize: 16),
                 ),
                 SizedBox(height: 16),
+                if (widget.treatmentId != null)
+                  Text(
+                    'Treatment ID: ${widget.treatmentId}',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                SizedBox(height: 16),
                 if (widget.product.skinType.isNotEmpty)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -686,7 +763,6 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
                         style: TextStyle(fontSize: 14),
                       ),
                       SizedBox(height: 16),
-
                     ],
                   ),
                 _isLoading
@@ -924,7 +1000,6 @@ class _EditProductPopupState extends State<EditProductPopup> {
     );
   }
 }
-
 
 class CustomBottomNavigationBar extends StatelessWidget {
   final Function(int) onItemTapped;
