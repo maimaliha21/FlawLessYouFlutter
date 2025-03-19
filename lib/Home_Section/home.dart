@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import '../Card/Card.dart';
-import '../CustomBottomNavigationBar.dart';
-import '../FaceAnalysisManager.dart';
 import '../Product/product.dart';
 import '../Product/productPage.dart';
 import '../Home_Section/search.dart';
 import '../Home_Section/skincareRoutine.dart';
-import '../ProfileSection/profile.dart';
+import '../CustomBottomNavigationBar.dart';
+import '../CustomBottomNavigationBarAdmin.dart';
 
 class Home extends StatelessWidget {
   final String token;
@@ -18,20 +16,24 @@ class Home extends StatelessWidget {
     required this.token,
   }) : super(key: key);
 
-  // دالة لاسترجاع بيانات المستخدم من SharedPreferences
+  // Fetch user info from SharedPreferences
   Future<Map<String, dynamic>> _getUserInfo() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? userInfoJson = prefs.getString('userInfo');
-    if (userInfoJson != null) {
-      return jsonDecode(userInfoJson);
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? userInfoJson = prefs.getString('userInfo');
+      if (userInfoJson != null) {
+        return jsonDecode(userInfoJson);
+      }
+    } catch (e) {
+      print('Error fetching user info: $e');
     }
     return {};
   }
 
-  // دالة لاسترجاع الرابط من SharedPreferences
+  // Fetch base URL from SharedPreferences
   Future<String> getBaseUrl() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getString('baseUrl') ?? ''; // قيمة افتراضية إذا لم يتم العثور على الرابط
+    return prefs.getString('baseUrl') ?? '';
   }
 
   @override
@@ -42,33 +44,38 @@ class Home extends StatelessWidget {
       future: _getUserInfo(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
+          return const Center(
+            child: SizedBox(
+                width: 50,
+                height: 50,
+                child: CircularProgressIndicator()),
+          );
         }
 
         if (snapshot.hasError) {
-          return Center(child: Text('Error loading user data'));
+          return const Center(child: Text('Error loading user data'));
         }
 
         Map<String, dynamic> userInfo = snapshot.data ?? {};
 
         return FutureBuilder<String>(
-          future: getBaseUrl(), // استرجاع الرابط من SharedPreferences
+          future: getBaseUrl(),
           builder: (context, baseUrlSnapshot) {
             if (baseUrlSnapshot.connectionState == ConnectionState.waiting) {
-              return Center(child: CircularProgressIndicator());
+              return const Center(child: CircularProgressIndicator());
             }
 
             if (baseUrlSnapshot.hasError) {
-              return Center(child: Text('Error loading base URL'));
+              return const Center(child: Text('Error loading base URL'));
             }
 
             final baseUrl = baseUrlSnapshot.data!;
 
             return DefaultTabController(
-              length: 2, // عدد علامات التبويب
+              length: 1, // Update to match the number of tabs
               child: Scaffold(
                 appBar: AppBar(
-                  title: Text(
+                  title: const Text(
                     'Flawless You',
                     style: TextStyle(
                       fontStyle: FontStyle.italic,
@@ -76,36 +83,29 @@ class Home extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  backgroundColor: Color(0xFFC7C7BB),
+                  backgroundColor: const Color(0xFFC7C7BB),
                   elevation: 0,
                   centerTitle: true,
                 ),
                 body: Stack(
                   children: [
-                    // خلفية الصفحة
-                  //  Positioned.fill(
-                     // child: Image.asset(
-                     //   'assets/background.png',
-                      //  fit: BoxFit.cover,
-                    //  ),
-                  //  ),
                     Padding(
-                      padding: EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(16.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // ترحيب بالمستخدم
+                          // Greeting
                           Text(
                             'Hello, ${userInfo['userName'] ?? 'User'}!',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontStyle: FontStyle.italic,
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          SizedBox(height: 10),
+                          const SizedBox(height: 10),
 
-                          // حقل البحث
+                          // Search bar
                           Row(
                             children: [
                               Expanded(
@@ -113,7 +113,8 @@ class Home extends StatelessWidget {
                                   controller: searchController,
                                   decoration: InputDecoration(
                                     hintText: 'Search products',
-                                    contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 16), // تقليل الارتفاع
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        vertical: 10, horizontal: 16),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(10),
                                     ),
@@ -122,9 +123,10 @@ class Home extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              SizedBox(width: 10),
+                              const SizedBox(width: 10),
                               IconButton(
-                                icon: Icon(Icons.search, color: Color(0xFF88A383)),
+                                icon: const Icon(Icons.search,
+                                    color: Color(0xFF88A383)),
                                 onPressed: () {
                                   if (searchController.text.isNotEmpty) {
                                     Navigator.push(
@@ -132,7 +134,8 @@ class Home extends StatelessWidget {
                                       MaterialPageRoute(
                                         builder: (context) => search(
                                           token: token,
-                                          searchQuery: searchController.text, pageName: 'home',
+                                          searchQuery: searchController.text,
+                                          pageName: 'home',
                                         ),
                                       ),
                                     );
@@ -141,15 +144,15 @@ class Home extends StatelessWidget {
                               ),
                             ],
                           ),
-                          SizedBox(height: 20),
+                          const SizedBox(height: 20),
 
-                          // بطاقة العناية بالبشرة
+                          // Skincare routine card
                           Stack(
                             children: [
                               Container(
                                 height: 120,
                                 decoration: BoxDecoration(
-                                  image: DecorationImage(
+                                  image: const DecorationImage(
                                     image: AssetImage('assets/HI.png'),
                                     fit: BoxFit.cover,
                                   ),
@@ -158,7 +161,7 @@ class Home extends StatelessWidget {
                               ),
                               Container(
                                 height: 120,
-                                padding: EdgeInsets.all(16),
+                                padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(10),
                                   color: Colors.black.withOpacity(0.3),
@@ -167,7 +170,7 @@ class Home extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text(
+                                    const Text(
                                       'Don’t forget your daily skin routine, we care about you and your skin!',
                                       style: TextStyle(
                                         fontSize: 16,
@@ -175,20 +178,18 @@ class Home extends StatelessWidget {
                                         color: Colors.white,
                                       ),
                                     ),
-                                    SizedBox(height: 10),
+                                    const SizedBox(height: 10),
                                     TextButton(
                                       onPressed: () {
-                                        // الانتقال إلى صفحة العناية بالبشرة
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (context) => SkincareRoutine(
-                                              token: token,
-                                            ),
+                                            builder: (context) =>
+                                                SkincareRoutine(token: token),
                                           ),
                                         );
                                       },
-                                      child: Text(
+                                      child: const Text(
                                         'Start Skincare Routine',
                                         style: TextStyle(color: Colors.white),
                                       ),
@@ -199,10 +200,10 @@ class Home extends StatelessWidget {
                             ],
                           ),
 
-                          SizedBox(height: 20),
+                          const SizedBox(height: 20),
 
-                          // قسم النصائح
-                          Text(
+                          // Tips section
+                          const Text(
                             'Tips',
                             style: TextStyle(
                               fontStyle: FontStyle.italic,
@@ -210,11 +211,11 @@ class Home extends StatelessWidget {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          SizedBox(height: 10),
+                          const SizedBox(height: 10),
                           SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: Row(
-                              children: [
+                              children: const [
                                 TipCard(
                                   icon: Icons.local_drink,
                                   text: 'Stay hydrated and moisturize regularly',
@@ -238,10 +239,10 @@ class Home extends StatelessWidget {
                               ],
                             ),
                           ),
-                          SizedBox(height: 10),
+                          const SizedBox(height: 10),
 
-                          // قسم المنتجات
-                          Text(
+                          // Product collections
+                          const Text(
                             'Product Collections',
                             style: TextStyle(
                               fontStyle: FontStyle.italic,
@@ -253,11 +254,10 @@ class Home extends StatelessWidget {
                             child: TabBarView(
                               children: [
                                 ProductTabScreen(
-                                  apiUrl: "$baseUrl/product/random?limit=6", pageName: 'home', // استخدام الرابط المسترجع
+                                  apiUrl: "$baseUrl/product/random?limit=6",
+                                  pageName: 'home',
+
                                 ),
-                                // يمكنك إضافة علامات تبويب إضافية هنا
-                                // Center(child: Text('Tab 2 Content')),
-                                // Center(child: Text('Tab 3 Content')),
                               ],
                             ),
                           ),
@@ -266,8 +266,20 @@ class Home extends StatelessWidget {
                     ),
                   ],
                 ),
-                bottomNavigationBar: CustomBottomNavigationBar2(), // استخدام CustomBottomNavigationBar
 
+                // Bottom navigation bar based on user role
+                bottomNavigationBar: FutureBuilder<Map<String, dynamic>>(
+                  future: _getUserInfo(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const CircularProgressIndicator();
+                    }
+                    final role = snapshot.data?["role"] ?? "USER";
+                    return role == "ADMIN"
+                        ? CustomBottomNavigationBarAdmin()
+                        : CustomBottomNavigationBar2();
+                  },
+                ),
               ),
             );
           },
@@ -277,22 +289,22 @@ class Home extends StatelessWidget {
   }
 }
 
-// بطاقة النصيحة
+// Tip card widget
 class TipCard extends StatelessWidget {
   final String text;
   final IconData icon;
 
-  TipCard({required this.text, required this.icon});
+  const TipCard({required this.text, required this.icon});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(right: 12),
-      padding: EdgeInsets.all(16),
+      margin: const EdgeInsets.only(right: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Color(0xFFC7C7BB),
+        color: const Color(0xFFC7C7BB),
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: Colors.black12,
             blurRadius: 8,
@@ -302,11 +314,11 @@ class TipCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, color: Color(0xFF88A383), size: 26),
-          SizedBox(width: 10),
+          Icon(icon, color: const Color(0xFF88A383), size: 26),
+          const SizedBox(width: 10),
           Text(
             text,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),

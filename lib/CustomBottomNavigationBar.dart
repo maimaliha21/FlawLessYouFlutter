@@ -77,6 +77,7 @@ class _CustomBottomNavigationBar2State
     }
   }
 
+
   Color _getIconColor(int index) {
     return index == _selectedIndex
         ? const Color(0xFF4A6F4A) // لون غامق عندما تكون الأيقونة نشطة

@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 import '../../Card/Card.dart';
+import '../../CustomBottomNavigationBarAdmin.dart';
 import '../../Home_Section/home.dart';
 import '../../LogIn/login.dart';
 import '../../Product/product.dart';
@@ -279,10 +280,7 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
           ],
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        token: token ?? '',
-        userInfo: userInfo ?? {},
-      ),
+      bottomNavigationBar: CustomBottomNavigationBarAdmin(),
     );
   }
 }
