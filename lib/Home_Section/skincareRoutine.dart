@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../SharedPreferences.dart';
-import 'home.dart';
 
 final String _backgroundImageUrl =
     'https://res.cloudinary.com/davwgirjs/image/upload/v1740317838/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740317835039_Screenshot%202025-02-23%20153620.png.png';
@@ -34,25 +33,25 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
   }
 
   Future<void> _fetchData() async {
+    try {
+      String? baseUrl = await getBaseUrl(); // احصل على baseUrl من SharedPreferences
+      if (baseUrl == null || widget.token == null) {
+        throw Exception("Base URL or token not found");
+      }
 
-      try {
-        String? baseUrl = await getBaseUrl(); // احصل على baseUrl من SharedPreferences
-        if (baseUrl == null) {
-          throw Exception("Base URL not found in SharedPreferences");
-        }
-        final response = await http.get(
-          Uri.parse('$baseUrl/api/routines/by-time'), // استخدم baseUrl المسترجع
-          headers: {
-            'Authorization': 'Bearer ${widget.token}',
-          },
-        );
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/routines/by-time'), // استخدم baseUrl المسترجع
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+        },
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          _routines["MORNING"] = List<Map<String, dynamic>>.from(data["MORNING"]);
-          _routines["AFTERNOON"] = List<Map<String, dynamic>>.from(data["AFTERNOON"]);
-          _routines["NIGHT"] = List<Map<String, dynamic>>.from(data["NIGHT"]);
+          _routines["MORNING"] = List<Map<String, dynamic>>.from(data["MORNING"] ?? []);
+          _routines["AFTERNOON"] = List<Map<String, dynamic>>.from(data["AFTERNOON"] ?? []);
+          _routines["NIGHT"] = List<Map<String, dynamic>>.from(data["NIGHT"] ?? []);
           _isLoading = false;
         });
       } else {
@@ -69,15 +68,24 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
   }
 
   void _nextStep(BuildContext context) {
-    if (_currentStep < _routines.values.expand((list) => list).length - 1) {
+    if (_currentStep < _getAllRoutines().length - 1) {
       setState(() {
         _currentStep++;
       });
     } else {
+      // عند الانتهاء من جميع الخطوات، العودة إلى HomeScreen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => HomeScreen()),
       );
+    }
+  }
+
+  void _previousStep(BuildContext context) {
+    if (_currentStep > 0) {
+      setState(() {
+        _currentStep--;
+      });
     }
   }
 
@@ -87,8 +95,11 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
 
   String _getCurrentTime() {
     final allRoutines = _getAllRoutines();
-    final currentRoutine = allRoutines[_currentStep];
-    return currentRoutine['usageTime'].join(', ');
+    if (allRoutines.isNotEmpty) {
+      final currentRoutine = allRoutines[_currentStep];
+      return currentRoutine['usageTime']?.join(', ') ?? 'No Time';
+    }
+    return 'No Time';
   }
 
   @override
@@ -102,6 +113,14 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
     }
 
     final allRoutines = _getAllRoutines();
+    if (allRoutines.isEmpty) {
+      return Scaffold(
+        body: Center(
+          child: Text('No routines available'),
+        ),
+      );
+    }
+
     final currentRoutine = allRoutines[_currentStep];
 
     return Scaffold(
@@ -116,10 +135,7 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => HomeScreen()),
-            );
+            Navigator.pop(context); // العودة إلى الشاشة السابقة
           },
         ),
       ),
@@ -186,20 +202,21 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         // Image (Normal)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            currentRoutine['photos'][0],
-                            width: double.infinity, // Take full width
-                            height: 120,
-                            fit: BoxFit.cover, // Ensure the image covers the area
-                            errorBuilder: (context, error, stackTrace) =>
-                                Icon(Icons.error, color: Colors.white),
+                        if (currentRoutine['photos'] != null && currentRoutine['photos'].isNotEmpty)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              currentRoutine['photos'][0],
+                              width: double.infinity, // Take full width
+                              height: 120,
+                              fit: BoxFit.cover, // Ensure the image covers the area
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Icon(Icons.error, color: Colors.white),
+                            ),
                           ),
-                        ),
                         SizedBox(height: 16),
                         Text(
-                          currentRoutine['name'],
+                          currentRoutine['name'] ?? 'No Name',
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -209,30 +226,48 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
                         ),
                         SizedBox(height: 8),
                         Text(
-                          currentRoutine['smaledescription'],
+                          currentRoutine['smaledescription'] ?? 'No Description',
                           style: TextStyle(fontSize: 16, color: Colors.white),
                           textAlign: TextAlign.center,
                         ),
-
                         SizedBox(height: 8),
                         Text(
-                          'Usage Time: ${currentRoutine['usageTime'].join(', ')}',
+                          'Usage Time: ${currentRoutine['usageTime']?.join(', ') ?? 'No Time'}',
                           style: TextStyle(fontSize: 16, color: Colors.white),
                         ),
                         SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: () => _nextStep(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color.fromARGB(255, 166, 224, 228),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () => _previousStep(context),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Color(0xFF596D56),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              ),
+                              child: Text(
+                                'Previous',
+                                style: TextStyle(fontSize: 16, color: Colors.white),
+                              ),
                             ),
-                            padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                          ),
-                          child: Text(
-                            _currentStep < allRoutines.length - 1 ? 'Next' : 'Finish',
-                            style: TextStyle(fontSize: 18, color: Colors.white),
-                          ),
+                            ElevatedButton(
+                              onPressed: () => _nextStep(context),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Color(0xFF596D56),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              ),
+                              child: Text(
+                                _currentStep < allRoutines.length - 1 ? 'Next' : 'Finish',
+                                style: TextStyle(fontSize: 16, color: Colors.white),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -287,9 +322,9 @@ class HomeScreen extends StatelessWidget {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                            builder: (context) =>Home(
+                            builder: (context) => SkincareRoutine(
                               token: token,
-                            ),),
+                            )),
                       );
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -298,7 +333,7 @@ class HomeScreen extends StatelessWidget {
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color.fromARGB(255, 166, 224, 228),
+                    backgroundColor: Color(0xFF596D56),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -317,3 +352,4 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
+
