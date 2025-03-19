@@ -73,10 +73,10 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
         _currentStep++;
       });
     } else {
-      // عند الانتهاء من جميع الخطوات، العودة إلى HomeScreen
+      // عند الانتهاء من جميع الخطوات، العودة إلى startRoutine
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomeScreen()),
+        MaterialPageRoute(builder: (context) => startRoutine()),
       );
     }
   }
@@ -282,7 +282,7 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class startRoutine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
