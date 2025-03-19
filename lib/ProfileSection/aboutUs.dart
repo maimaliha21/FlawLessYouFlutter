@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:projtry1/ProfileSection/profile.dart';
+import 'package:FlawlwssYou/ProfileSection/profile.dart';
 
 import '../SharedPreferences.dart';  // تأكد من استيراد صفحة البروفايل هنا
 
