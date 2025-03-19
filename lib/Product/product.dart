@@ -175,12 +175,9 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
       throw Exception('Token is not available');
     }
 
-    final Uri uri;
-    if (widget.treatmentId != null) {
-      uri = Uri.parse('${widget.apiUrl}?treatmentId=${widget.treatmentId}');
-    } else {
+    final Uri
       uri = Uri.parse(widget.apiUrl);
-    }
+
 
     final response = await http.get(
       uri,
@@ -261,7 +258,7 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
             baseUrl: _baseUrl!,
             pageName: widget.pageName,
             treatmentId: widget.treatmentId,
-            onDelete: _refreshProducts, // تمرير دالة التحديث
+            onDelete: _refreshProducts,
           );
         },
       ),
@@ -276,7 +273,7 @@ class ProductList extends StatelessWidget {
   final String baseUrl;
   final String pageName;
   final String? treatmentId;
-  final VoidCallback onDelete; // إضافة Callback
+  final VoidCallback onDelete;
 
   const ProductList({
     Key? key,
@@ -286,7 +283,7 @@ class ProductList extends StatelessWidget {
     required this.baseUrl,
     required this.pageName,
     this.treatmentId,
-    required this.onDelete, // تمرير Callback
+    required this.onDelete,
   }) : super(key: key);
 
   @override
@@ -309,7 +306,7 @@ class ProductList extends StatelessWidget {
             baseUrl: baseUrl,
             pageName: pageName,
             treatmentId: treatmentId,
-            onDelete: onDelete, // تمرير Callback
+            onDelete: onDelete,
           );
         },
       ),
@@ -324,7 +321,7 @@ class ProductCard extends StatefulWidget {
   final String baseUrl;
   final String pageName;
   final String? treatmentId;
-  final VoidCallback onDelete; // إضافة Callback
+  final VoidCallback onDelete;
 
   const ProductCard({
     Key? key,
@@ -334,7 +331,7 @@ class ProductCard extends StatefulWidget {
     required this.baseUrl,
     required this.pageName,
     this.treatmentId,
-    required this.onDelete, // تمرير Callback
+    required this.onDelete,
   }) : super(key: key);
 
   @override
@@ -399,10 +396,37 @@ class _ProductCardState extends State<ProductCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Product deleted successfully')),
         );
-        widget.onDelete(); // استدعاء Callback لتحديث الواجهة
+        widget.onDelete();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to delete product')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Connection error')),
+      );
+    }
+  }
+
+  Future<void> _addProductToTreatment() async {
+    try {
+      final response = await http.post(
+        Uri.parse('${widget.baseUrl}/api/treatments/${widget.treatmentId}/products/${widget.product.productId}'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Product added to treatment successfully')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${widget.baseUrl}/api/treatments/${widget.treatmentId}/products/${widget.product.productId}')),
+          // SnackBar(content: Text('Failed to add product to treatment')),
         );
       }
     } catch (e) {
@@ -570,10 +594,8 @@ class _ProductCardState extends State<ProductCard> {
                     widget.pageName == 'add' ? Colors.green :
                     isSaved ? Colors.yellow : Colors.white,
                   ),
-                  onPressed: widget.pageName == 'treatment' ? _deleteProduct : // استدعاء دالة الحذف
-                  widget.pageName == 'add' ? () {
-                    // Handle add action
-                  } : toggleSave,
+                  onPressed: widget.pageName == 'treatment' ? _deleteProduct :
+                  widget.pageName == 'add' ? _addProductToTreatment : toggleSave,
                 ),
               ),
             ],
@@ -584,6 +606,7 @@ class _ProductCardState extends State<ProductCard> {
   }
 }
 
+// باقي الأكواد (ProductDetailsPopup, EditProductPopup, CustomBottomNavigationBar, BottomWaveClipper) تبقى كما هي.
 // باقي الأكواد (ProductDetailsPopup, EditProductPopup, CustomBottomNavigationBar, BottomWaveClipper) تبقى كما هي.
 class ProductDetailsPopup extends StatefulWidget {
   final Product product;

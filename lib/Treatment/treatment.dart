@@ -385,6 +385,8 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
                         builder: (context) => search(
                           token: token,
                           searchQuery: searchController.text, pageName: 'add',
+                          treatmentId: widget.treatment['treatmentId'],
+
                         ),
                       ),
                     );
