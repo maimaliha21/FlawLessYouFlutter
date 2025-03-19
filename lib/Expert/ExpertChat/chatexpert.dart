@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../CustomBottomNavigationBar.dart';
+import '../../CustomBottomNavigationBarExpert.dart';
 import '../../Home_Section/home.dart';
 import '../../Product/productPage.dart';
 
@@ -226,122 +228,8 @@ class _MessageCardState extends State<chatexpert> {
           ),
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        userInfo: {}, // يمكنك تمرير معلومات المستخدم هنا إذا كانت متوفرة
+      bottomNavigationBar: CustomBottomNavigationBar2(
       ),
     );
   }
-}
-
-class CustomBottomNavigationBar extends StatelessWidget {
-  final Map<String, dynamic> userInfo;
-
-  const CustomBottomNavigationBar({
-    super.key,
-    required this.userInfo,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        ClipPath(
-          clipper: BottomWaveClipper(),
-          child: Container(
-            height: 70,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: 25,
-          left: MediaQuery.of(context).size.width / 2 - 30,
-          child: FloatingActionButton(
-            backgroundColor: Colors.blue,
-            onPressed: () {},
-            child: const Icon(Icons.face, color: Colors.white),
-          ),
-        ),
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            height: 70,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.home, color: Colors.blue),
-                  onPressed: () async {
-                    final token = await SharedPreferences.getInstance().then((prefs) => prefs.getString('token'));
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => Home(
-                          token: token ?? '',
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chat, color: Colors.blue),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => chatexpert(),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 60),
-                IconButton(
-                  icon: const Icon(Icons.settings, color: Colors.blue),
-                  onPressed: () async {
-                    final token = await SharedPreferences.getInstance().then((prefs) => prefs.getString('token'));
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProductPage(token: token ?? '', userInfo: userInfo),
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.person, color: Colors.blue),
-                  onPressed: () {},
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    var path = Path();
-    path.lineTo(0, size.height - 20);
-    path.quadraticBezierTo(size.width / 4, size.height, size.width / 2, size.height - 20);
-    path.quadraticBezierTo(3 / 4 * size.width, size.height - 40, size.width, size.height - 20);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

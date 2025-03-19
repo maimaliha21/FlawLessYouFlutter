@@ -162,7 +162,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => Profile(token: token, userInfo: userInfo),
+            builder: (context) =>  Profile(token: token, userInfo: userInfo),
           ),
         );
         _showSnackBar('User info fetched successfully!');

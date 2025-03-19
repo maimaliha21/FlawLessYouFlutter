@@ -1,11 +1,11 @@
 import 'dart:convert';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'Admin/AdminProfileSectio/adminprofile.dart';
 import 'Card/Card.dart';
-import 'Expert/ExpertChat/chatexpert.dart';
 import 'FaceAnalysisManager.dart';
 import 'Home_Section/home.dart';
 import 'Product/productPage.dart';
@@ -40,18 +40,18 @@ class BottomWaveClipper extends CustomClipper<Path> {
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
-class CustomBottomNavigationBar2 extends StatefulWidget {
-  const CustomBottomNavigationBar2({super.key});
+class CustomBottomNavigationBarExpert extends StatefulWidget {
+  const CustomBottomNavigationBarExpert({super.key});
 
   @override
-  _CustomBottomNavigationBar2State createState() =>
-      _CustomBottomNavigationBar2State();
+  _CustomBottomNavigationBarExpertState createState() =>
+      _CustomBottomNavigationBarExpertState();
 }
 
-class _CustomBottomNavigationBar2State extends State<CustomBottomNavigationBar2> {
+class _CustomBottomNavigationBarExpertState extends State<CustomBottomNavigationBarExpert> {
   String? token;
   Map<String, dynamic>? userInfo;
-  int _selectedIndex = 3; // Track the selected index
+  int _selectedIndex = 3 ; // Track the selected index
 
   @override
   void initState() {
@@ -104,7 +104,12 @@ class _CustomBottomNavigationBar2State extends State<CustomBottomNavigationBar2>
         );
         break;
       case 1:
-        _navigateToMessageCard();
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>  MessageCard(token: token!),
+          ),
+        );
         break;
       case 2:
         Navigator.push(
@@ -119,29 +124,11 @@ class _CustomBottomNavigationBar2State extends State<CustomBottomNavigationBar2>
           context,
           MaterialPageRoute(
             builder: (context) => Profile(token: token!, userInfo: userInfo!),
+
+
           ),
         );
         break;
-    }
-  }
-
-  void _navigateToMessageCard() {
-    if (userInfo != null && userInfo!['role'] == 'USER') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => MessageCard(token: token!),
-        ),
-      );
-    } else if (userInfo != null && userInfo!['role'] == 'SKIN_EXPERT') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => chatexpert(),
-        ),
-      );
-    } else {
-      print('Unknown role');
     }
   }
 
