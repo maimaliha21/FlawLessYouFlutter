@@ -475,7 +475,7 @@ class _TabBarSectionState extends State<TabBarSection>
               ProductTabScreen(
                 apiUrl: widget.baseUrl != null
                     ? '${widget.baseUrl}/product/Saved'
-                    : '',
+                    : '', pageName: 'home',
               ),
               const Center(
                 child: Text('No history available',

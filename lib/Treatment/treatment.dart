@@ -270,18 +270,21 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
   late TabController _tabController;
   final TextEditingController searchController = TextEditingController();
   String token = '';
+  String baseUrl = ''; // إضافة متغير baseUrl
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 1, vsync: this); // طول التبويب 1 لأن لدينا تبويب واحد فقط
-    _loadToken();
+    _tabController = TabController(length: 1, vsync: this);
+    _loadTokenAndBaseUrl(); // تحميل التوكن و baseUrl
   }
 
-  Future<void> _loadToken() async {
+  Future<void> _loadTokenAndBaseUrl() async {
     final userData = await getUserData();
+    final baseUrlData = await getBaseUrl(); // استرجاع baseUrl
     setState(() {
       token = userData?['token'];
+      baseUrl = baseUrlData ?? ''; // تعيين baseUrl
     });
   }
 
@@ -322,7 +325,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
               'Skin Type: ${widget.treatment['skinType']}',
               style: TextStyle(fontSize: 18, color: Colors.grey[700]),
             ),
-            SizedBox(height: 20), // مسافة بين النص و TabBarView
+            SizedBox(height: 20),
             Text(
               'Treatment Products ',
               style: TextStyle(
@@ -336,7 +339,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
                 controller: _tabController,
                 children: [
                   ProductTabScreen(
-                    apiUrl: "http://192.168.1.169/api/treatments/${widget.treatment['treatmentId']}/products", // استخدام الرابط المسترجع
+                    apiUrl: "$baseUrl/api/treatments/${widget.treatment['treatmentId']}/products", pageName: 'treatment', // استخدام baseUrl
                   ),
                 ],
               ),
@@ -394,4 +397,5 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
       },
     );
   }
+
 }
