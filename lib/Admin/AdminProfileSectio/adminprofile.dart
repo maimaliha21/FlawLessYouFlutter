@@ -48,7 +48,6 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
     }
   }
 
-  // دالة لاسترجاع الرابط من SharedPreferences
   Future<String> getBaseUrl() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString('baseUrl') ?? '';
@@ -97,7 +96,6 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
               ),
               TextButton(
                 onPressed: () {
-                  // هنا يمكنك إضافة منطق التعديل
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Product updated successfully!')),
@@ -118,6 +116,9 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final tabHeight = screenHeight * 0.4; // 40% من ارتفاع الشاشة
+
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
@@ -126,10 +127,11 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
               clipBehavior: Clip.none,
               children: [
                 Container(
-                  height: 250,
-                  decoration: const BoxDecoration(
+                  height: screenHeight * 0.25, // 30% من ارتفاع الشاشة
+                  decoration: BoxDecoration(
                     image: DecorationImage(
-                      image: AssetImage('assets/bgphoto.jpg'),
+                      image: NetworkImage(
+                          'https://res.cloudinary.com/davwgirjs/image/upload/v1740417378/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417378981_bgphoto.jpg.jpg'),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -211,7 +213,6 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-
                     backgroundColor: const Color(0xFF88A383),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 37, vertical: 11),
@@ -253,7 +254,7 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
               ],
             ),
             FutureBuilder<String>(
-              future: getBaseUrl(), // استرجاع الرابط من SharedPreferences
+              future: getBaseUrl(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Center(child: CircularProgressIndicator());
@@ -262,7 +263,7 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                 } else {
                   final baseUrl = snapshot.data!;
                   return Container(
-                    height: 300,
+                    height: tabHeight, // استخدام الارتفاع المحسوب
                     child: TabBarView(
                       controller: _tabController,
                       children: [
