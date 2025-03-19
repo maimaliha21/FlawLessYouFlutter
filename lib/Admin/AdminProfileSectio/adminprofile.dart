@@ -244,7 +244,9 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
             const SizedBox(height: 20),
             TabBar(
               controller: _tabController,
-              labelColor: Colors.blue,
+              labelColor: Color(0xFF88A383),
+              indicatorColor: Color(0xFF88A383),
+              indicatorWeight: 3.0,
               unselectedLabelColor: Colors.grey,
               tabs: const [
                 Tab(text: 'Saved'),
