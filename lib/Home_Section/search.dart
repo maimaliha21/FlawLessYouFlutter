@@ -66,7 +66,7 @@ class _SearchPageState extends State<search> with SingleTickerProviderStateMixin
             controller: _tabController,
             children: [
               ProductTabScreen(
-                apiUrl: "$baseUrl/product/search?name=${widget.searchQuery}", // استخدام الرابط المسترجع
+                apiUrl: "$baseUrl/product/search?name=${widget.searchQuery}", pageName: 'home', // استخدام الرابط المسترجع
               //  emptyStateMessage: 'No products found for "${widget.searchQuery}"', // رسالة إذا لم يتم العثور على منتجات
               ),
             ],

@@ -124,10 +124,12 @@ class Product {
 
 class ProductTabScreen extends StatefulWidget {
   final String apiUrl;
+  final String pageName; // New parameter for page name
 
   const ProductTabScreen({
     Key? key,
     required this.apiUrl,
+    required this.pageName, // Add this parameter
   }) : super(key: key);
 
   @override
@@ -238,6 +240,7 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
             token: token!,
             userRole: userRole!,
             baseUrl: _baseUrl!,
+            pageName: widget.pageName, // Pass pageName to ProductList
           );
         },
       ),
@@ -250,6 +253,7 @@ class ProductList extends StatelessWidget {
   final String token;
   final String userRole;
   final String baseUrl;
+  final String pageName; // New parameter for page name
 
   const ProductList({
     Key? key,
@@ -257,6 +261,7 @@ class ProductList extends StatelessWidget {
     required this.token,
     required this.userRole,
     required this.baseUrl,
+    required this.pageName, // Add this parameter
   }) : super(key: key);
 
   @override
@@ -277,6 +282,7 @@ class ProductList extends StatelessWidget {
             token: token,
             userRole: userRole,
             baseUrl: baseUrl,
+            pageName: pageName, // Pass pageName to ProductCard
           );
         },
       ),
@@ -289,6 +295,7 @@ class ProductCard extends StatefulWidget {
   final String token;
   final String userRole;
   final String baseUrl;
+  final String pageName; // New parameter for page name
 
   const ProductCard({
     Key? key,
@@ -296,6 +303,7 @@ class ProductCard extends StatefulWidget {
     required this.token,
     required this.userRole,
     required this.baseUrl,
+    required this.pageName, // Add this parameter
   }) : super(key: key);
 
   @override
@@ -490,10 +498,18 @@ class _ProductCardState extends State<ProductCard> {
                 right: 8,
                 child: IconButton(
                   icon: Icon(
+                    widget.pageName == 'treatment' ? Icons.delete :
+                    widget.pageName == 'add' ? Icons.add :
                     isSaved ? Icons.bookmark : Icons.bookmark_border,
-                    color: isSaved ? Colors.yellow : Colors.white,
+                    color: widget.pageName == 'treatment' ? Colors.red :
+                    widget.pageName == 'add' ? Colors.green :
+                    isSaved ? Colors.yellow : Colors.white,
                   ),
-                  onPressed: toggleSave,
+                  onPressed: widget.pageName == 'treatment' ? () {
+                    // Handle delete action
+                  } : widget.pageName == 'add' ? () {
+                    // Handle add action
+                  } : toggleSave,
                 ),
               ),
             ],
@@ -504,6 +520,7 @@ class _ProductCardState extends State<ProductCard> {
   }
 }
 
+// باقي الأكواد (ProductDetailsPopup, EditProductPopup, CustomBottomNavigationBar, BottomWaveClipper) تبقى كما هي دون تغيير.
 class ProductDetailsPopup extends StatefulWidget {
   final Product product;
   final String token;
