@@ -83,12 +83,12 @@ class Home extends StatelessWidget {
                 body: Stack(
                   children: [
                     // خلفية الصفحة
-                    Positioned.fill(
-                      child: Image.asset(
-                        'assets/background.png',
-                        fit: BoxFit.cover,
-                      ),
-                    ),
+                  //  Positioned.fill(
+                     // child: Image.asset(
+                     //   'assets/background.png',
+                      //  fit: BoxFit.cover,
+                    //  ),
+                  //  ),
                     Padding(
                       padding: EdgeInsets.all(16.0),
                       child: Column(
@@ -113,10 +113,12 @@ class Home extends StatelessWidget {
                                   controller: searchController,
                                   decoration: InputDecoration(
                                     hintText: 'Search products',
-                                    prefixIcon: Icon(Icons.search, color: Color(0xFF88A383)),
+                                    contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 16), // تقليل الارتفاع
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(10),
                                     ),
+                                    filled: true,
+                                    fillColor: Colors.white,
                                   ),
                                 ),
                               ),
@@ -314,5 +316,3 @@ class TipCard extends StatelessWidget {
     );
   }
 }
-
-

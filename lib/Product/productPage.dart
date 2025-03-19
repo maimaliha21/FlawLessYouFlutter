@@ -20,7 +20,8 @@ class ProductPage extends StatelessWidget {
       backgroundColor: Colors.grey[300],
       appBar: AppBar(
         title: const Text('Product Page'),
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color(0xFFC7C7BB),
+
       ),
       body: FutureBuilder<String?>(
         future: getBaseUrl(),

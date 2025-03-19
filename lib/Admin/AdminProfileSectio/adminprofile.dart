@@ -237,7 +237,7 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text('manage Routine'),
+                  child: const Text('manage Role'),
                 ),
               ],
             ),
