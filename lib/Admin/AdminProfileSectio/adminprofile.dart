@@ -210,10 +210,10 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+
+                    backgroundColor: const Color(0xFF88A383),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 50, vertical: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 37, vertical: 11),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -229,10 +229,9 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: const Color(0xFF88A383),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 50, vertical: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 37, vertical: 11),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
