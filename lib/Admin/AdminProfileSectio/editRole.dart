@@ -151,7 +151,7 @@ class _UserFilterPageState extends State<UserFilterPage> {
                                 borderRadius: BorderRadius.circular(10.0),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(color: Colors.blue),
+                                borderSide: BorderSide(color: Color(0xFF4A6F4A)),
                                 borderRadius: BorderRadius.circular(10.0),
                               ),
                             ),
@@ -161,7 +161,7 @@ class _UserFilterPageState extends State<UserFilterPage> {
                         SizedBox(width: 10),
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.blue,
+                            color: Color(0xFF4A6F4A),
                             borderRadius: BorderRadius.circular(10.0),
                           ),
                           child: IconButton(
