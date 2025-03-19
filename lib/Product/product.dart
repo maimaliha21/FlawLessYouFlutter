@@ -311,6 +311,7 @@ class ProductList extends StatelessWidget {
         },
       ),
     );
+
   }
 }
 
