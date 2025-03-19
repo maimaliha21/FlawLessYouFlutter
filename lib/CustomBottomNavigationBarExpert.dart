@@ -107,7 +107,7 @@ class _CustomBottomNavigationBarExpertState extends State<CustomBottomNavigation
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) =>  TreatmentPage(),
+            builder: (context) =>  MessageCard(token: token!),
           ),
         );
         break;
@@ -123,7 +123,9 @@ class _CustomBottomNavigationBarExpertState extends State<CustomBottomNavigation
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => AdminProfile(),
+            builder: (context) => Profile(token: token!, userInfo: userInfo!),
+
+
           ),
         );
         break;
@@ -183,7 +185,7 @@ class _CustomBottomNavigationBarExpertState extends State<CustomBottomNavigation
                   onPressed: () => _onItemTapped(0),
                 ),
                 IconButton(
-                  icon: Icon(Icons.medical_services, color: _getIconColor(1)),
+                  icon: Icon(Icons.chat, color: _getIconColor(1)),
                   onPressed: () => _onItemTapped(1),
                 ),
                 const SizedBox(width: 60), // Space for FAB
