@@ -10,13 +10,14 @@ import '../SignUp/signUp.dart';
 import 'firebase_options.dart';
 import 'package:FlawlwssYou/Admin/AdminProfileSectio/adminprofile.dart';
 import 'package:FlawlwssYou/Expert/ExpertChat/chatexpert.dart';
+
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Login App',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primaryColor: Color(0xFF596D56),
       ),
       home: LoginScreen(),
     );
@@ -230,7 +231,7 @@ class LoginScreen extends StatelessWidget {
               left: -60,
               child: CircleAvatar(
                 radius: 100,
-                backgroundColor: Colors.cyan.withOpacity(0.3),
+                backgroundColor: Colors.green.withOpacity(0.3), // تم التعديل هنا
               ),
             ),
             Positioned(
@@ -238,7 +239,7 @@ class LoginScreen extends StatelessWidget {
               left: 50,
               child: CircleAvatar(
                 radius: 80,
-                backgroundColor: Colors.cyan.withOpacity(0.4),
+                backgroundColor: Colors.green.withOpacity(0.4), // تم التعديل هنا
               ),
             ),
             Center(
@@ -302,7 +303,7 @@ class LoginScreen extends StatelessWidget {
                             loginWithCredentials(context, username, password);
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
+                            backgroundColor: const Color(0xFF88A383),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -350,8 +351,10 @@ class LoginScreen extends StatelessWidget {
                             children: [
                               TextSpan(
                                 text: 'Sign Up',
-                                style: TextStyle(color: Colors.blue),
-                              ),
+                                style: TextStyle(
+                                  color: Color(0xFF88A383),
+                                ),
+                              )
                             ],
                           ),
                         ),

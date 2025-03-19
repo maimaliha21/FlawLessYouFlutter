@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 import '../../Card/Card.dart';
+import '../../CustomBottomNavigationBarAdmin.dart';
 import '../../Home_Section/home.dart';
 import '../../LogIn/login.dart';
 import '../../Product/product.dart';
@@ -47,7 +48,6 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
     }
   }
 
-  // دالة لاسترجاع الرابط من SharedPreferences
   Future<String> getBaseUrl() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString('baseUrl') ?? '';
@@ -96,7 +96,6 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
               ),
               TextButton(
                 onPressed: () {
-                  // هنا يمكنك إضافة منطق التعديل
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Product updated successfully!')),
@@ -117,6 +116,9 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final tabHeight = screenHeight * 0.4; // 40% من ارتفاع الشاشة
+
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
@@ -125,10 +127,11 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
               clipBehavior: Clip.none,
               children: [
                 Container(
-                  height: 250,
-                  decoration: const BoxDecoration(
+                  height: screenHeight * 0.25, // 30% من ارتفاع الشاشة
+                  decoration: BoxDecoration(
                     image: DecorationImage(
-                      image: AssetImage('assets/bgphoto.jpg'),
+                      image: NetworkImage(
+                          'https://res.cloudinary.com/davwgirjs/image/upload/v1740417378/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417378981_bgphoto.jpg.jpg'),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -179,7 +182,7 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                 ),
               ],
             ),
-            const SizedBox(height: 60),
+            const SizedBox(height: 90),
             Text(
               userInfo?['userName'] ?? 'Admin',
               style: const TextStyle(
@@ -210,10 +213,9 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: const Color(0xFF88A383),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 50, vertical: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 37, vertical: 11),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -229,29 +231,30 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: const Color(0xFF88A383),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 50, vertical: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 37, vertical: 11),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text('manage Routine'),
+                  child: const Text('manage Role'),
                 ),
               ],
             ),
             const SizedBox(height: 20),
             TabBar(
               controller: _tabController,
-              labelColor: Colors.blue,
+              labelColor: Color(0xFF88A383),
+              indicatorColor: Color(0xFF88A383),
+              indicatorWeight: 3.0,
               unselectedLabelColor: Colors.grey,
               tabs: const [
                 Tab(text: 'Saved'),
               ],
             ),
             FutureBuilder<String>(
-              future: getBaseUrl(), // استرجاع الرابط من SharedPreferences
+              future: getBaseUrl(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Center(child: CircularProgressIndicator());
@@ -260,7 +263,7 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                 } else {
                   final baseUrl = snapshot.data!;
                   return Container(
-                    height: 300,
+                    height: tabHeight, // استخدام الارتفاع المحسوب
                     child: TabBarView(
                       controller: _tabController,
                       children: [
@@ -280,123 +283,7 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
           ],
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        token: token ?? '',
-        userInfo: userInfo ?? {},
-      ),
+      bottomNavigationBar: CustomBottomNavigationBarAdmin(),
     );
   }
-}
-
-class CustomBottomNavigationBar extends StatelessWidget {
-  final String token;
-  final Map<String, dynamic> userInfo;
-
-  const CustomBottomNavigationBar({
-    super.key,
-    required this.token,
-    required this.userInfo,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        ClipPath(
-          clipper: BottomWaveClipper(),
-          child: Container(
-            height: 70,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: 25,
-          left: MediaQuery.of(context).size.width / 2 - 30,
-          child: FloatingActionButton(
-            backgroundColor: Colors.blue,
-            onPressed: () {},
-            child: const Icon(Icons.face, color: Colors.white),
-          ),
-        ),
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            height: 70,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.home, color: Colors.blue),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => Home(token: token),
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: Icon(Icons.medical_services, size: 50),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => TreatmentPage(),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 60),
-                IconButton(
-                  icon: const Icon(Icons.settings, color: Colors.blue),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProductPage(token: token, userInfo: userInfo),
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.person, color: Colors.blue),
-                  onPressed: () {},
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height - 20);
-    path.quadraticBezierTo(size.width / 4, size.height, size.width / 2,
-        size.height - 20);
-    path.quadraticBezierTo(size.width * 3 / 4, size.height - 40, size.width,
-        size.height - 20);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

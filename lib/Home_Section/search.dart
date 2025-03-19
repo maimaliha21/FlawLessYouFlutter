@@ -50,7 +50,8 @@ class _searchState extends State<search> with SingleTickerProviderStateMixin {
           controller: _tabController,
           tabs: const [
             Tab(text: 'Products'),
-          ],
+          ], labelColor: Color(0xFF88A383),indicatorColor: Color(0xFF88A383), // Color of the indicator
+          indicatorWeight: 2.0,
         ),
       ),
       body: FutureBuilder<String>(
