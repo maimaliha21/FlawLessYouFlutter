@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import '../LogIn/login.dart';
 import '../ProfileSection/profile.dart';
 import '../SharedPreferences.dart'; // تأكد من أن هذا الملف موجود ويحتوي على الدوال المطلوبة
 
@@ -181,10 +182,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           onTap: _pickImage,
           child: CircleAvatar(
             radius: 50,
-            backgroundColor: Colors.blue.shade100,
+            backgroundColor: Color(0xFF88A383),
             backgroundImage: _imageFile != null ? FileImage(_imageFile!) : null,
             child: _imageFile == null
-                ? Icon(Icons.camera_alt, size: 40, color: Colors.blue.shade700)
+                ? Icon(Icons.camera_alt, size: 40, color: Color(0xFF596D56))
                 : null,
           ),
         ),
@@ -193,7 +194,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           'Add Profile Picture',
           style: GoogleFonts.poppins(
             fontSize: 12,
-            color: Colors.blue.shade700,
+            color: Color(0xFF596D56),
           ),
         ),
       ],
@@ -203,7 +204,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.lightBlue.shade50,
+      backgroundColor: Color(0xFFE8F5E9), // تغيير لون الخلفية إلى أخضر فاتح
       body: Stack(
         children: [
           Positioned(
@@ -213,7 +214,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
               width: 200,
               height: 200,
               decoration: BoxDecoration(
-                color: Colors.blue.shade100.withOpacity(0.5),
+                color: Color(0xFF88A383).withOpacity(0.5),
                 shape: BoxShape.circle,
               ),
             ),
@@ -225,7 +226,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                color: Colors.blue.shade100.withOpacity(0.5),
+                color: Color(0xFF88A383).withOpacity(0.5),
                 shape: BoxShape.circle,
               ),
             ),
@@ -240,24 +241,34 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _buildImagePicker(),
-                      const SizedBox(height: 20),
-                      Image.asset(
-                        'assets/p1.png',
-                        width: 150,
+                      // زر السهم للعودة إلى صفحة LoginScreen
+                      Align(
+                        alignment: Alignment.topLeft,
+                        child: IconButton(
+                          icon: Icon(Icons.arrow_back, color: Color(0xFF596D56), size: 40), // تكبير حجم السهم
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => LoginScreen(), // الانتقال إلى LoginScreen
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                      const SizedBox(height: 10),
                       Text(
                         'Create your account',
                         style: GoogleFonts.poppins(
-                          fontSize: 14,
+                          fontSize: 18,
                           color: Colors.black,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 50),
+                      const SizedBox(height: 10),
+                      _buildImagePicker(),
+                      const SizedBox(height: 20),
                       Container(
-                        width: 280,
+                        width: 320, // زيادة عرض الحاوية
                         child: Column(
                           children: [
                             _buildTextField('Username', _usernameController, false),
@@ -306,7 +317,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(6),
                                       border: Border.all(color: Colors.grey.shade600),
-                                      color: isChecked ? Colors.blue.shade700 : Colors.transparent,
+                                      color: isChecked ? Color(0xFF596D56) : Colors.transparent,
                                     ),
                                     child: isChecked
                                         ? const Icon(Icons.check, color: Colors.white, size: 18)
@@ -355,7 +366,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.blue.shade300, width: 2),
+          borderSide: BorderSide(color: Color(0xFF88A383), width: 2),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -376,16 +387,17 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 12),
+        minimumSize: Size(double.infinity, 50), // زيادة عرض الزر
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
-        backgroundColor: Colors.blue.shade700,
+        backgroundColor: Color(0xFF596D56),
       ),
       child: Text(
         text,
         style: GoogleFonts.poppins(
           color: Colors.white,
-          fontSize: 14,
+          fontSize: 16, // زيادة حجم النص
           fontWeight: FontWeight.bold,
         ),
       ),
