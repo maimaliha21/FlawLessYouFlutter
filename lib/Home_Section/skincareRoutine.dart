@@ -209,15 +209,11 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
                         ),
                         SizedBox(height: 8),
                         Text(
-                          currentRoutine['description'],
+                          currentRoutine['smaledescription'],
                           style: TextStyle(fontSize: 16, color: Colors.white),
                           textAlign: TextAlign.center,
                         ),
-                        SizedBox(height: 16),
-                        Text(
-                          'Skin Type: ${currentRoutine['skinType'].join(', ')}',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
-                        ),
+
                         SizedBox(height: 8),
                         Text(
                           'Usage Time: ${currentRoutine['usageTime'].join(', ')}',
