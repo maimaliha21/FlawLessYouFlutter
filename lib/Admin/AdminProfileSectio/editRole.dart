@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../Card/Card.dart';
+import '../../CustomBottomNavigationBarAdmin.dart';
 import '../../Home_Section/home.dart';
 import '../../Product/productPage.dart';
 
@@ -109,7 +110,7 @@ class _UserFilterPageState extends State<UserFilterPage> {
         decoration: BoxDecoration(
           image: DecorationImage(
             image: NetworkImage(
-              'https://res.cloudinary.com/davwgirjs/image/upload/v1740399050/nhndev/product/Atn5pCQF7VR4KhJCzI4g_1740399048265_005bdf0b-38be-4cbd-a016-f0c574659898.jpg.jpg',
+              'https://res.cloudinary.com/davwgirjs/image/upload/v1742412083/nhndev/product/dacbcfa8-1768-4c1e-8a7d-736c4e20b0c6_1742412081693_roleBg.jpg.jpg',
             ),
             fit: BoxFit.cover,
           ),
@@ -227,133 +228,7 @@ class _UserFilterPageState extends State<UserFilterPage> {
           ),
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        token: 'your_token_here', // Replace with your actual token
-        userInfo: {}, // Replace with your actual user info
-      ),
-    );
+    bottomNavigationBar: CustomBottomNavigationBarAdmin(),);
   }
 }
 
-class CustomBottomNavigationBar extends StatelessWidget {
-  final String token;
-  final Map<String, dynamic> userInfo;
-
-  const CustomBottomNavigationBar({
-    super.key,
-    required this.token,
-    required this.userInfo,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        ClipPath(
-          clipper: BottomWaveClipper(),
-          child: Container(
-            height: 70,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: 25,
-          left: MediaQuery.of(context).size.width / 2 - 30,
-          child: FloatingActionButton(
-            backgroundColor: Colors.blue,
-            onPressed: () {},
-            child: const Icon(Icons.face, color: Colors.white),
-          ),
-        ),
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            height: 70,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.home, color: Colors.blue),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => Home(token: token),
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chat, color: Colors.blue),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MessageCard(token: token),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 60),
-                IconButton(
-                  icon: const Icon(Icons.settings, color: Colors.blue),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProductPage(token: token, userInfo: userInfo),
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.person, color: Colors.blue),
-                  onPressed: () {},
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    var path = Path();
-    path.lineTo(0.0, size.height - 20);
-
-    var firstControlPoint = Offset(size.width / 4, size.height);
-    var firstEndPoint = Offset(size.width / 2.25, size.height - 30.0);
-    path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy,
-        firstEndPoint.dx, firstEndPoint.dy);
-
-    var secondControlPoint =
-    Offset(size.width - (size.width / 3.25), size.height - 65);
-    var secondEndPoint = Offset(size.width, size.height - 40);
-    path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy,
-        secondEndPoint.dx, secondEndPoint.dy);
-
-    path.lineTo(size.width, size.height - 40);
-    path.lineTo(size.width, 0.0);
-    path.close();
-
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
