@@ -172,7 +172,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-
   void _handleLogout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
@@ -348,12 +347,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: const Color(0xFF88A383),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 50, vertical: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 37, vertical: 11), // تم تصغير الحجم
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(20), // حواف أكثر استدارة
                     ),
                   ),
                   child: const Text('Edit profile'),
@@ -367,12 +365,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: const Color(0xFF88A383),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 50, vertical: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 11), // تم تصغير الحجم
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(20), // حواف أكثر استدارة
                     ),
                   ),
                   child: const Text('View Routine'),
@@ -423,8 +420,10 @@ class _TabBarSectionState extends State<TabBarSection>
       children: [
         TabBar(
           controller: _tabController,
-          labelColor: Colors.blue,
+          labelColor: Color(0xFF88A383),
           unselectedLabelColor: Colors.grey,
+          indicatorColor: Color(0xFF88A383),
+          indicatorWeight: 3.0,
           tabs: const [
             Tab(text: 'Saved'),
             Tab(text: 'History'),
