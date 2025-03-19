@@ -68,9 +68,11 @@ class _TreatmentPageState extends State<TreatmentPage> {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        backgroundColor: Colors.white60,  // جعل الخلفية بيضاء
+        backgroundColor: Color(0xFFF5F5F5)
+        ,  // جعل الخلفية بيضاء
         appBar: AppBar(
-          backgroundColor: Colors.white60,  // جعل شريط العنوان أبيض
+          backgroundColor: Color(0xFF88A383)
+          ,  // جعل شريط العنوان أبيض
           title: Text(
             'Skin Treatments',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black), // تغيير لون النص إلى الأسود
@@ -83,15 +85,15 @@ class _TreatmentPageState extends State<TreatmentPage> {
             tabs: [
               Tab(
                 text: 'Oily',
-                icon: Icon(Icons.opacity, color: Colors.black),
+                icon: Icon(Icons.opacity, color: Colors.white),
               ),
               Tab(
                 text: 'Normal',
-                icon: Icon(Icons.balance, color: Colors.black),
+                icon: Icon(Icons.balance, color: Colors.white),
               ),
               Tab(
                 text: 'Dry',
-                icon: Icon(Icons.water_drop, color: Colors.black),
+                icon: Icon(Icons.water_drop, color: Colors.white),
               ),
             ],
           ),
@@ -329,7 +331,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
     return Scaffold(
       appBar: AppBar(
         title: Text('Treatment Details', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,  // جعل شريط العنوان أبيض
+        backgroundColor: Color(0xFF88A383),  // جعل شريط العنوان أبيض
         iconTheme: IconThemeData(color: Colors.black),
       ),
       body: Padding(
@@ -381,8 +383,13 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           _openSearchPage(context);
+
         },
-        child: Icon(Icons.add),
+        child: Icon(
+          Icons.add,
+          color: Colors.black,  // تعيين لون الأيقونة هنا
+        ),
+        backgroundColor: Color(0xFFFFFDA),
       ),
     );
   }
