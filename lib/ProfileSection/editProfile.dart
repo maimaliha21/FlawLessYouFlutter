@@ -383,7 +383,7 @@ class _EditProfileScreenState extends State<EditProfile>
             'Save Changes',
             style: TextStyle(color: Colors.white),
           ),
-          backgroundColor: Colors.blue,
+          backgroundColor: Color(0xFF4A6F4A),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
