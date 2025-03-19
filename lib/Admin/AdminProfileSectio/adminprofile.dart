@@ -265,7 +265,7 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                       controller: _tabController,
                       children: [
                         ProductTabScreen(
-                          apiUrl: '$baseUrl/product/Saved',
+                          apiUrl: '$baseUrl/product/Saved', pageName: 'home',
                         ),
                         const Center(
                           child: Text('No history available',
