@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,25 +10,26 @@ import 'FaceAnalysisManager.dart';
 import 'Home_Section/home.dart';
 import 'Product/productPage.dart';
 import 'ProfileSection/profile.dart';
+import 'Treatment/treatment.dart';
 
 class BottomWaveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     var path = Path();
-    path.lineTo(0.0, size.height - 15);
+    path.lineTo(0.0, size.height - 20);
 
     var firstControlPoint = Offset(size.width / 4, size.height);
-    var firstEndPoint = Offset(size.width / 2.25, size.height - 25.0);
+    var firstEndPoint = Offset(size.width / 2.25, size.height - 30.0);
     path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy,
         firstEndPoint.dx, firstEndPoint.dy);
 
     var secondControlPoint =
-    Offset(size.width - (size.width / 3.25), size.height - 55);
-    var secondEndPoint = Offset(size.width, size.height - 30);
+    Offset(size.width - (size.width / 3.25), size.height - 65);
+    var secondEndPoint = Offset(size.width, size.height - 40);
     path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy,
         secondEndPoint.dx, secondEndPoint.dy);
 
-    path.lineTo(size.width, size.height - 30);
+    path.lineTo(size.width, size.height - 40);
     path.lineTo(size.width, 0.0);
     path.close();
 
@@ -46,11 +48,10 @@ class CustomBottomNavigationBar2 extends StatefulWidget {
       _CustomBottomNavigationBar2State();
 }
 
-class _CustomBottomNavigationBar2State
-    extends State<CustomBottomNavigationBar2> {
+class _CustomBottomNavigationBar2State extends State<CustomBottomNavigationBar2> {
   String? token;
   Map<String, dynamic>? userInfo;
-  int _selectedIndex = 0;
+  int _selectedIndex = 3 ; // Track the selected index
 
   @override
   void initState() {
@@ -77,21 +78,64 @@ class _CustomBottomNavigationBar2State
     }
   }
 
-
+  // Method to get icon color based on selected index
   Color _getIconColor(int index) {
-    return index == _selectedIndex
-        ? const Color(0xFF4A6F4A) // لون غامق عندما تكون الأيقونة نشطة
-        : const Color(0xFFB0C0A8); // لون فاتح عندما تكون الأيقونة غير نشطة
+    return _selectedIndex == index ? Color(0xFF4A6F4A) : Color(0xFF88A383);
   }
 
+  // Method to get icon size based on selected index
   double _getIconSize(int index) {
-    return index == _selectedIndex ? 30.0 : 24.0; // زيادة حجم الأيقونة عندما تكون نشطة
+    return _selectedIndex == index ? 30 : 24;
+  }
+
+  // Method to handle navigation
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Home(token: token!),
+          ),
+        );
+        break;
+      case 1:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>  MessageCard(token: token!),
+          ),
+        );
+        break;
+      case 2:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductPage(token: token!, userInfo: userInfo!),
+          ),
+        );
+        break;
+      case 3:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Profile(token: token!, userInfo: userInfo!),
+
+
+          ),
+        );
+        break;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (token == null || userInfo == null) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(child: CircularProgressIndicator()); // Show loading indicator
     }
 
     return Stack(
@@ -100,23 +144,23 @@ class _CustomBottomNavigationBar2State
         ClipPath(
           clipper: BottomWaveClipper(),
           child: Container(
-            height: 65,
-            decoration: const BoxDecoration(
-              color: Color(0xFFF8F8F8), // خلفية موحدة بلون هادئ
+            height: 70,
+            decoration: BoxDecoration(
+              color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 8,
+                  color: Colors.black26,
+                  blurRadius: 10,
                 ),
               ],
             ),
           ),
         ),
         Positioned(
-          bottom: 20,
-          left: MediaQuery.of(context).size.width / 2 - 28,
+          bottom: 25,
+          left: MediaQuery.of(context).size.width / 2 - 30,
           child: FloatingActionButton(
-            backgroundColor: const Color(0xFF88A383),
+            backgroundColor: Color(0xFF4A6F4A), // Changed to the new color
             onPressed: () {
               FaceAnalysisManager(
                 context: context,
@@ -125,8 +169,6 @@ class _CustomBottomNavigationBar2State
               ).analyzeFace();
             },
             child: const Icon(Icons.face, color: Colors.white),
-            mini: true,
-            elevation: 4,
           ),
         ),
         Positioned(
@@ -134,84 +176,26 @@ class _CustomBottomNavigationBar2State
           left: 0,
           right: 0,
           child: Container(
-            height: 60,
+            height: 70,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 IconButton(
-                  icon: Icon(
-                    Icons.home,
-                    color: _getIconColor(0),
-                    size: _getIconSize(0),
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _selectedIndex = 0;
-                    });
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => Home(token: token!),
-                      ),
-                    );
-                  },
+                  icon: Icon(Icons.home, color: _getIconColor(0)),
+                  onPressed: () => _onItemTapped(0),
                 ),
                 IconButton(
-                  icon: Icon(
-                    Icons.chat,
-                    color: _getIconColor(1),
-                    size: _getIconSize(1),
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _selectedIndex = 1;
-                    });
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MessageCard(token: token!),
-                      ),
-                    );
-                  },
+                  icon: Icon(Icons.chat, color: _getIconColor(1)),
+                  onPressed: () => _onItemTapped(1),
                 ),
-                const SizedBox(width: 56),
+                const SizedBox(width: 60), // Space for FAB
                 IconButton(
-                  icon: Icon(
-                    Icons.shopping_bag,
-                    color: _getIconColor(2),
-                    size: _getIconSize(2),
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _selectedIndex = 2;
-                    });
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            ProductPage(token: token!, userInfo: userInfo!),
-                      ),
-                    );
-                  },
+                  icon: Icon(Icons.shopping_bag, color: _getIconColor(2)),
+                  onPressed: () => _onItemTapped(2),
                 ),
                 IconButton(
-                  icon: Icon(
-                    Icons.person,
-                    color: _getIconColor(3),
-                    size: _getIconSize(3),
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _selectedIndex = 3;
-                    });
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            Profile(token: token!, userInfo: userInfo!),
-                      ),
-                    );
-                  },
+                  icon: Icon(Icons.person, color: _getIconColor(3)),
+                  onPressed: () => _onItemTapped(3),
                 ),
               ],
             ),
