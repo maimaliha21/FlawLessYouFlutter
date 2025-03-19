@@ -7,9 +7,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:projtry1/Admin/AdminProfileSectio/editRole.dart';
+import 'package:FlawlwssYou/Admin/AdminProfileSectio/editRole.dart';
 
-import 'package:projtry1/main.dart';
+import 'package:FlawlwssYou/main.dart';
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {

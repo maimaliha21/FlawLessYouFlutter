@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:projtry1/Product/product.dart';
+import 'package:FlawlwssYou/Product/product.dart';
 
 import '../CustomBottomNavigationBar.dart'; // تأكد من صحة هذا الاستيراد
 
