@@ -40,15 +40,15 @@ class BottomWaveClipper extends CustomClipper<Path> {
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
-class CustomBottomNavigationBar2 extends StatefulWidget {
-  const CustomBottomNavigationBar2({super.key});
+class CustomBottomNavigationBarAdmin extends StatefulWidget {
+  const CustomBottomNavigationBarAdmin({super.key});
 
   @override
-  _CustomBottomNavigationBar2State createState() =>
-      _CustomBottomNavigationBar2State();
+  _CustomBottomNavigationBarAdminState createState() =>
+      _CustomBottomNavigationBarAdminState();
 }
 
-class _CustomBottomNavigationBar2State extends State<CustomBottomNavigationBar2> {
+class _CustomBottomNavigationBarAdminState extends State<CustomBottomNavigationBarAdmin> {
   String? token;
   Map<String, dynamic>? userInfo;
   int _selectedIndex = 3 ; // Track the selected index
@@ -107,7 +107,7 @@ class _CustomBottomNavigationBar2State extends State<CustomBottomNavigationBar2>
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) =>  MessageCard(token: token!),
+            builder: (context) =>  TreatmentPage(),
           ),
         );
         break;
@@ -123,9 +123,7 @@ class _CustomBottomNavigationBar2State extends State<CustomBottomNavigationBar2>
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => Profile(token: token!, userInfo: userInfo!),
-
-
+            builder: (context) => AdminProfile(),
           ),
         );
         break;
@@ -185,7 +183,7 @@ class _CustomBottomNavigationBar2State extends State<CustomBottomNavigationBar2>
                   onPressed: () => _onItemTapped(0),
                 ),
                 IconButton(
-                  icon: Icon(Icons.chat, color: _getIconColor(1)),
+                  icon: Icon(Icons.medical_services, color: _getIconColor(1)),
                   onPressed: () => _onItemTapped(1),
                 ),
                 const SizedBox(width: 60), // Space for FAB

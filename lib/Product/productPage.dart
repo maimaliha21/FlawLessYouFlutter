@@ -1,8 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:FlawlwssYou/Product/product.dart';
-
-import '../CustomBottomNavigationBar.dart'; // تأكد من صحة هذا الاستيراد
+import '../CustomBottomNavigationBar.dart';
+import '../CustomBottomNavigationBarAdmin.dart'; // تأكد من صحة هذا الاستيراد
 
 class ProductPage extends StatelessWidget {
   final String token;
@@ -16,30 +18,55 @@ class ProductPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // دالة لجلب معلومات المستخدم من SharedPreferences
+    Future<Map<String, dynamic>> _getUserInfo() async {
+      try {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        String? userInfoJson = prefs.getString('userInfo');
+        if (userInfoJson != null) {
+          return jsonDecode(userInfoJson);
+        }
+      } catch (e) {
+        print('Error fetching user info: $e');
+      }
+      return {};
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[300],
       appBar: AppBar(
         title: const Text('Product Page'),
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color(0xFFC7C7BB),
       ),
       body: FutureBuilder<String?>(
         future: getBaseUrl(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data == null) {
-            return Center(child: Text('No base URL found'));
+            return const Center(child: Text('No base URL found'));
           } else {
             return ProductTabScreen(
-              apiUrl: "${snapshot.data}/product/random?limit=6", pageName: 'home',
+              apiUrl: "${snapshot.data}/product/random?limit=6",
+              pageName: 'home',
             );
           }
         },
       ),
-      bottomNavigationBar: CustomBottomNavigationBar2(), // استخدام CustomBottomNavigationBar
-
+      bottomNavigationBar: FutureBuilder<Map<String, dynamic>>(
+        future: _getUserInfo(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const CircularProgressIndicator();
+          }
+          final role = snapshot.data?["role"] ?? "USER";
+          return role == "ADMIN"
+              ? CustomBottomNavigationBarAdmin()
+              : CustomBottomNavigationBar2();
+        },
+      ),
     );
   }
 

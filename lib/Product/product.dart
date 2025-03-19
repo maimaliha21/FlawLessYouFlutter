@@ -57,10 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_selectedIndex],
-      bottomNavigationBar: CustomBottomNavigationBar(
-        onItemTapped: _onItemTapped,
-        selectedIndex: _selectedIndex,
-      ),
+
     );
   }
 }
@@ -1023,103 +1020,4 @@ class _EditProductPopupState extends State<EditProductPopup> {
       ),
     );
   }
-}
-
-class CustomBottomNavigationBar extends StatelessWidget {
-  final Function(int) onItemTapped;
-  final int selectedIndex;
-
-  const CustomBottomNavigationBar({
-    super.key,
-    required this.onItemTapped,
-    required this.selectedIndex,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        ClipPath(
-          clipper: BottomWaveClipper(),
-          child: Container(
-            height: 70,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: 25,
-          left: MediaQuery.of(context).size.width / 2 - 30,
-          child: FloatingActionButton(
-            backgroundColor: Colors.blue,
-            onPressed: () {},
-            child: const Icon(Icons.face, color: Colors.white),
-          ),
-        ),
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            height: 70,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.home, color: selectedIndex == 0 ? Colors.blue : Colors.grey),
-                  onPressed: () => onItemTapped(0),
-                ),
-                IconButton(
-                  icon: Icon(Icons.shopping_cart, color: selectedIndex == 1 ? Colors.blue : Colors.grey),
-                  onPressed: () => onItemTapped(1),
-                ),
-                const SizedBox(width: 60),
-                IconButton(
-                  icon: Icon(Icons.search, color: selectedIndex == 2 ? Colors.blue : Colors.grey),
-                  onPressed: () => onItemTapped(2),
-                ),
-                IconButton(
-                  icon: Icon(Icons.settings, color: selectedIndex == 3 ? Colors.blue : Colors.grey),
-                  onPressed: () => onItemTapped(3),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    var path = Path();
-    path.lineTo(0, size.height - 20);
-
-    var firstControlPoint = Offset(size.width / 4, size.height);
-    var firstEndPoint = Offset(size.width / 2, size.height - 30);
-    path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy, firstEndPoint.dx, firstEndPoint.dy);
-
-    var secondControlPoint = Offset(size.width - (size.width / 4), size.height - 60);
-    var secondEndPoint = Offset(size.width, size.height - 30);
-    path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy, secondEndPoint.dx, secondEndPoint.dy);
-
-    path.lineTo(size.width, size.height - 30);
-    path.lineTo(size.width, 0);
-
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

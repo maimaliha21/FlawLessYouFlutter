@@ -51,7 +51,7 @@ class _SupportTeamScreenState extends State<SupportTeamScreen> {
     },
     {
       'image':
-      'https://res.cloudinary.com/davwgirjs/image/upload/v1740417824/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417825049_celina.jpg.jpg',
+      'https://res.cloudinary.com/davwgirjs/image/upload/v1742386384/nhndev/product/dacbcfa8-1768-4c1e-8a7d-736c4e20b0c6_1742386381784_celinapic.jpg.jpg',
       'name': 'Celina Nassif',
       'role': 'Software Engineer',
       'email': 'celinanassif0@gmail.com',
@@ -200,7 +200,7 @@ class _SupportTeamScreenState extends State<SupportTeamScreen> {
                                 style: TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.blue.shade900,
+                                  color: Color(0xFF596D56),
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -231,7 +231,7 @@ class _SupportTeamScreenState extends State<SupportTeamScreen> {
                                     cards[index]['email'],
                                     style: TextStyle(
                                       fontSize: 16,
-                                      color: Color(0xFF0D1698),
+                                      color: Color(0xFF596D56),
                                       decoration: TextDecoration.underline,
                                     ),
                                     textAlign: TextAlign.center,
