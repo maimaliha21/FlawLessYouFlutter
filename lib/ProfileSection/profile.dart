@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:projtry1/ProfileSection/editProfile.dart';
-import 'package:projtry1/ProfileSection/supportTeam.dart';
-import 'package:projtry1/api/google_signin_api.dart';
-import 'package:projtry1/LogIn/login.dart';
+import 'package:FlawlwssYou/ProfileSection/editProfile.dart';
+import 'package:FlawlwssYou/ProfileSection/supportTeam.dart';
+import 'package:FlawlwssYou/api/google_signin_api.dart';
+import 'package:FlawlwssYou/LogIn/login.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:projtry1/Product/productPage.dart';
+import 'package:FlawlwssYou/Product/productPage.dart';
 import 'dart:convert';
-import 'package:projtry1/Card/Card.dart';
+import 'package:FlawlwssYou/Card/Card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../CustomBottomNavigationBar.dart';
