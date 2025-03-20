@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../SharedPreferences.dart';
 import 'home.dart';
 
 final String _backgroundImageUrl =
@@ -33,13 +34,18 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
   }
 
   Future<void> _fetchData() async {
-    try {
-      final response = await http.get(
-        Uri.parse('http://192.168.1.169:8080/api/routines/by-time'),
-        headers: {
-          'Authorization': 'Bearer ${widget.token}',
-        },
-      );
+
+      try {
+        String? baseUrl = await getBaseUrl(); // احصل على baseUrl من SharedPreferences
+        if (baseUrl == null) {
+          throw Exception("Base URL not found in SharedPreferences");
+        }
+        final response = await http.get(
+          Uri.parse('$baseUrl/api/routines/by-time'), // استخدم baseUrl المسترجع
+          headers: {
+            'Authorization': 'Bearer ${widget.token}',
+          },
+        );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
