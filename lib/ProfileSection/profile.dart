@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:FlawlwssYou/ProfileSection/editProfile.dart';
-import 'package:FlawlwssYou/ProfileSection/supportTeam.dart';
-import 'package:FlawlwssYou/api/google_signin_api.dart';
-import 'package:FlawlwssYou/LogIn/login.dart';
+import 'package:FlawlessYou/ProfileSection/editProfile.dart';
+import 'package:FlawlessYou/ProfileSection/supportTeam.dart';
+import 'package:FlawlessYou/api/google_signin_api.dart';
+import 'package:FlawlessYou/LogIn/login.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:FlawlwssYou/Product/productPage.dart';
+import 'package:FlawlessYou/Product/productPage.dart';
 import 'dart:convert';
-import 'package:FlawlwssYou/Card/Card.dart';
+import 'package:FlawlessYou/Card/Card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../CustomBottomNavigationBar.dart';
@@ -17,7 +17,6 @@ import '../Home_Section/home.dart';
 import '../Product/product.dart';
 import '../Routinebar/routinescreen.dart';
 import '../model/SkinDetailsScreen.dart';
-import '../model/SkinTypeAnalysisScreen.dart';
 import 'aboutUs.dart';
 
 class Profile extends StatelessWidget {
