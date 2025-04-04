@@ -1,3 +1,47 @@
+//plugins {
+//    id "com.android.application"
+//    id "kotlin-android"
+//    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+//    id "dev.flutter.flutter-gradle-plugin"
+//}
+//
+//android {
+//    namespace = "com.example.FlawlwssYou"
+//    compileSdk = flutter.compileSdkVersion
+//    ndkVersion = flutter.ndkVersion
+//
+//    compileOptions {
+//        sourceCompatibility = JavaVersion.VERSION_1_8
+//        targetCompatibility = JavaVersion.VERSION_1_8
+//    }
+//
+//    kotlinOptions {
+//        jvmTarget = JavaVersion.VERSION_1_8
+//    }
+//
+//    defaultConfig {
+//        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+//        applicationId = "com.example.FlawlwssYou"
+//        // You can update the following values to match your application needs.
+//        // For more information, see: https://flutter.dev/to/review-gradle-config.
+//        minSdk = flutter.minSdkVersion
+//        targetSdk = flutter.targetSdkVersion
+//        versionCode = flutter.versionCode
+//        versionName = flutter.versionName
+//    }
+//
+//    buildTypes {
+//        release {
+//            // TODO: Add your own signing config for the release build.
+//            // Signing with the debug keys for now, so `flutter run --release` works.
+//            signingConfig = signingConfigs.debug
+//        }
+//    }
+//}
+//
+//flutter {
+//    source = "../.."
+//}
 plugins {
     id "com.android.application"
     id "kotlin-android"
@@ -6,9 +50,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.projtry1"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    namespace = "com.example.FlawlwssYou"
+    compileSdk = 35  // استخدم الإصدار المناسب هنا (مثال: 33)
+
+    // تحديد إصدار الـ NDK الذي لديك
+    ndkVersion = "29.0.13113456"  // أو أي إصدار لديك من NDK
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -20,25 +66,23 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.projtry1"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        // TODO: Specify your own unique Application ID
+        applicationId = "com.example.flawlessyou"
+        // Update the following values to match your application needs.
+        minSdk = 21
+        targetSdk = 35   // استخدم أحدث إصدار SDK مستهدف
+        versionCode = flutter.versionCode  // تأكد من أن هذه القيمة معرفة في ملف `flutter`
+        versionName = flutter.versionName  // تأكد من أن هذه القيمة معرفة في ملف `flutter`
     }
 
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.debug
         }
     }
 }
 
 flutter {
-    source = "../.."
+    source = "../.."  // تأكد من أن هذا المسار صحيح لمسار مشروع Flutter
 }

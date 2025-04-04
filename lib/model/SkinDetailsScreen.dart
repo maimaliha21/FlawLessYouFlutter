@@ -23,7 +23,7 @@ class SkinDetailsScreen extends StatefulWidget {
 class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
   String _detailsResult = "";
   String _treatmentResult = "";
-  final String apiDetailsUrl = 'http://192.168.0.19:8000/analyze_details/';
+  final String apiDetailsUrl = 'http://192.168.0.146:8000/analyze_details/';
   String apiTreatmentUrl = '';
   List<Map<String, dynamic>> treatments = [];
   Map<String, bool> selectedProducts = {};
@@ -185,4 +185,5 @@ normal: ${data['NORMAL']}%
       bottomNavigationBar: CustomBottomNavigationBar2(), // استخدام CustomBottomNavigationBar
     );
   }
+
 }

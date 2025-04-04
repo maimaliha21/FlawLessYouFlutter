@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:FlawlwssYou/Product/product.dart';
+import 'package:FlawlessYou/Product/product.dart';
 import '../CustomBottomNavigationBar.dart';
 import '../CustomBottomNavigationBarAdmin.dart'; // تأكد من صحة هذا الاستيراد
 
