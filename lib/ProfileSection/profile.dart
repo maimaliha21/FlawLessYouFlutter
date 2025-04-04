@@ -1,24 +1,23 @@
+import 'package:FlawlwssYou/ProfileSection/supportTeam.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:FlawlwssYou/ProfileSection/editProfile.dart';
-import 'package:FlawlwssYou/ProfileSection/supportTeam.dart';
-import 'package:FlawlwssYou/api/google_signin_api.dart';
-import 'package:FlawlwssYou/LogIn/login.dart';
+
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:FlawlwssYou/Product/productPage.dart';
 import 'dart:convert';
-import 'package:FlawlwssYou/Card/Card.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../Card/Card.dart';
 import '../CustomBottomNavigationBar.dart';
-import '../FaceAnalysisManager.dart';
 import '../Home_Section/home.dart';
+import '../LogIn/login.dart';
 import '../Product/product.dart';
+import '../Product/productPage.dart';
 import '../Routinebar/routinescreen.dart';
 import '../model/SkinDetailsScreen.dart';
-import '../model/SkinTypeAnalysisScreen.dart';
 import 'aboutUs.dart';
+import 'editProfile.dart';
 
 class Profile extends StatelessWidget {
   final String token;
@@ -82,6 +81,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _profileImage = File(image.path);
           });
           await _uploadProfilePicture(_profileImage!);
+          // await _analyzeSkinType(_profileImage!);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Please select a valid image file')),
@@ -156,6 +156,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+
+
+
   void _showSkinTypeResult(BuildContext context, String skinType) {
     showDialog(
       context: context,
@@ -172,6 +175,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _showImagePickerOptions(BuildContext context) async {
+    final ImagePicker _picker = ImagePicker();
+    final XFile? image = await showModalBottomSheet<XFile>(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: Icon(Icons.camera),
+                title: Text('التقاط صورة من الكاميرا'),
+                onTap: () async {
+                  final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+                  Navigator.pop(context, image);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library),
+                title: Text('تحميل صورة من المعرض'),
+                onTap: () async {
+                  final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+                  Navigator.pop(context, image);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+
+  }
+
   void _handleLogout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
@@ -186,9 +223,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
@@ -197,15 +231,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               clipBehavior: Clip.none,
               children: [
                 Container(
-                  height: screenHeight * 0.25, // 30% من ارتفاع الشاشة
+                  height: 250,
                   decoration: BoxDecoration(
                     image: DecorationImage(
-                      image: NetworkImage(
-                          'https://res.cloudinary.com/davwgirjs/image/upload/v1740417378/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417378981_bgphoto.jpg.jpg'),
+                      image: NetworkImage('https://res.cloudinary.com/davwgirjs/image/upload/v1740417378/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417378981_bgphoto.jpg.jpg'),
                       fit: BoxFit.cover,
                     ),
-                  ),
-                ),
+                  ),),
                 Positioned(
                   top: 30,
                   right: 20,
@@ -243,6 +275,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Text('About Us'),
                       ),
                       const PopupMenuItem(
+                        value: 'skin_type',
+                        child: Text('Show Skin Type'),
+                      ),
+                      const PopupMenuItem(
                         value: 'logout',
                         child: Text('Log Out'),
                       ),
@@ -255,8 +291,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 Positioned(
-                  top: screenHeight * 0.18, // 15% من ارتفاع الشاشة
-                  left: screenWidth / 2 - (screenWidth * 0.15), // في المنتصف مع تعديل بسيط
+                  top: 150,
+                  left: MediaQuery.of(context).size.width / 2 - 75,
                   child: GestureDetector(
                     onTap: () => showDialog(
                       context: context,
@@ -266,7 +302,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           children: [
                             Container(
                               width: 300,
-                              height: 200,
+                              height: 300,
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.8),
                                 borderRadius: BorderRadius.circular(20),
@@ -281,7 +317,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               left: 50,
                               right: 50,
                               child: ElevatedButton(
-                                onPressed: () => _pickImage(ImageSource.gallery),
+                                onPressed: null,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFB0BEC5),
                                   foregroundColor: Colors.white,
@@ -299,13 +335,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     child: CircleAvatar(
-                      radius: screenWidth * 0.15, // 15% من عرض الشاشة
+                      radius: 75,
                       backgroundColor: Colors.white,
                       child: CircleAvatar(
-                        radius: screenWidth * 0.14, // 14% من عرض الشاشة
+                        radius: 70,
                         backgroundColor: Colors.white,
                         child: CircleAvatar(
-                          radius: screenWidth * 0.13, // 13% من عرض الشاشة
+                          radius: 65,
                           backgroundImage: _getProfileImage(),
                         ),
                       ),
@@ -347,11 +383,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF88A383),
+                    backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 37, vertical: 11), // تم تصغير الحجم
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 50, vertical: 20),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20), // حواف أكثر استدارة
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   child: const Text('Edit profile'),
@@ -361,21 +398,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => RoutineScreen(),
+                      builder: (context) =>  RoutineScreen(),
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF88A383),
+                    backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 11), // تم تصغير الحجم
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 50, vertical: 20),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20), // حواف أكثر استدارة
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   child: const Text('View Routine'),
                 ),
               ],
             ),
+
+
             const SizedBox(height: 20),
             TabBarSection(token: widget.token, baseUrl: _baseUrl),
           ],
@@ -392,6 +432,259 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     return const AssetImage('assets/profile.jpg');
   }
+}
+
+class CustomBottomNavigationBar extends StatefulWidget {
+  final String token;
+  final Map<String, dynamic> userInfo;
+
+  const CustomBottomNavigationBar({
+    super.key,
+    required this.token,
+    required this.userInfo,
+  });
+
+  @override
+  _CustomBottomNavigationBarState createState() => _CustomBottomNavigationBarState();
+}
+
+class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
+  String selectedSkinType = 'Failed to analyze skin type'; // القيمة الافتراضية
+
+  Future<String> _analyzeSkinType(File imageFile) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('http://192.168.60.114:8000/analyze/'),
+      );
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'skin_type',
+          imageFile.path,
+        ),
+      );
+
+      var response = await request.send();
+
+      if (response.statusCode == 200) {
+        // حول الـ StreamedResponse لـ String
+        final responseData = await response.stream.bytesToString();
+
+        // حول الـ JSON لـ Map
+        final jsonResponse = jsonDecode(responseData);
+
+        // استخرج قيمة skin_type
+        String skinType = jsonResponse['skin_type'];
+
+        // أرجع القيمة
+        return skinType;
+      } else {
+        print('Failed to analyze skin type1: ${response.statusCode}');
+        return 'Failed to analyze skin type2'; // Default to 'Normal' on failure
+      }
+    } catch (e) {
+      print('Error analyzing skin type: $e');
+      return e.toString(); // Default to 'Normal' on error
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        ClipPath(
+          clipper: BottomWaveClipper(),
+          child: Container(
+            height: 70,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 10,
+                ),
+              ],
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 25,
+          left: MediaQuery.of(context).size.width / 2 - 30,
+          child: FloatingActionButton(
+            backgroundColor: Colors.blue,
+            onPressed: () => _showImagePickerOptions(context),
+            child: const Icon(Icons.face, color: Colors.white),
+          ),
+        ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            height: 70,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.home, color: Colors.blue),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Home(
+                          token: widget.token,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chat, color: Colors.blue),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MessageCard(token: widget.token),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 60),
+                IconButton(
+                  icon: const Icon(Icons.settings, color: Colors.blue),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProductPage(token: widget.token, userInfo: widget.userInfo),
+                      ),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.person, color: Colors.blue),
+                  onPressed: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showImagePickerOptions(BuildContext context) async {
+    final ImagePicker _picker = ImagePicker();
+    final XFile? image = await showModalBottomSheet<XFile>(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: Icon(Icons.camera),
+                title: Text('التقاط صورة من الكاميرا'),
+                onTap: () async {
+                  final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+                  Navigator.pop(context, image);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library),
+                title: Text('تحميل صورة من المعرض'),
+                onTap: () async {
+                  final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+                  Navigator.pop(context, image);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (image != null) {
+      _showImagePreviewDialog(context, File(image.path));
+    }
+  }
+  void _showImagePreviewDialog(BuildContext context, File imageFile) async {
+    // تحليل نوع البشرة
+    final skinType = await _analyzeSkinType(imageFile);
+
+    // القائمة المنسدلة تحتوي على النوع الذي تم تحليله بالإضافة إلى الخيارات الأخرى
+    List<String> skinTypes = [skinType, 'Normal', 'Dry', 'Oily'];
+    String selectedSkinType = skinType; // القيمة الافتراضية
+
+    // عرض البوب-أب مع الصورة ونتيجة التحليل
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.file(imageFile), // عرض الصورة
+            const SizedBox(height: 20),
+            Text(
+              'نوع بشرتك هو: $skinType', // عرض نتيجة التحليل
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            DropdownButton<String>(
+              value: selectedSkinType,
+              onChanged: (String? newValue) {
+                setState(() {
+                  selectedSkinType = newValue!;
+                });
+              },
+              items: skinTypes.map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // إغلاق البوب-أب
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SkinDetailsScreen(
+                      imageFile: imageFile,
+                      skinType: selectedSkinType, // تمرير القيمة المختارة
+                    ),
+                  ),
+                );
+              },
+              child: const Text('التالي'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class BottomWaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    Path path = Path();
+    path.lineTo(0, size.height - 20);
+    path.quadraticBezierTo(size.width / 4, size.height, size.width / 2,
+        size.height - 20);
+    path.quadraticBezierTo(size.width * 3 / 4, size.height - 40, size.width,
+        size.height - 20);
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
 class TabBarSection extends StatefulWidget {
@@ -420,17 +713,15 @@ class _TabBarSectionState extends State<TabBarSection>
       children: [
         TabBar(
           controller: _tabController,
-          labelColor: Color(0xFF88A383),
+          labelColor: Colors.blue,
           unselectedLabelColor: Colors.grey,
-          indicatorColor: Color(0xFF88A383),
-          indicatorWeight: 3.0,
           tabs: const [
             Tab(text: 'Saved'),
             Tab(text: 'History'),
           ],
         ),
         Container(
-          height: MediaQuery.of(context).size.height * 0.40,
+          height: 300,
           child: TabBarView(
             controller: _tabController,
             children: [
