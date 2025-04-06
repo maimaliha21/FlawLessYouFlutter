@@ -16,6 +16,7 @@ import '../FaceAnalysisManager.dart';
 import '../Home_Section/home.dart';
 import '../Product/product.dart';
 import '../Routinebar/routinescreen.dart';
+import '../model/SkinAnalysisHistoryScreen.dart';
 import '../model/SkinDetailsScreen.dart';
 import 'aboutUs.dart';
 
@@ -439,8 +440,8 @@ class _TabBarSectionState extends State<TabBarSection>
                     : '', pageName: 'home',
               ),
               const Center(
-                child: Text('No history available',
-                    style: TextStyle(color: Colors.black)),
+                child: SkinAnalysisHistoryScreen(),
+
               ),
             ],
           ),
