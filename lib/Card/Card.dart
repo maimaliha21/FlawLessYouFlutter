@@ -1,10 +1,18 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import 'dart:ui';
+import 'package:shared_preferences/shared_preferences.dart'; // أضف هذه المكتبة
 
+import '../CustomBottomNavigationBar.dart';
+import '../FaceAnalysisManager.dart';
 import '../Home_Section/home.dart';
-import '../Product/productPage.dart'; // للوصول إلى ImageFilter
+import '../Product/productPage.dart';
+import '../ProfileSection/profile.dart';
+import '../model/SkinDetailsScreen.dart'; // للوصول إلى ImageFilter
 
 class MessageCard extends StatefulWidget {
   final String token;
@@ -21,6 +29,12 @@ class _MessageCardState extends State<MessageCard> {
   List<dynamic> cards = [];
   final TextEditingController messageController = TextEditingController();
 
+  // دالة لاسترجاع الرابط من SharedPreferences
+  Future<String> getBaseUrl() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('baseUrl') ?? 'http://localhost:8080'; // قيمة افتراضية إذا لم يتم العثور على الرابط
+  }
+
   @override
   void initState() {
     super.initState();
@@ -30,8 +44,9 @@ class _MessageCardState extends State<MessageCard> {
 
   Future<void> fetchExperts() async {
     try {
+      final baseUrl = await getBaseUrl(); // استرجاع الرابط من SharedPreferences
       final response = await http.get(
-        Uri.parse('http://localhost:8080/api/users/experts'),
+        Uri.parse('$baseUrl/api/users/experts'), // استخدام الرابط المسترجع
         headers: {
           'accept': '*/*',
           'Authorization': 'Bearer ${widget.token}',
@@ -55,8 +70,9 @@ class _MessageCardState extends State<MessageCard> {
 
   Future<void> fetchCards() async {
     try {
+      final baseUrl = await getBaseUrl(); // استرجاع الرابط من SharedPreferences
       final response = await http.get(
-        Uri.parse('http://localhost:8080/cards/user'),
+        Uri.parse('$baseUrl/cards/user'), // استخدام الرابط المسترجع
         headers: {
           'accept': '*/*',
           'Authorization': 'Bearer ${widget.token}',
@@ -87,8 +103,9 @@ class _MessageCardState extends State<MessageCard> {
     }
 
     try {
+      final baseUrl = await getBaseUrl(); // استرجاع الرابط من SharedPreferences
       final response = await http.post(
-        Uri.parse('http://localhost:8080/cards/send?message=${Uri.encodeComponent(messageController.text)}&name=${Uri.encodeComponent(selectedExpert!)}'),
+        Uri.parse('$baseUrl/cards/send?message=${Uri.encodeComponent(messageController.text)}&name=${Uri.encodeComponent(selectedExpert!)}'), // استخدام الرابط المسترجع
         headers: {
           'accept': '*/*',
           'Authorization': 'Bearer ${widget.token}',
@@ -117,11 +134,16 @@ class _MessageCardState extends State<MessageCard> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Send Message to Expert', style: TextStyle(color: Colors.black87)), // لون النص أسود
-        backgroundColor: Colors.white, // لون خلفية AppBar أبيض
+        backgroundColor: const Color(0xFFC7C7BB), // لون خلفية AppBar أبيض
       ),
       body: Container(
         decoration: BoxDecoration(
-          color: Colors.brown.shade100, // لون خلفية بيج فاتح
+          image: DecorationImage(
+            image: NetworkImage(
+              "https://res.cloudinary.com/davwgirjs/image/upload/v1740424863/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740424863643_messagesCards.jpg.jpg",
+            ),
+            fit: BoxFit.cover,
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -129,10 +151,10 @@ class _MessageCardState extends State<MessageCard> {
             children: [
               // الكارد الأول
               Card(
-                color: Colors.white.withOpacity(0.7), // لون بطاقة شفاف
+                color: Colors.white.withOpacity(0.5), // جعل البوكس شفافًا قليلاً
                 elevation: 4,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(20), // جعل الحواف دائرية أكثر
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -160,7 +182,7 @@ class _MessageCardState extends State<MessageCard> {
                         style: TextStyle(color: Colors.black87),
                         decoration: InputDecoration(
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12), // جعل حواف TextField دائرية
                           ),
                           labelText: 'Message',
                           labelStyle: TextStyle(color: Colors.black87),
@@ -170,9 +192,9 @@ class _MessageCardState extends State<MessageCard> {
                       ElevatedButton(
                         onPressed: sendMessage,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal[300], // لون أخضر ضبابي
+                          backgroundColor: const Color(0xFF88A383), // لون أخضر ضبابي
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12), // جعل حواف الزر دائرية
                           ),
                         ),
                         child: Text('Send', style: TextStyle(color: Colors.white)),
@@ -187,54 +209,68 @@ class _MessageCardState extends State<MessageCard> {
                   itemCount: cards.length,
                   itemBuilder: (context, index) {
                     final card = cards[index];
-                    return Card(
-                      color: Colors.white.withOpacity(0.7), // لون بطاقة شفاف
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ExpansionTile(
-                        leading: Icon(Icons.message, color: Colors.teal[300]), // أيقونة زيتية
-                        title: Text(
-                          card['message'],
-                          style: TextStyle(color: Colors.black87),
-                          maxLines: 2, // عدد الأسطر القصوى قبل التوسيع
-                          overflow: TextOverflow.ellipsis, // اختصار النص إذا كان طويلاً
-                        ),
-                        subtitle: Text(
-                          'Sent to: ${card['expertName'] ?? 'Unknown'}',
-                          style: TextStyle(color: Colors.black54),
-                        ),
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Message:',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  card['message'],
-                                  style: TextStyle(color: Colors.black87),
-                                ),
-                                SizedBox(height: 16),
-                                Text(
-                                  'Sent to: ${card['expertName'] ?? 'Unknown'}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ],
-                            ),
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 10), // إنزال الكارد لأسفل قليلاً
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            // تغيير لون الكارد عند الضغط
+                            card['isPressed'] = !(card['isPressed'] ?? false);
+                          });
+                        },
+                        child: Card(
+                          color: (card['isPressed'] ?? false)
+                              ? Colors.grey[300] // لون أغمق عند الضغط
+                              : Colors.white.withOpacity(0.5), // لون عادي
+                          elevation: 4,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20), // جعل الحواف دائرية أكثر
                           ),
-                        ],
+                          child: ExpansionTile(
+                            leading: Icon(Icons.message, color: const Color(0xFF88A383))
+                            , // أيقونة زيتية
+                            title: Text(
+                              card['message'],
+                              style: TextStyle(color: Colors.black87),
+                              maxLines: 2, // عدد الأسطر القصوى قبل التوسيع
+                              overflow: TextOverflow.ellipsis, // اختصار النص إذا كان طويلاً
+                            ),
+                            subtitle: Text(
+                              'Sent to: ${card['expertName'] ?? 'Unknown'}',
+                              style: TextStyle(color: Colors.black54),
+                            ),
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Message:',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      card['message'],
+                                      style: TextStyle(color: Colors.black87),
+                                    ),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      'Sent to: ${card['expertName'] ?? 'Unknown'}',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     );
                   },
@@ -244,124 +280,9 @@ class _MessageCardState extends State<MessageCard> {
           ),
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        token: widget.token,
-        userInfo: {}, // يمكنك تمرير معلومات المستخدم هنا إذا كانت متوفرة
-      ),
+      bottomNavigationBar: CustomBottomNavigationBar2(),
+
     );
   }
 }
 
-class CustomBottomNavigationBar extends StatelessWidget {
-  final String token;
-  final Map<String, dynamic> userInfo;
-
-  const CustomBottomNavigationBar({
-    super.key,
-    required this.token,
-    required this.userInfo,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        ClipPath(
-          clipper: BottomWaveClipper(),
-          child: Container(
-            height: 70,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: 25,
-          left: MediaQuery.of(context).size.width / 2 - 30,
-          child: FloatingActionButton(
-            backgroundColor: Colors.blue,
-            onPressed: () {},
-            child: const Icon(Icons.face, color: Colors.white),
-          ),
-        ),
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            height: 70,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.home, color: Colors.blue),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => Home(
-                          token: token,
-                          userInfo: userInfo,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chat, color: Colors.blue),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MessageCard(token: token),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 60),
-                IconButton(
-                  icon: const Icon(Icons.settings, color: Colors.blue),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProductPage(token: token, userInfo: userInfo),
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.person, color: Colors.blue),
-                  onPressed: () {},
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    var path = Path();
-    path.lineTo(0, size.height - 20);
-    path.quadraticBezierTo(size.width / 4, size.height, size.width / 2, size.height - 20);
-    path.quadraticBezierTo(3 / 4 * size.width, size.height - 40, size.width, size.height - 20);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}

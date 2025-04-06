@@ -1,5 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:projtry1/Product/product.dart'; // Ensure this import is correct
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:FlawlessYou/Product/product.dart';
+import '../CustomBottomNavigationBar.dart';
+import '../CustomBottomNavigationBarAdmin.dart'; // تأكد من صحة هذا الاستيراد
 
 class ProductPage extends StatelessWidget {
   final String token;
@@ -13,131 +18,60 @@ class ProductPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // دالة لجلب معلومات المستخدم من SharedPreferences
+    Future<Map<String, dynamic>> _getUserInfo() async {
+      try {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        String? userInfoJson = prefs.getString('userInfo');
+        if (userInfoJson != null) {
+          return jsonDecode(userInfoJson);
+        }
+      } catch (e) {
+        print('Error fetching user info: $e');
+      }
+      return {};
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[300],
       appBar: AppBar(
         title: const Text('Product Page'),
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color(0xFFC7C7BB),
       ),
-      body: ProductTabScreen(
-        token: token,
-        apiUrl: "http://localhost:8080/product/random?limit=6",
+      body: FutureBuilder<String?>(
+        future: getBaseUrl(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data == null) {
+            return const Center(child: Text('No base URL found'));
+          } else {
+            return ProductTabScreen(
+              apiUrl: "${snapshot.data}/product/random?limit=6",
+              pageName: 'home',
+            );
+          }
+        },
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        token: token,
-        userInfo: userInfo,
+      bottomNavigationBar: FutureBuilder<Map<String, dynamic>>(
+        future: _getUserInfo(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const CircularProgressIndicator();
+          }
+          final role = snapshot.data?["role"] ?? "USER";
+          return role == "ADMIN"
+              ? CustomBottomNavigationBarAdmin()
+              : CustomBottomNavigationBar2();
+        },
       ),
     );
   }
-}
 
-
-
-  @override
-  Widget build(BuildContext context) {
-    // Implement API call and display products here
-    return Center(
-      child: Text("Products will be displayed here"), // Placeholder
-    );
+  Future<String?> getBaseUrl() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('baseUrl');
   }
-
-
-class CustomBottomNavigationBar extends StatelessWidget {
-  final String token;
-  final Map<String, dynamic> userInfo;
-
-  const CustomBottomNavigationBar({
-    super.key,
-    required this.token,
-    required this.userInfo,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        ClipPath(
-          clipper: BottomWaveClipper(),
-          child: Container(
-            height: 70,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: 25,
-          left: MediaQuery.of(context).size.width / 2 - 30,
-          child: FloatingActionButton(
-            backgroundColor: Colors.blue,
-            onPressed: () {},
-            child: const Icon(Icons.face, color: Colors.white),
-          ),
-        ),
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            height: 70,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.home, color: Colors.blue),
-                  onPressed: () {},
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chat, color: Colors.blue),
-                  onPressed: () {},
-                ),
-                const SizedBox(width: 60),
-                IconButton(
-                  icon: const Icon(Icons.settings, color: Colors.blue),
-                  onPressed: () {
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //     builder: (context) => produ(
-                    //       token: token,
-                    //       apiUrl: "http://localhost:8080/product/random?limit=6",
-                    //     ),
-                    //   ),
-                    // );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.person, color: Colors.blue),
-                  onPressed: () {},
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    var path = Path();
-    path.lineTo(0, size.height - 20);
-    path.quadraticBezierTo(size.width / 4, size.height, size.width / 2, size.height - 20);
-    path.quadraticBezierTo(3 / 4 * size.width, size.height - 40, size.width, size.height - 20);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

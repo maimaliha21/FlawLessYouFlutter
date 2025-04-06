@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProductApp extends StatelessWidget {
   const ProductApp({Key? key}) : super(key: key);
@@ -25,6 +26,20 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 1;
+  String? _baseUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBaseUrl();
+  }
+
+  Future<void> _loadBaseUrl() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _baseUrl = prefs.getString('baseUrl') ?? 'http://localhost:8080';
+    });
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -42,10 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_selectedIndex],
-      bottomNavigationBar: CustomBottomNavigationBar(
-        onItemTapped: _onItemTapped,
-        selectedIndex: _selectedIndex,
-      ),
+
     );
   }
 }
@@ -58,6 +70,7 @@ class Product {
   final String? description;
   final double rating;
   final List<String>? photos;
+  final List<String>? usageTime;
   bool isSaved;
 
   Product({
@@ -68,6 +81,7 @@ class Product {
     this.description,
     required this.rating,
     this.photos,
+    this.usageTime,
     this.isSaved = false,
   });
 
@@ -86,6 +100,11 @@ class Product {
       photos = List<String>.from(json['photos']);
     }
 
+    List<String>? usageTime;
+    if (json['usageTime'] is List) {
+      usageTime = List<String>.from(json['usageTime']);
+    }
+
     return Product(
       productId: json['productId'] as String? ?? 'unknown',
       name: json['name'] as String?,
@@ -94,23 +113,71 @@ class Product {
       description: json['description'] as String?,
       rating: avgRating,
       photos: photos,
+      usageTime: usageTime,
       isSaved: json['isSaved'] is bool ? json['isSaved'] : false,
     );
   }
 }
-class ProductTabScreen extends StatelessWidget {
-  final String token;
-  final String apiUrl; // إضافة معامل للرابط
+
+class ProductTabScreen extends StatefulWidget {
+  final String apiUrl;
+  final String pageName;
+  final String? treatmentId;
 
   const ProductTabScreen({
     Key? key,
-    required this.token,
-    required this.apiUrl, // تمرير الرابط كمعامل
+    required this.apiUrl,
+    required this.pageName,
+    this.treatmentId,
   }) : super(key: key);
 
+  @override
+  _ProductTabScreenState createState() => _ProductTabScreenState();
+}
+
+class _ProductTabScreenState extends State<ProductTabScreen> {
+  String? token;
+  String? userRole;
+  bool _isLoading = true;
+  String? _baseUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadToken();
+    _loadBaseUrl();
+  }
+
+  Future<void> _loadToken() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userInfoString = prefs.getString('userInfo');
+    Map<String, dynamic> userInfoMap = json.decode(userInfoString ?? '{}');
+
+    setState(() {
+      token = prefs.getString('token');
+      userRole = userInfoMap['role'];
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _loadBaseUrl() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _baseUrl = prefs.getString('baseUrl') ?? 'http://localhost:8080';
+    });
+  }
+
   Future<List<Product>> fetchProducts() async {
+    if (token == null) {
+      throw Exception('Token is not available');
+    }
+
+    final Uri
+      uri = Uri.parse(widget.apiUrl);
+
+
     final response = await http.get(
-      Uri.parse(apiUrl), // استخدام الرابط الممرر
+      uri,
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -125,7 +192,7 @@ class ProductTabScreen extends StatelessWidget {
 
           for (var product in products) {
             final savedResponse = await http.get(
-              Uri.parse('http://localhost:8080/product/${product.productId}/isSaved'),
+              Uri.parse('$_baseUrl/product/${product.productId}/isSaved'),
               headers: {
                 'Authorization': 'Bearer $token',
                 'Content-Type': 'application/json',
@@ -154,15 +221,23 @@ class ProductTabScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _refreshProducts() async {
+    setState(() {
+      _isLoading = true;
+    });
+    await fetchProducts();
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
-      // appBar: AppBar(
-      //   // title: const Text("Products"),
-      //   centerTitle: true,
-      // ),
-      body: FutureBuilder<List<Product>>(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : FutureBuilder<List<Product>>(
         future: fetchProducts(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
@@ -173,20 +248,39 @@ class ProductTabScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
-          return ProductList(products: snapshot.data!, token: token);
+          return ProductList(
+            products: snapshot.data!,
+            token: token!,
+            userRole: userRole!,
+            baseUrl: _baseUrl!,
+            pageName: widget.pageName,
+            treatmentId: widget.treatmentId,
+            onDelete: _refreshProducts,
+          );
         },
       ),
     );
   }
 }
+
 class ProductList extends StatelessWidget {
   final List<Product> products;
   final String token;
+  final String userRole;
+  final String baseUrl;
+  final String pageName;
+  final String? treatmentId;
+  final VoidCallback onDelete;
 
   const ProductList({
     Key? key,
     required this.products,
     required this.token,
+    required this.userRole,
+    required this.baseUrl,
+    required this.pageName,
+    this.treatmentId,
+    required this.onDelete,
   }) : super(key: key);
 
   @override
@@ -202,18 +296,41 @@ class ProductList extends StatelessWidget {
         ),
         itemCount: products.length,
         itemBuilder: (context, index) {
-          return ProductCard(product: products[index], token: token);
+          return ProductCard(
+            product: products[index],
+            token: token,
+            userRole: userRole,
+            baseUrl: baseUrl,
+            pageName: pageName,
+            treatmentId: treatmentId,
+            onDelete: onDelete,
+          );
         },
       ),
     );
+
   }
 }
 
 class ProductCard extends StatefulWidget {
   final Product product;
   final String token;
+  final String userRole;
+  final String baseUrl;
+  final String pageName;
+  final String? treatmentId;
+  final VoidCallback onDelete;
 
-  const ProductCard({Key? key, required this.product, required this.token}) : super(key: key);
+  const ProductCard({
+    Key? key,
+    required this.product,
+    required this.token,
+    required this.userRole,
+    required this.baseUrl,
+    required this.pageName,
+    this.treatmentId,
+    required this.onDelete,
+  }) : super(key: key);
 
   @override
   _ProductCardState createState() => _ProductCardState();
@@ -235,14 +352,14 @@ class _ProductCardState extends State<ProductCard> {
     try {
       final response = await (newState
           ? http.post(
-        Uri.parse('http://localhost:8080/product/${widget.product.productId}/savedProduct'),
+        Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/savedProduct'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
         },
       )
           : http.post(
-        Uri.parse('http://localhost:8080/product/${widget.product.productId}/savedProduct'),
+        Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/savedProduct'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
@@ -263,16 +380,91 @@ class _ProductCardState extends State<ProductCard> {
     }
   }
 
-  void _showProductDetails(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          insetPadding: EdgeInsets.all(16),
-          child: ProductDetailsPopup(product: widget.product, token: widget.token),
+  Future<void> _deleteProduct() async {
+    try {
+      final response = await http.delete(
+        Uri.parse('${widget.baseUrl}/api/treatments/${widget.treatmentId}/products/${widget.product.productId}'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Product deleted successfully')),
         );
-      },
-    );
+        widget.onDelete();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete product')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Connection error')),
+      );
+    }
+  }
+
+  Future<void> _addProductToTreatment() async {
+    try {
+      final response = await http.post(
+        Uri.parse('${widget.baseUrl}/api/treatments/${widget.treatmentId}/products/${widget.product.productId}'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Product added to treatment successfully')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${widget.baseUrl}/api/treatments/${widget.treatmentId}/products/${widget.product.productId}')),
+          // SnackBar(content: Text('Failed to add product to treatment')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Connection error')),
+      );
+    }
+  }
+
+  void _showProductDetails(BuildContext context) {
+    if (widget.userRole == 'ADMIN') {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return Dialog(
+            insetPadding: EdgeInsets.all(16),
+            child: EditProductPopup(
+              product: widget.product,
+              token: widget.token,
+              baseUrl: widget.baseUrl,
+            ),
+          );
+        },
+      );
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return Dialog(
+            insetPadding: EdgeInsets.all(16),
+            child: ProductDetailsPopup(
+              product: widget.product,
+              token: widget.token,
+              baseUrl: widget.baseUrl,
+              treatmentId: widget.treatmentId,
+            ),
+          );
+        },
+      );
+    }
   }
 
   @override
@@ -393,10 +585,15 @@ class _ProductCardState extends State<ProductCard> {
                 right: 8,
                 child: IconButton(
                   icon: Icon(
+                    widget.pageName == 'treatment' ? Icons.delete :
+                    widget.pageName == 'add' ? Icons.add :
                     isSaved ? Icons.bookmark : Icons.bookmark_border,
-                    color: isSaved ? Colors.yellow : Colors.white,
+                    color: widget.pageName == 'treatment' ? Colors.red :
+                    widget.pageName == 'add' ? Colors.green :
+                    isSaved ? Colors.yellow : Colors.white,
                   ),
-                  onPressed: toggleSave,
+                  onPressed: widget.pageName == 'treatment' ? _deleteProduct :
+                  widget.pageName == 'add' ? _addProductToTreatment : toggleSave,
                 ),
               ),
             ],
@@ -407,11 +604,21 @@ class _ProductCardState extends State<ProductCard> {
   }
 }
 
+// باقي الأكواد (ProductDetailsPopup, EditProductPopup, CustomBottomNavigationBar, BottomWaveClipper) تبقى كما هي.
+// باقي الأكواد (ProductDetailsPopup, EditProductPopup, CustomBottomNavigationBar, BottomWaveClipper) تبقى كما هي.
 class ProductDetailsPopup extends StatefulWidget {
   final Product product;
   final String token;
+  final String baseUrl;
+  final String? treatmentId; // إضافة treatmentId هنا
 
-  const ProductDetailsPopup({Key? key, required this.product, required this.token}) : super(key: key);
+  const ProductDetailsPopup({
+    Key? key,
+    required this.product,
+    required this.token,
+    required this.baseUrl,
+    this.treatmentId, // إضافة treatmentId هنا
+  }) : super(key: key);
 
   @override
   _ProductDetailsPopupState createState() => _ProductDetailsPopupState();
@@ -449,7 +656,7 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
   Future<void> _fetchUserRating() async {
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:8080/product/${widget.product.productId}/userReview'),
+        Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/userReview'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
@@ -475,7 +682,7 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
         _isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Connection error')),
+        const SnackBar(content: Text('Connection error')),
       );
     }
   }
@@ -483,12 +690,12 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
   Future<void> _submitRating(double rating) async {
     try {
       final response = await http.put(
-        Uri.parse('http://localhost:8080/product/${widget.product.productId}/reviews'),
+        Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/reviews'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'rating': rating.toInt()}), // تحويل التقييم إلى عدد صحيح
+        body: jsonEncode({'rating': rating.toInt()}),
       );
 
       if (response.statusCode == 200) {
@@ -514,7 +721,7 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            height: 300, // زيادة ارتفاع الصورة
+            height: 300,
             child: PageView.builder(
               controller: _pageController,
               itemCount: widget.product.photos?.length ?? 1,
@@ -540,6 +747,12 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
                   widget.product.description ?? 'No description available',
                   style: TextStyle(fontSize: 16),
                 ),
+                SizedBox(height: 16),
+                if (widget.treatmentId != null)
+                  Text(
+                    'Treatment ID: ${widget.treatmentId}',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 SizedBox(height: 16),
                 if (widget.product.skinType.isNotEmpty)
                   Column(
@@ -602,101 +815,209 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
   }
 }
 
-class CustomBottomNavigationBar extends StatelessWidget {
-  final Function(int) onItemTapped;
-  final int selectedIndex;
+class EditProductPopup extends StatefulWidget {
+  final Product product;
+  final String token;
+  final String baseUrl;
+  const EditProductPopup({Key? key, required this.product, required this.token,required this.baseUrl}) : super(key: key);
 
-  const CustomBottomNavigationBar({
-    super.key,
-    required this.onItemTapped,
-    required this.selectedIndex,
-  });
+  @override
+  _EditProductPopupState createState() => _EditProductPopupState();
+}
+
+class _EditProductPopupState extends State<EditProductPopup> {
+  late TextEditingController _nameController;
+  late TextEditingController _descriptionController;
+  late Map<String, bool> _skinType;
+  late List<String> _ingredients;
+  late Map<String, bool> _usageTime;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.product.name);
+    _descriptionController = TextEditingController(text: widget.product.description);
+    _skinType = {
+      'OILY': widget.product.skinType.contains('OILY'),
+      'DRY': widget.product.skinType.contains('DRY'),
+      'NORMAL': widget.product.skinType.contains('NORMAL'),
+    };
+    _ingredients = List.from(widget.product.ingredients);
+    _usageTime = {
+      'MORNING': widget.product.usageTime?.contains('MORNING') ?? false,
+      'NIGHT': widget.product.usageTime?.contains('NIGHT') ?? false,
+      'AFTERNOON': widget.product.usageTime?.contains('AFTERNOON') ?? false,
+    };
+  }
+
+  Future<void> _updateProduct() async {
+    try {
+      final response = await http.put(
+        Uri.parse('http://localhost:8080/product/product'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'productId': widget.product.productId,
+          'name': _nameController.text,
+          'skinType': _skinType.entries.where((entry) => entry.value).map((entry) => entry.key).toList(),
+          'description': _descriptionController.text,
+          'ingredients': _ingredients,
+          'usageTime': _usageTime.entries.where((entry) => entry.value).map((entry) => entry.key).toList(),
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Product updated successfully')),
+        );
+        Navigator.of(context).pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update product')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Connection error')),
+      );
+    }
+  }
+
+  void _addIngredient() async {
+    final newIngredient = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        final TextEditingController controller = TextEditingController();
+        return AlertDialog(
+          title: Text('Add Ingredient'),
+          content: TextField(
+            controller: controller,
+            decoration: InputDecoration(hintText: 'Enter ingredient'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(controller.text);
+              },
+              child: Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (newIngredient != null && newIngredient.isNotEmpty) {
+      setState(() {
+        _ingredients.add(newIngredient);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        ClipPath(
-          clipper: BottomWaveClipper(),
-          child: Container(
-            height: 70,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                ),
-              ],
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (widget.product.photos != null && widget.product.photos!.isNotEmpty)
+            Image.network(
+              widget.product.photos![0],
+              fit: BoxFit.cover,
+              height: 200,
+              width: double.infinity,
             ),
-          ),
-        ),
-        Positioned(
-          bottom: 25,
-          left: MediaQuery.of(context).size.width / 2 - 30,
-          child: FloatingActionButton(
-            backgroundColor: Colors.blue,
-            onPressed: () {},
-            child: const Icon(Icons.face, color: Colors.white),
-          ),
-        ),
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            height: 70,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IconButton(
-                  icon: Icon(Icons.home, color: selectedIndex == 0 ? Colors.blue : Colors.grey),
-                  onPressed: () => onItemTapped(0),
+                TextField(
+                  controller: _nameController,
+                  decoration: InputDecoration(labelText: 'Product Name'),
+                ),
+                SizedBox(height: 16),
+                TextField(
+                  controller: _descriptionController,
+                  decoration: InputDecoration(labelText: 'Description'),
+                  maxLines: 3,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Skin Type:',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 8),
+                Row(
+                  children: _skinType.entries.map((entry) {
+                    return Expanded(
+                      child: CheckboxListTile(
+                        title: Text(entry.key),
+                        value: entry.value,
+                        onChanged: (value) {
+                          setState(() {
+                            _skinType[entry.key] = value ?? false;
+                          });
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Ingredients:',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 8),
+                Wrap(
+                  spacing: 8.0,
+                  children: _ingredients.map((ingredient) {
+                    return Chip(
+                      label: Text(ingredient),
+                      onDeleted: () {
+                        setState(() {
+                          _ingredients.remove(ingredient);
+                        });
+                      },
+                    );
+                  }).toList(),
                 ),
                 IconButton(
-                  icon: Icon(Icons.shopping_cart, color: selectedIndex == 1 ? Colors.blue : Colors.grey),
-                  onPressed: () => onItemTapped(1),
+                  icon: Icon(Icons.add),
+                  onPressed: _addIngredient,
                 ),
-                const SizedBox(width: 60),
-                IconButton(
-                  icon: Icon(Icons.search, color: selectedIndex == 2 ? Colors.blue : Colors.grey),
-                  onPressed: () => onItemTapped(2),
+                SizedBox(height: 16),
+                Text(
+                  'Usage Time:',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                IconButton(
-                  icon: Icon(Icons.settings, color: selectedIndex == 3 ? Colors.blue : Colors.grey),
-                  onPressed: () => onItemTapped(3),
+                SizedBox(height: 8),
+                Row(
+                  children: _usageTime.entries.map((entry) {
+                    return Expanded(
+                      child: CheckboxListTile(
+                        title: Text(entry.key),
+                        value: entry.value,
+                        onChanged: (value) {
+                          setState(() {
+                            _usageTime[entry.key] = value ?? false;
+                          });
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
+                SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _updateProduct,
+                  child: Text('Update Product'),
                 ),
               ],
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
-}
-
-class BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    var path = Path();
-    path.lineTo(0, size.height - 20);
-
-    var firstControlPoint = Offset(size.width / 4, size.height);
-    var firstEndPoint = Offset(size.width / 2, size.height - 30);
-    path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy, firstEndPoint.dx, firstEndPoint.dy);
-
-    var secondControlPoint = Offset(size.width - (size.width / 4), size.height - 60);
-    var secondEndPoint = Offset(size.width, size.height - 30);
-    path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy, secondEndPoint.dx, secondEndPoint.dy);
-
-    path.lineTo(size.width, size.height - 30);
-    path.lineTo(size.width, 0);
-
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

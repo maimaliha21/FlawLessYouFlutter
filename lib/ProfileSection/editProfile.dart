@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../CustomBottomNavigationBar.dart';
 import '../LogIn/login.dart';
 import '../Product/product.dart';
+import '../SharedPreferences.dart';
 
 class EditProfile extends StatefulWidget {
   final String token;
@@ -31,18 +34,27 @@ class _EditProfileScreenState extends State<EditProfile>
   final TextEditingController _confirmPasswordController = TextEditingController();
 
   late TabController _tabController;
+  String baseUrl = ''; // القيمة الافتراضية
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this); // طول التبويب 2
-    fetchUserData(); // جلب بيانات المستخدم عند بدء التشغيل
+    _tabController = TabController(length: 2, vsync: this);
+    _loadBaseUrl(); // تحميل baseUrl من SharedPreferences
+    fetchUserData(); // جلب بيانات المستخدم
+  }
+
+  Future<void> _loadBaseUrl() async {
+    final url = await getBaseUrl();
+    setState(() {
+      baseUrl = url ?? ''; // استخدام القيمة الافتراضية إذا لم يتم تعيينها
+    });
   }
 
   Future<void> fetchUserData() async {
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:8080/api/users/profile'),
+        Uri.parse('$baseUrl/api/users/profile'), // استخدام baseUrl هنا
         headers: {
           'accept': '*/*',
           'Authorization': 'Bearer ${widget.token}',
@@ -55,7 +67,7 @@ class _EditProfileScreenState extends State<EditProfile>
           _usernameController.text = userData['userName'] ?? '';
           _emailController.text = userData['email'] ?? '';
           _phoneController.text = userData['phoneNumber'] ?? '';
-          _genderController.text = userData['gender'] ?? ''; // تعيينها إلى فارغة إذا كانت null
+          _genderController.text = userData['gender'] ?? '';
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -90,7 +102,7 @@ class _EditProfileScreenState extends State<EditProfile>
 
       try {
         final response = await http.put(
-          Uri.parse('http://localhost:8080/api/auth/changePassword'),
+          Uri.parse('$baseUrl/api/auth/changePassword'), // استخدام baseUrl هنا
           headers: {
             'accept': '*/*',
             'Authorization': 'Bearer ${widget.token}',
@@ -176,7 +188,7 @@ class _EditProfileScreenState extends State<EditProfile>
       try {
         // التحقق من صحة اسم المستخدم وكلمة المرور
         final authResponse = await http.post(
-          Uri.parse('http://localhost:8080/api/auth/signin'),
+          Uri.parse('$baseUrl/api/auth/signin'), // استخدام baseUrl هنا
           headers: {
             'accept': '*/*',
             'Content-Type': 'application/json',
@@ -197,7 +209,7 @@ class _EditProfileScreenState extends State<EditProfile>
           };
 
           final updateResponse = await http.put(
-            Uri.parse('http://localhost:8080/api/users/update'),
+            Uri.parse('$baseUrl/api/users/update'), // استخدام baseUrl هنا
             headers: {
               'accept': '*/*',
               'Authorization': 'Bearer ${widget.token}',
@@ -379,6 +391,7 @@ class _EditProfileScreenState extends State<EditProfile>
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      bottomNavigationBar: CustomBottomNavigationBar2(), // استخدام CustomBottomNavigationBar
     );
   }
 
@@ -423,5 +436,6 @@ class _EditProfileScreenState extends State<EditProfile>
         ),
       ),
     );
+
   }
 }

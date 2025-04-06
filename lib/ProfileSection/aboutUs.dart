@@ -1,25 +1,36 @@
-import 'dart:ui';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:projtry1/ProfileSection/editProfile.dart';
-import 'profile.dart';  // تأكد من استيراد الصفحة الجديدة هنا
+import 'package:FlawlessYou/ProfileSection/profile.dart';
 
-void main() {
-  runApp(aboutUs());
-}
+import '../SharedPreferences.dart';  // تأكد من استيراد صفحة البروفايل هنا
 
-class aboutUs extends StatelessWidget {
+class aboutUs  extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'About Us',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: MaterialColor(
+          0xFF596D56, {
+          50: Color(0xFFE2E7D8),
+          100: Color(0xFFB5C2A5),
+          200: Color(0xFF8A9D72),
+          300: Color(0xFF5F7840),
+          400: Color(0xFF436C2E),
+          500: Color(0xFF2F6023),
+          600: Color(0xFF275220),
+          700: Color(0xFF1F4420),
+          800: Color(0xFF17362D),
+          900: Color(0xFF0E2B1B),
+        },
+        ),
       ),
       home: CardScreen(),
     );
   }
 }
+
 
 class CardScreen extends StatefulWidget {
   @override
@@ -29,6 +40,24 @@ class CardScreen extends StatefulWidget {
 class _CardScreenState extends State<CardScreen> {
   final PageController _pageController = PageController(viewportFraction: 0.9);
   int _currentIndex = 0;
+  String? _token;
+  Map<String, dynamic> _userInfo = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserInfo();
+  }
+
+  Future<void> _loadUserInfo() async {
+    final userData = await getUserData();
+    if (userData != null) {
+      setState(() {
+        _token = userData['token'];
+        _userInfo = userData['userInfo'];
+      });
+    }
+  }
 
   final List<Map<String, dynamic>> cards = [
     {
@@ -79,19 +108,21 @@ class _CardScreenState extends State<CardScreen> {
         title: Row(
           children: [
             IconButton(
-              icon: Icon(Icons.arrow_back, color: Colors.white, size: 26), // السهم
+              icon: Icon(Icons.arrow_back, color: Colors.white, size: 26),
               onPressed: () {
-                // Navigator.push(
-                //                 //   context,
-                //                 //   MaterialPageRoute(builder: (context) => editProfile()), // الانتقال لصفحة Profile
-                //                 // );
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Profile(token: _token!, userInfo: _userInfo),
+                  ),
+                );
               },
             ),
-            SizedBox(width: 8), // مسافة صغيرة بين السهم والنص
+            SizedBox(width: 8),
             Text(
               "About Us",
               style: TextStyle(
-                fontSize: 20, // خط أصغر
+                fontSize: 20,
                 color: Colors.white,
                 fontWeight: FontWeight.w500,
               ),
@@ -105,8 +136,8 @@ class _CardScreenState extends State<CardScreen> {
           Positioned.fill(
             child: Stack(
               children: [
-                Image.asset(
-                  'assets/aboutusbg.jpg', // تأكد من وضع الصورة في مجلد assets
+                Image.network(
+                  "https://res.cloudinary.com/davwgirjs/image/upload/v1740423125/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740423126526_aboutusbg.jpg.jpg", // رابط الصورة من Cloudinary
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: double.infinity,
@@ -160,7 +191,7 @@ class _CardScreenState extends State<CardScreen> {
                                       style: TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.blue.shade900,
+                                        color: Color(0xFF596D56),
                                         letterSpacing: 1.2,
                                       ),
                                     ),
@@ -171,7 +202,7 @@ class _CardScreenState extends State<CardScreen> {
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 18,
-                                      color: Colors.blue.shade700,
+                                      color: Colors.black,
                                       height: 1.4,
                                     ),
                                   ),
@@ -183,14 +214,14 @@ class _CardScreenState extends State<CardScreen> {
                                         padding: const EdgeInsets.symmetric(vertical: 4.0),
                                         child: Row(
                                           children: [
-                                            Icon(Icons.check_circle, color: Colors.blue.shade600, size: 20),
+                                           // Icon(Icons.check_circle, color: Colors.blue.shade600, size: 20),
                                             SizedBox(width: 8),
                                             Expanded(
                                               child: Text(
                                                 point,
                                                 style: TextStyle(
                                                   fontSize: 16,
-                                                  color: Colors.blue.shade900,
+                                                  color:Color(0xFF596D56)
                                                 ),
                                               ),
                                             ),
