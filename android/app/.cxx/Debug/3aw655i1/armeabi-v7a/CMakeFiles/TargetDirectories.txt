@@ -1,0 +1,2 @@
+C:/Users/fatim/Desktop/university/year4-2/seminar/front/FlawLessYouFlutter/android/app/.cxx/Debug/3aw655i1/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/fatim/Desktop/university/year4-2/seminar/front/FlawLessYouFlutter/android/app/.cxx/Debug/3aw655i1/armeabi-v7a/CMakeFiles/rebuild_cache.dir
