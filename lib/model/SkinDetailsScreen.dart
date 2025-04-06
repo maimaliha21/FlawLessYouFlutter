@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../CustomBottomNavigationBar.dart';
 
 class SkinDetailsScreen extends StatefulWidget {
@@ -29,6 +28,8 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
   List<dynamic> treatments = [];
   Map<String, bool> selectedProducts = {};
   List<String> confirmedProducts = [];
+  Map<String, dynamic>? _productDetails;
+  bool _showProductDetails = false;
 
   Future<void> _analyzeDetails() async {
     setState(() {
@@ -124,6 +125,54 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
     }
   }
 
+  Future<void> _fetchProductDetails(String productId) async {
+    setState(() {
+      _isLoading = true;
+      _showProductDetails = false;
+    });
+
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+      String? baseUrl = prefs.getString('baseUrl');
+
+      if (token == null || baseUrl == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Please login first')),
+        );
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/product/$productId'),
+        headers: {
+          'accept': '*/*',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _productDetails = data;
+          _showProductDetails = true;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load product details')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   void _confirmSelection() {
     setState(() {
       confirmedProducts = selectedProducts.entries
@@ -138,6 +187,13 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
         duration: Duration(seconds: 2),
       ),
     );
+  }
+
+  void _closeProductDetails() {
+    setState(() {
+      _showProductDetails = false;
+      _productDetails = null;
+    });
   }
 
   @override
@@ -155,206 +211,379 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Full width image at top
-            Container(
-              width: double.infinity,
-              height: 250,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Image.file(
-                widget.imageFile,
-                fit: BoxFit.cover,
-              ),
-            ),
-            SizedBox(height: 20),
-
-            // Skin type and analysis results
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Your Skin Type: ${widget.skinType}',
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold
-                    ),
+          : Stack(
+        children: [
+          SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Full width image at top
+                Container(
+                  width: double.infinity,
+                  height: 250,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
                   ),
-                  SizedBox(height: 15),
-                  Card(
-                    elevation: 3,
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Analysis Results:',
-                            style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold
-                            ),
-                          ),
-                          SizedBox(height: 10),
-                          Text(
-                            _detailsResult,
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 20),
-
-            // Error message if any
-            if (_treatmentResult.isNotEmpty)
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
-                child: Text(
-                  _treatmentResult,
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-
-            // Treatments grouped by problem
-            if (treatments.isNotEmpty) ...[
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
-                child: Text(
-                  'Recommended Treatments:',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold
+                  child: Image.file(
+                    widget.imageFile,
+                    fit: BoxFit.cover,
                   ),
                 ),
-              ),
-              SizedBox(height: 10),
+                SizedBox(height: 20),
 
-              // Group treatments by problem
-              ...treatments.map((treatment) {
-                var products = treatment['productIds'] as Map<String, dynamic>;
-                return Card(
-                  margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  elevation: 2,
-                  child: Padding(
-                    padding: EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Problem: ${treatment['problem']}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue[800],
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          treatment['description'],
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        SizedBox(height: 10),
-                        Text(
-                          'Recommended Products:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        ...products.entries.map((entry) {
-                          String productName = entry.value;
-                          return CheckboxListTile(
-                            title: Text(productName),
-                            value: selectedProducts[productName],
-                            onChanged: (bool? value) {
-                              setState(() {
-                                selectedProducts[productName] = value!;
-                              });
-                            },
-                            controlAffinity: ListTileControlAffinity.leading,
-                            contentPadding: EdgeInsets.zero,
-                          );
-                        }).toList(),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-
-              // Confirm button
-              Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Center(
-                  child: ElevatedButton(
-                    onPressed: _confirmSelection,
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 24.0,
-                          vertical: 12.0
-                      ),
-                      child: Text(
-                        'Confirm Selection',
-                        style: TextStyle(fontSize: 18),
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              // Selected products
-              if (confirmedProducts.isNotEmpty) ...[
+                // Skin type and analysis results
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Card(
-                    color: Colors.green[50],
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Your Selected Products:',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green[800],
-                            ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Your Skin Type: ${widget.skinType}',
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold
+                        ),
+                      ),
+                      SizedBox(height: 15),
+                      Card(
+                        elevation: 3,
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Analysis Results:',
+                                style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold
+                                ),
+                              ),
+                              SizedBox(height: 10),
+                              Text(
+                                _detailsResult,
+                                style: TextStyle(fontSize: 16),
+                              ),
+                            ],
                           ),
-                          SizedBox(height: 10),
-                          ...confirmedProducts.map((product) => Padding(
-                            padding: EdgeInsets.symmetric(vertical: 4.0),
-                            child: Row(
-                              children: [
-                                Icon(Icons.check_circle, color: Colors.green),
-                                SizedBox(width: 8),
-                                Expanded(child: Text(product)),
-                              ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 20),
+
+                // Error message if any
+                if (_treatmentResult.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text(
+                      _treatmentResult,
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+
+                // Treatments grouped by problem
+                if (treatments.isNotEmpty) ...[
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text(
+                      'Recommended Treatments:',
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 10),
+
+                  // Group treatments by problem
+                  ...treatments.map((treatment) {
+                    var products = treatment['productIds'] as Map<String, dynamic>;
+                    return Card(
+                      margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      elevation: 2,
+                      child: Padding(
+                        padding: EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Problem: ${treatment['problem']}',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue[800],
+                              ),
                             ),
-                          )),
-                        ],
+                            SizedBox(height: 8),
+                            Text(
+                              treatment['description'],
+                              style: TextStyle(fontSize: 14),
+                            ),
+                            SizedBox(height: 10),
+                            Text(
+                              'Recommended Products:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            ...products.entries.map((entry) {
+                              String productId = entry.key;
+                              String productName = entry.value;
+                              return InkWell(
+                                onTap: () {
+                                  _fetchProductDetails(productId);
+                                },
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                                  child: Row(
+                                    children: [
+                                      Checkbox(
+                                        value: selectedProducts[productName],
+                                        onChanged: (bool? value) {
+                                          setState(() {
+                                            selectedProducts[productName] = value!;
+                                          });
+                                        },
+                                      ),
+                                      SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          productName,
+                                          style: TextStyle(fontSize: 16),
+                                        ),
+                                      ),
+                                      Icon(Icons.info_outline, color: Colors.blue),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+
+                  // Confirm button
+                  Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Center(
+                      child: ElevatedButton(
+                        onPressed: _confirmSelection,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 24.0,
+                              vertical: 12.0
+                          ),
+                          child: Text(
+                            'Confirm Selection',
+                            style: TextStyle(fontSize: 18),
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Selected products
+                  if (confirmedProducts.isNotEmpty) ...[
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Card(
+                        color: Colors.green[50],
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Your Selected Products:',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green[800],
+                                ),
+                              ),
+                              SizedBox(height: 10),
+                              ...confirmedProducts.map((product) => Padding(
+                                padding: EdgeInsets.symmetric(vertical: 4.0),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.check_circle, color: Colors.green),
+                                    SizedBox(width: 8),
+                                    Expanded(child: Text(product)),
+                                  ],
+                                ),
+                              )),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+                SizedBox(height: 20),
+              ],
+            ),
+          ),
+
+          // Product details overlay
+          if (_showProductDetails && _productDetails != null)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black54,
+                child: Center(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Card(
+                        elevation: 10,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    _productDetails!['name'],
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.close),
+                                    onPressed: _closeProductDetails,
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 15),
+
+                              if (_productDetails!['photos'] != null &&
+                                  _productDetails!['photos'].isNotEmpty)
+                                Container(
+                                  height: 200,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    image: DecorationImage(
+                                      image: NetworkImage(_productDetails!['photos'][0]),
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                ),
+                              SizedBox(height: 20),
+
+                              Text(
+                                'Description:',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 5),
+                              Text(
+                                _productDetails!['description'] ?? 'No description available',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                              SizedBox(height: 15),
+
+                              if (_productDetails!['ingredients'] != null &&
+                                  _productDetails!['ingredients'].isNotEmpty)
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Ingredients:',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    SizedBox(height: 5),
+                                    Wrap(
+                                      spacing: 8,
+                                      children: _productDetails!['ingredients']
+                                          .map<Widget>((ingredient) => Chip(
+                                        label: Text(ingredient),
+                                      ))
+                                          .toList(),
+                                    ),
+                                  ],
+                                ),
+                              SizedBox(height: 15),
+
+                              if (_productDetails!['usageTime'] != null &&
+                                  _productDetails!['usageTime'].isNotEmpty)
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Recommended Usage Time:',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    SizedBox(height: 5),
+                                    Wrap(
+                                      spacing: 8,
+                                      children: _productDetails!['usageTime']
+                                          .map<Widget>((time) => Chip(
+                                        label: Text(time),
+                                        backgroundColor: Colors.blue[100],
+                                      ))
+                                          .toList(),
+                                    ),
+                                  ],
+                                ),
+                              SizedBox(height: 15),
+
+                              if (_productDetails!['skinType'] != null &&
+                                  _productDetails!['skinType'].isNotEmpty)
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Suitable for Skin Types:',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    SizedBox(height: 5),
+                                    Wrap(
+                                      spacing: 8,
+                                      children: _productDetails!['skinType']
+                                          .map<Widget>((type) => Chip(
+                                        label: Text(type),
+                                        backgroundColor: Colors.green[100],
+                                      ))
+                                          .toList(),
+                                    ),
+                                  ],
+                                ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ],
-            ],
-            SizedBox(height: 20),
-          ],
-        ),
+              ),
+            ),
+        ],
       ),
       bottomNavigationBar: CustomBottomNavigationBar2(),
     );
