@@ -18,6 +18,10 @@ class _SkinAnalysisHistoryScreenState extends State<SkinAnalysisHistoryScreen> {
   Map<String, dynamic>? _selectedAnalysis;
   bool _showDetails = false;
   final String _cacheKey = 'skin_analysis_history_cache';
+  Map<String, bool> _selectedProducts = {};
+  Map<String, String> _productIdMap = {};
+  bool _routineCreated = false;
+  List<String> _confirmedProducts = [];
 
   @override
   void initState() {
@@ -100,9 +104,23 @@ class _SkinAnalysisHistoryScreenState extends State<SkinAnalysisHistoryScreen> {
   }
 
   void _showAnalysisDetails(Map<String, dynamic> analysis) {
+    // Initialize selected products map
+    _selectedProducts.clear();
+    _productIdMap.clear();
+
+    for (var treatment in analysis['treatmentId']) {
+      var products = treatment['productIds'] as Map<String, dynamic>;
+      products.forEach((id, name) {
+        _selectedProducts[name] = false;
+        _productIdMap[name] = id;
+      });
+    }
+
     setState(() {
       _selectedAnalysis = analysis;
       _showDetails = true;
+      _routineCreated = false;
+      _confirmedProducts.clear();
     });
   }
 
@@ -111,6 +129,97 @@ class _SkinAnalysisHistoryScreenState extends State<SkinAnalysisHistoryScreen> {
       _showDetails = false;
       _selectedAnalysis = null;
     });
+  }
+
+  Future<void> _confirmSelection() async {
+    // Get selected product IDs
+    List<String> selectedIds = [];
+    _selectedProducts.forEach((name, isSelected) {
+      if (isSelected && _productIdMap.containsKey(name)) {
+        selectedIds.add(_productIdMap[name]!);
+      }
+    });
+
+    if (selectedIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please select at least one product')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+      String? baseUrl = prefs.getString('baseUrl');
+      String? userInfoJson = prefs.getString('userInfo');
+
+      if (token == null || baseUrl == null || userInfoJson == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Please login first')),
+        );
+        return;
+      }
+
+      Map<String, dynamic> userInfo = jsonDecode(userInfoJson);
+      String userId = userInfo['userId'];
+
+      // Determine main problem
+      String mainProblem = "General Care";
+      final problems = _selectedAnalysis!['problems'] as Map<String, dynamic>;
+      if (problems['WRINKLES'] > 0) {
+        mainProblem = "Wrinkles";
+      } else if (problems['ACNE'] > 0) {
+        mainProblem = "Acne";
+      } else if (problems['PIGMENTATION'] > 0) {
+        mainProblem = "Pigmentation";
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/routines/create'),
+        headers: {
+          'accept': '*/*',
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          "userId": userId,
+          "productIds": selectedIds,
+          "timeAnalysis": DateTime.now().toIso8601String(),
+          "description": "Routine for $mainProblem",
+          "analysisId": _selectedAnalysis!['id'],
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _routineCreated = true;
+          _confirmedProducts = _selectedProducts.entries
+              .where((entry) => entry.value)
+              .map((entry) => entry.key)
+              .toList();
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Routine created successfully!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create routine: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error creating routine: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   String _formatAnalysisDate(String? dateString) {
@@ -358,7 +467,14 @@ class _SkinAnalysisHistoryScreenState extends State<SkinAnalysisHistoryScreen> {
                                   padding: const EdgeInsets.symmetric(vertical: 4),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.arrow_right, size: 16),
+                                      Checkbox(
+                                        value: _selectedProducts[entry.value] ?? false,
+                                        onChanged: (bool? value) {
+                                          setState(() {
+                                            _selectedProducts[entry.value] = value!;
+                                          });
+                                        },
+                                      ),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
@@ -374,6 +490,62 @@ class _SkinAnalysisHistoryScreenState extends State<SkinAnalysisHistoryScreen> {
                           ),
                         );
                       }).toList(),
+
+                      if (_routineCreated) ...[
+                        const SizedBox(height: 20),
+                        Card(
+                          color: Colors.green[50],
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Your Selected Products:',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green[800],
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                ..._confirmedProducts.map((product) => Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.check_circle, color: Colors.green),
+                                      const SizedBox(width: 8),
+                                      Expanded(child: Text(product)),
+                                    ],
+                                  ),
+                                )),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 20),
+                      Center(
+                        child: ElevatedButton(
+                          onPressed: _routineCreated ? null : _confirmSelection,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24.0,
+                                vertical: 12.0
+                            ),
+                            child: Text(
+                              _routineCreated ? 'Routine Created!' : 'Confirm Selection',
+                              style: const TextStyle(fontSize: 18),
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                              backgroundColor: _routineCreated ? Colors.grey : Colors.blue,                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -388,7 +560,6 @@ class _SkinAnalysisHistoryScreenState extends State<SkinAnalysisHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
       body: _isLoading && _analysisHistory.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage.isNotEmpty && _analysisHistory.isEmpty
