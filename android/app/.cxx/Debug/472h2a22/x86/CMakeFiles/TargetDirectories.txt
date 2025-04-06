@@ -1,2 +1,0 @@
-C:/Users/lenovo/OneDrive/Desktop/FlawLessYouFlutter/android/app/.cxx/Debug/472h2a22/x86/CMakeFiles/edit_cache.dir
-C:/Users/lenovo/OneDrive/Desktop/FlawLessYouFlutter/android/app/.cxx/Debug/472h2a22/x86/CMakeFiles/rebuild_cache.dir
