@@ -113,10 +113,20 @@ class _SkinAnalysisHistoryScreenState extends State<SkinAnalysisHistoryScreen> {
     });
   }
 
+  String _formatAnalysisDate(String? dateString) {
+    if (dateString == null) return 'No date';
+
+    try {
+      final date = DateTime.parse(dateString);
+      return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return 'Invalid date';
+    }
+  }
+
   Widget _buildAnalysisItem(Map<String, dynamic> analysis) {
     final problems = analysis['problems'] as Map<String, dynamic>;
-    final date = DateTime.parse(analysis['timeAnalysis'] ?? DateTime.now().toString());
-    final formattedDate = '${date.day}/${date.month}/${date.year}';
+    final formattedDate = _formatAnalysisDate(analysis['createdAt']);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -200,6 +210,10 @@ class _SkinAnalysisHistoryScreenState extends State<SkinAnalysisHistoryScreen> {
   }
 
   Widget _buildAnalysisDetails() {
+    if (_selectedAnalysis == null) return Container();
+
+    final formattedDate = _formatAnalysisDate(_selectedAnalysis!['createdAt']);
+
     return Positioned.fill(
       child: Container(
         color: Colors.black54,
@@ -236,6 +250,14 @@ class _SkinAnalysisHistoryScreenState extends State<SkinAnalysisHistoryScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
+                      Text(
+                        'Date: $formattedDate',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
 
                       if (_selectedAnalysis!['imageUrl'] != null)
                         ClipRRect(
