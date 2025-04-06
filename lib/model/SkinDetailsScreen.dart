@@ -27,9 +27,12 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
   String apiTreatmentUrl = '';
   List<dynamic> treatments = [];
   Map<String, bool> selectedProducts = {};
+  Map<String, String> productIdMap = {}; // Maps product names to IDs
   List<String> confirmedProducts = [];
+  List<String> confirmedProductIds = []; // Stores selected product IDs
   Map<String, dynamic>? _productDetails;
   bool _showProductDetails = false;
+  String? _analysisId;
 
   Future<void> _analyzeDetails() async {
     setState(() {
@@ -55,6 +58,7 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
           """;
         });
         await _fetchTreatmentRecommendations(data);
+        await _uploadImageToServer(); // Call the new function after successful analysis
       } else {
         setState(() {
           _detailsResult = 'Analysis Error: ${response.statusCode}';
@@ -68,6 +72,46 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _uploadImageToServer() async {
+    if (_analysisId == null) return;
+
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+      String? baseUrl = prefs.getString('baseUrl');
+
+      if (token == null || baseUrl == null) {
+        return;
+      }
+
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/api/skin-analysis/$_analysisId/upload-image'),
+      );
+
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['accept'] = '*/*';
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'imageFile',
+          widget.imageFile.path,
+          filename: 'skin_analysis_${DateTime.now().millisecondsSinceEpoch}.png',
+        ),
+      );
+
+      var response = await request.send();
+
+      if (response.statusCode == 200) {
+        print('Image uploaded successfully');
+      } else {
+        print('Failed to upload image: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error uploading image: $e');
     }
   }
 
@@ -105,11 +149,13 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
         final data = json.decode(response.body);
         setState(() {
           treatments = data['treatmentId'];
-          // Initialize selected products map
+          _analysisId = data['id']; // Store the analysis ID
+          // Initialize selected products map and product ID map
           for (var treatment in treatments) {
             var products = treatment['productIds'] as Map<String, dynamic>;
             products.forEach((id, name) {
               selectedProducts[name] = false;
+              productIdMap[name] = id; // Map product name to ID
             });
           }
         });
@@ -173,20 +219,91 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
     }
   }
 
-  void _confirmSelection() {
+  Future<void> _confirmSelection() async {
+    // Get the selected product IDs
+    confirmedProductIds = selectedProducts.entries
+        .where((entry) => entry.value)
+        .map((entry) => productIdMap[entry.key]!)
+        .toList();
+
+    confirmedProducts = selectedProducts.entries
+        .where((entry) => entry.value)
+        .map((entry) => entry.key)
+        .toList();
+
+    if (confirmedProducts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please select at least one product')),
+      );
+      return;
+    }
+
     setState(() {
-      confirmedProducts = selectedProducts.entries
-          .where((entry) => entry.value)
-          .map((entry) => entry.key)
-          .toList();
+      _isLoading = true;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${confirmedProducts.length} products selected'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+      String? baseUrl = prefs.getString('baseUrl');
+      String? userInfoJson = prefs.getString('userInfo');
+
+      if (token == null || baseUrl == null || userInfoJson == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Please login first')),
+        );
+        return;
+      }
+
+      Map<String, dynamic> userInfo = jsonDecode(userInfoJson);
+      String userId = userInfo['userId'];
+
+      // Get the main problem (the one with highest percentage)
+      final problems = _detailsResult.split('\n');
+      String mainProblem = "general care";
+      if (problems.isNotEmpty) {
+        mainProblem = problems[0].split(':')[0].trim().toLowerCase();
+      }
+
+      // Create the routine
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/routines/create'),
+        headers: {
+          'accept': '*/*',
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          "userId": userId,
+          "productIds": confirmedProductIds,
+          "timeAnalysis": DateTime.now().toIso8601String(),
+          "description": "This routine is for $mainProblem problem",
+          "analysisId": _analysisId,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Routine created successfully!'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create routine: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error creating routine: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   void _closeProductDetails() {
@@ -453,19 +570,19 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                            Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _productDetails!['name'],
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      _productDetails!['name'],
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),),
                                   IconButton(
                                     icon: Icon(Icons.close),
                                     onPressed: _closeProductDetails,
