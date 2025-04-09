@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http_parser/http_parser.dart'; // لأجل MediaType
 import '../CustomBottomNavigationBar.dart';
 import '../LogIn/login.dart';
-import '../Product/product.dart';
 import '../SharedPreferences.dart';
 
 class EditProfile extends StatefulWidget {
@@ -34,27 +34,33 @@ class _EditProfileScreenState extends State<EditProfile>
   final TextEditingController _confirmPasswordController = TextEditingController();
 
   late TabController _tabController;
-  String baseUrl = ''; // القيمة الافتراضية
+  String baseUrl = '';
+  bool _isLoading = false;
+  String? _profileImageUrl;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _loadBaseUrl(); // تحميل baseUrl من SharedPreferences
-    fetchUserData(); // جلب بيانات المستخدم
+    _loadBaseUrl();
+    fetchUserData();
   }
 
   Future<void> _loadBaseUrl() async {
     final url = await getBaseUrl();
     setState(() {
-      baseUrl = url ?? ''; // استخدام القيمة الافتراضية إذا لم يتم تعيينها
+      baseUrl = url ?? '';
     });
   }
 
   Future<void> fetchUserData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/api/users/profile'), // استخدام baseUrl هنا
+        Uri.parse('$baseUrl/api/users/profile'),
         headers: {
           'accept': '*/*',
           'Authorization': 'Bearer ${widget.token}',
@@ -68,6 +74,7 @@ class _EditProfileScreenState extends State<EditProfile>
           _emailController.text = userData['email'] ?? '';
           _phoneController.text = userData['phoneNumber'] ?? '';
           _genderController.text = userData['gender'] ?? '';
+          _profileImageUrl = userData['profilePictureUrl'];
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -78,21 +85,101 @@ class _EditProfileScreenState extends State<EditProfile>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
   Future<void> _pickImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        final File imageFile = File(image.path);
+        final int fileSize = await imageFile.length();
+        const int maxSize = 5 * 1024 * 1024; // 5MB
+
+        if (fileSize > maxSize) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Image size should be less than 5MB')),
+          );
+          return;
+        }
+
+        setState(() {
+          _profileImage = imageFile;
+          _isLoading = true;
+        });
+
+        await _uploadProfileImage(imageFile);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error selecting image: $e')),
+      );
+    }
+  }
+
+  Future<void> _uploadProfileImage(File imageFile) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/api/users/profilePicture'),
+      );
+
+      request.headers['Authorization'] = 'Bearer ${widget.token}';
+      request.headers['accept'] = '*/*';
+
+      // تحديد نوع المحتوى بناءً على امتداد الملف
+      String extension = imageFile.path.split('.').last.toLowerCase();
+      String contentType = 'image/$extension';
+      if (extension == 'jpg') contentType = 'image/jpeg';
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          imageFile.path,
+          contentType: MediaType.parse(contentType),
+        ),
+      );
+
+      var response = await request.send();
+      var responseData = await response.stream.bytesToString();
+      var jsonResponse = jsonDecode(responseData);
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _profileImageUrl = jsonResponse['url'];
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(jsonResponse['message'] ?? 'Profile picture updated successfully')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to upload: ${jsonResponse['message'] ?? response.reasonPhrase}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload error: ${e.toString()}')),
+      );
+      debugPrint('Upload error details: $e');
+    } finally {
       setState(() {
-        _profileImage = File(image.path);
+        _isLoading = false;
       });
     }
   }
 
   Future<void> _saveChanges() async {
     if (_tabController.index == 1) {
-      // إذا كان التبويب المفتوح هو Security
       if (_newPasswordController.text != _confirmPasswordController.text) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('New password and confirmation do not match')),
@@ -100,9 +187,13 @@ class _EditProfileScreenState extends State<EditProfile>
         return;
       }
 
+      setState(() {
+        _isLoading = true;
+      });
+
       try {
         final response = await http.put(
-          Uri.parse('$baseUrl/api/auth/changePassword'), // استخدام baseUrl هنا
+          Uri.parse('$baseUrl/api/auth/changePassword'),
           headers: {
             'accept': '*/*',
             'Authorization': 'Bearer ${widget.token}',
@@ -119,7 +210,6 @@ class _EditProfileScreenState extends State<EditProfile>
             SnackBar(content: Text('Password changed successfully')),
           );
 
-          // الانتقال إلى صفحة تسجيل الدخول بعد عرض الرسالة
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => LoginScreen()),
           );
@@ -132,9 +222,12 @@ class _EditProfileScreenState extends State<EditProfile>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('An error occurred: $e')),
         );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
       }
     } else {
-      // إذا كان التبويب المفتوح هو Personal Info
       final result = await showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -170,7 +263,7 @@ class _EditProfileScreenState extends State<EditProfile>
               ),
               TextButton(
                 onPressed: () {
-                  Navigator.of(context).pop(); // إغلاق Dialog بدون إرجاع بيانات
+                  Navigator.of(context).pop();
                 },
                 child: Text('Cancel'),
               ),
@@ -179,28 +272,26 @@ class _EditProfileScreenState extends State<EditProfile>
         },
       );
 
-      // إذا تم الضغط على إلغاء، لا نكمل العملية
       if (result == null) return;
 
-      final String username = result['username'];
-      final String password = result['password'];
+      setState(() {
+        _isLoading = true;
+      });
 
       try {
-        // التحقق من صحة اسم المستخدم وكلمة المرور
         final authResponse = await http.post(
-          Uri.parse('$baseUrl/api/auth/signin'), // استخدام baseUrl هنا
+          Uri.parse('$baseUrl/api/auth/signin'),
           headers: {
             'accept': '*/*',
             'Content-Type': 'application/json',
           },
           body: jsonEncode({
-            'username': username,
-            'password': password,
+            'username': result['username'],
+            'password': result['password'],
           }),
         );
 
         if (authResponse.statusCode == 200) {
-          // إذا كانت البيانات صحيحة، نتابع عملية التحديث
           final Map<String, dynamic> requestBody = {
             "userName": _usernameController.text,
             "email": _emailController.text,
@@ -209,7 +300,7 @@ class _EditProfileScreenState extends State<EditProfile>
           };
 
           final updateResponse = await http.put(
-            Uri.parse('$baseUrl/api/users/update'), // استخدام baseUrl هنا
+            Uri.parse('$baseUrl/api/users/update'),
             headers: {
               'accept': '*/*',
               'Authorization': 'Bearer ${widget.token}',
@@ -223,7 +314,6 @@ class _EditProfileScreenState extends State<EditProfile>
               SnackBar(content: Text('User updated successfully')),
             );
 
-            // الانتقال إلى صفحة تسجيل الدخول بعد عرض الرسالة
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (context) => LoginScreen()),
             );
@@ -233,7 +323,6 @@ class _EditProfileScreenState extends State<EditProfile>
             );
           }
         } else {
-          // إذا كانت البيانات غير صحيحة، نعرض رسالة خطأ
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Username or password is incorrect')),
           );
@@ -242,6 +331,10 @@ class _EditProfileScreenState extends State<EditProfile>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('An error occurred: $e')),
         );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -249,6 +342,13 @@ class _EditProfileScreenState extends State<EditProfile>
   @override
   void dispose() {
     _tabController.dispose();
+    _usernameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _genderController.dispose();
+    _oldPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -256,7 +356,7 @@ class _EditProfileScreenState extends State<EditProfile>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Edit AdminProfileSectio'),
+        title: Text('Edit Profile'),
         bottom: TabBar(
           controller: _tabController,
           tabs: [
@@ -265,7 +365,9 @@ class _EditProfileScreenState extends State<EditProfile>
           ],
         ),
       ),
-      body: Column(
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : Column(
         children: [
           SizedBox(height: 20),
           Padding(
@@ -287,9 +389,7 @@ class _EditProfileScreenState extends State<EditProfile>
                 child: CircleAvatar(
                   radius: 60,
                   backgroundColor: Colors.grey[200],
-                  backgroundImage: _profileImage == null
-                      ? AssetImage('assets/profile.jpg') as ImageProvider
-                      : FileImage(_profileImage!),
+                  backgroundImage: _getProfileImage(),
                 ),
               ),
             ),
@@ -299,12 +399,10 @@ class _EditProfileScreenState extends State<EditProfile>
             child: TabBarView(
               controller: _tabController,
               children: [
-                // Personal Info Tab
                 SingleChildScrollView(
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      // Username field
                       _buildTextFieldWithDescription(
                         'Username',
                         _usernameController,
@@ -312,8 +410,6 @@ class _EditProfileScreenState extends State<EditProfile>
                         hintText: _usernameController.text.isEmpty ? null : _usernameController.text,
                       ),
                       const SizedBox(height: 10),
-
-                      // Email field
                       _buildTextFieldWithDescription(
                         'Email',
                         _emailController,
@@ -321,8 +417,6 @@ class _EditProfileScreenState extends State<EditProfile>
                         hintText: _emailController.text.isEmpty ? null : _emailController.text,
                       ),
                       const SizedBox(height: 10),
-
-                      // Phone number field
                       _buildTextFieldWithDescription(
                         'Phone Number',
                         _phoneController,
@@ -330,8 +424,6 @@ class _EditProfileScreenState extends State<EditProfile>
                         hintText: _phoneController.text.isEmpty ? null : _phoneController.text,
                       ),
                       const SizedBox(height: 10),
-
-                      // Gender field
                       _buildTextFieldWithDescription(
                         'Gender',
                         _genderController,
@@ -342,8 +434,6 @@ class _EditProfileScreenState extends State<EditProfile>
                     ],
                   ),
                 ),
-
-                // Security Tab
                 SingleChildScrollView(
                   padding: const EdgeInsets.all(20),
                   child: Column(
@@ -374,7 +464,9 @@ class _EditProfileScreenState extends State<EditProfile>
           ),
         ],
       ),
-      floatingActionButton: Padding(
+      floatingActionButton: _isLoading
+          ? null
+          : Padding(
         padding: EdgeInsets.only(bottom: 155),
         child: FloatingActionButton.extended(
           onPressed: _saveChanges,
@@ -391,8 +483,17 @@ class _EditProfileScreenState extends State<EditProfile>
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      bottomNavigationBar: CustomBottomNavigationBar2(), // استخدام CustomBottomNavigationBar
+      bottomNavigationBar: CustomBottomNavigationBar2(),
     );
+  }
+
+  ImageProvider? _getProfileImage() {
+    if (_profileImage != null) {
+      return FileImage(_profileImage!);
+    } else if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
+      return NetworkImage(_profileImageUrl!);
+    }
+    return AssetImage('assets/profile.jpg');
   }
 
   Widget _buildTextFieldWithDescription(
@@ -427,7 +528,7 @@ class _EditProfileScreenState extends State<EditProfile>
         obscureText: isPassword,
         decoration: InputDecoration(
           labelText: label,
-          hintText: hintText, // عرض البيانات الحالية كـ hint
+          hintText: hintText,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
           ),
@@ -436,6 +537,5 @@ class _EditProfileScreenState extends State<EditProfile>
         ),
       ),
     );
-
   }
 }
