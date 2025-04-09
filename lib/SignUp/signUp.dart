@@ -5,7 +5,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../ProfileSection/profile.dart';
-import '../SharedPreferences.dart'; // تأكد من أن هذا الملف موجود ويحتوي على الدوال المطلوبة
+import '../SharedPreferences.dart';
 
 class signup extends StatelessWidget {
   const signup({super.key});
@@ -38,9 +38,24 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
 
+  // Color Scheme
+  final Color primaryColor = const Color(0xFF88A383); // Sage green
+  final Color backgroundColor = const Color(0xFFF8F9FA); // Light background
+  final Color cardColor = Colors.white;
+  final Color textColor = const Color(0xFF212529);
+  final Color secondaryTextColor = const Color(0xFF6C757D);
+  final Color borderColor = const Color(0xFFE9ECEF);
+
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: primaryColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
     );
   }
 
@@ -62,7 +77,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       }
 
       if (!isChecked) {
-        _showSnackBar('You must agree to the Privacy and Policy');
+        _showSnackBar('Please agree to the Privacy Policy');
         return;
       }
 
@@ -77,9 +92,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         'gender': _gender,
       };
 
-      print('Sending request to: $signupUrl');
-      print('Request body: $requestBody');
-
       try {
         final response = await http.post(
           Uri.parse(signupUrl),
@@ -87,15 +99,11 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           body: jsonEncode(requestBody),
         );
 
-        print('Response status code: ${response.statusCode}');
-        print('Response body: ${response.body}');
-
         if (response.statusCode == 200) {
-          _showSnackBar('User registered successfully!');
+          _showSnackBar('Registration successful!');
           await _signIn();
-
         } else {
-          _showSnackBar('Failed to register user: ${response.body}');
+          _showSnackBar('Registration failed: ${response.body}');
         }
       } catch (e) {
         _showSnackBar('An error occurred: $e');
@@ -112,9 +120,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       "password": _passwordController.text.trim(),
     };
 
-    print('Sending request to: $signInUrl');
-    print('Request body: $requestBody');
-
     try {
       final response = await http.post(
         Uri.parse(signInUrl),
@@ -122,27 +127,52 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         body: jsonEncode(requestBody),
       );
 
-      print('Response status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final token = data['accessToken'];
+
+        if (_imageFile != null) {
+          await _uploadProfilePicture(token);
+        }
+
         await _fetchUserInfo(token);
       } else {
-        _showSnackBar('Failed to sign in: ${response.body}');
+        _showSnackBar('Login failed: ${response.body}');
       }
     } catch (e) {
       _showSnackBar('An error occurred: $e');
     }
   }
 
+  Future<void> _uploadProfilePicture(String token) async {
+    final baseUrl = await getBaseUrl();
+    final uploadUrl = '$baseUrl/api/users/profilePicture';
+
+    try {
+      var request = http.MultipartRequest('POST', Uri.parse(uploadUrl));
+      request.headers['Authorization'] = 'Bearer $token';
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          _imageFile!.path,
+        ),
+      );
+
+      var response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      if (response.statusCode != 200) {
+        _showSnackBar('Failed to upload profile picture: $responseBody');
+      }
+    } catch (e) {
+      _showSnackBar('Upload error: $e');
+    }
+  }
+
   Future<void> _fetchUserInfo(String token) async {
     final baseUrl = await getBaseUrl();
     final userInfoUrl = '$baseUrl/api/users/me';
-
-    print('Sending request to: $userInfoUrl');
-    print('Token: $token');
 
     try {
       final response = await http.get(
@@ -153,19 +183,15 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         },
       );
 
-      print('Response status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final userInfo = jsonDecode(response.body);
         await saveUserData(token, userInfo);
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) =>  Profile(token: token, userInfo: userInfo),
+            builder: (context) => Profile(token: token, userInfo: userInfo),
           ),
         );
-        _showSnackBar('User info fetched successfully!');
       } else {
         _showSnackBar('Failed to fetch user info: ${response.body}');
       }
@@ -180,20 +206,21 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         GestureDetector(
           onTap: _pickImage,
           child: CircleAvatar(
-            radius: 50,
-            backgroundColor: Colors.blue.shade100,
+            radius: 60,
+            backgroundColor: primaryColor.withOpacity(0.1),
             backgroundImage: _imageFile != null ? FileImage(_imageFile!) : null,
             child: _imageFile == null
-                ? Icon(Icons.camera_alt, size: 40, color: Colors.blue.shade700)
+                ? Icon(Icons.add_a_photo, size: 40, color: primaryColor)
                 : null,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Text(
           'Add Profile Picture',
           style: GoogleFonts.poppins(
-            fontSize: 12,
-            color: Colors.blue.shade700,
+            fontSize: 14,
+            color: primaryColor,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],
@@ -203,190 +230,213 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.lightBlue.shade50,
-      body: Stack(
-        children: [
-          Positioned(
-            top: -50,
-            left: -50,
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.blue.shade100.withOpacity(0.5),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -100,
-            right: -100,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                color: Colors.blue.shade100.withOpacity(0.5),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Center(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      _buildImagePicker(),
-                      const SizedBox(height: 20),
-                      Image.asset(
-                        'assets/p1.png',
-                        width: 150,
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Create your account',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          color: Colors.black,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 50),
-                      Container(
-                        width: 280,
-                        child: Column(
-                          children: [
-                            _buildTextField('Username', _usernameController, false),
-                            const SizedBox(height: 10),
-                            _buildTextField('Email', _emailController, false),
-                            const SizedBox(height: 10),
-                            _buildTextField('Phone Number', _phoneNumberController, false),
-                            const SizedBox(height: 10),
-                            _buildTextField('Password', _passwordController, true),
-                            const SizedBox(height: 10),
-                            _buildTextField('Confirm Password', _confirmPasswordController, true),
-                            const SizedBox(height: 15),
-                            DropdownButtonFormField<String>(
-                              value: _gender,
-                              onChanged: (newValue) {
-                                setState(() {
-                                  _gender = newValue;
-                                });
-                              },
-                              items: <String>['MALE', 'FEMALE']
-                                  .map<DropdownMenuItem<String>>((String value) {
-                                return DropdownMenuItem<String>(
-                                  value: value,
-                                  child: Text(value),
-                                );
-                              }).toList(),
-                              decoration: InputDecoration(
-                                labelText: 'Gender',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 15),
-                            GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  isChecked = !isChecked;
-                                });
-                              },
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 24,
-                                    height: 24,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(color: Colors.grey.shade600),
-                                      color: isChecked ? Colors.blue.shade700 : Colors.transparent,
-                                    ),
-                                    child: isChecked
-                                        ? const Icon(Icons.check, color: Colors.white, size: 18)
-                                        : null,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      'I agree with and accept Privacy and Policy',
-                                      style: GoogleFonts.poppins(fontSize: 12),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            _buildButtonContainer('Sign Up', _signup),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+      backgroundColor: backgroundColor,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              Text(
+                'Create Account',
+                style: GoogleFonts.poppins(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
                 ),
               ),
-            ),
+              const SizedBox(height: 8),
+              Text(
+                'Fill in your details to get started',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: secondaryTextColor,
+                ),
+              ),
+              const SizedBox(height: 32),
+              _buildImagePicker(),
+              const SizedBox(height: 32),
+              Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    _buildTextField('Username', Icons.person, _usernameController, false),
+                    const SizedBox(height: 16),
+                    _buildTextField('Email', Icons.email, _emailController, false),
+                    const SizedBox(height: 16),
+                    _buildTextField('Phone Number', Icons.phone, _phoneNumberController, false),
+                    const SizedBox(height: 16),
+                    _buildTextField('Password', Icons.lock, _passwordController, true),
+                    const SizedBox(height: 16),
+                    _buildTextField('Confirm Password', Icons.lock, _confirmPasswordController, true),
+                    const SizedBox(height: 16),
+                    _buildGenderDropdown(),
+                    const SizedBox(height: 24),
+                    _buildTermsCheckbox(),
+                    const SizedBox(height: 32),
+                    _buildsignupButton(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(String label, IconData icon, TextEditingController controller, bool isPassword) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
+      child: TextFormField(
+        controller: controller,
+        obscureText: isPassword,
+        style: GoogleFonts.poppins(color: textColor),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: GoogleFonts.poppins(color: secondaryTextColor),
+          prefixIcon: Icon(icon, color: primaryColor),
+          filled: true,
+          fillColor: cardColor,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: primaryColor, width: 1.5),
+          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        ),
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Please enter $label';
+          }
+          return null;
+        },
+      ),
     );
   }
 
-  Widget _buildTextField(String hintText, TextEditingController controller, bool isPassword) {
-    return TextFormField(
-      controller: controller,
-      obscureText: isPassword,
-      style: GoogleFonts.poppins(fontSize: 14),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: GoogleFonts.poppins(color: Colors.grey.shade600, fontSize: 14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.blue.shade300, width: 2),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
+  Widget _buildGenderDropdown() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Please enter $hintText';
-        }
-        return null;
-      },
+      child: DropdownButtonFormField<String>(
+        value: _gender,
+        onChanged: (newValue) {
+          setState(() {
+            _gender = newValue;
+          });
+        },
+        items: <String>['MALE', 'FEMALE']
+            .map<DropdownMenuItem<String>>((String value) {
+          return DropdownMenuItem<String>(
+            value: value,
+            child: Text(
+              value == 'MALE' ? 'Male' : 'Female',
+              style: GoogleFonts.poppins(),
+            ),
+          );
+        }).toList(),
+        decoration: InputDecoration(
+          labelText: 'Gender',
+          labelStyle: GoogleFonts.poppins(color: secondaryTextColor),
+          prefixIcon: Icon(Icons.people, color: primaryColor),
+          filled: true,
+          fillColor: cardColor,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: primaryColor, width: 1.5),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        ),
+        style: GoogleFonts.poppins(color: textColor),
+      ),
     );
   }
 
-  Widget _buildButtonContainer(String text, VoidCallback onPressed) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+  Widget _buildTermsCheckbox() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              isChecked = !isChecked;
+            });
+          },
+          child: Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              color: isChecked ? primaryColor : Colors.transparent,
+              border: Border.all(
+                color: isChecked ? primaryColor : borderColor,
+                width: 1.5,
+              ),
+            ),
+            child: isChecked
+                ? const Icon(Icons.check, size: 16, color: Colors.white)
+                : null,
+          ),
         ),
-        backgroundColor: Colors.blue.shade700,
-      ),
-      child: Text(
-        text,
-        style: GoogleFonts.poppins(
-          color: Colors.white,
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            'I agree to the Terms and Conditions and Privacy Policy',
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              color: secondaryTextColor,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildsignupButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _signup,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryColor,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 3,
+        ),
+        child: Text(
+          'Sign Up',
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
         ),
       ),
     );
