@@ -9,6 +9,9 @@ import '../CustomBottomNavigationBar.dart';
 import '../LogIn/login.dart';
 import '../SharedPreferences.dart';
 
+// Define the new primary color
+const Color primaryGreenColor = Color(0xFF88A383);
+
 class EditProfile extends StatefulWidget {
   final String token;
 
@@ -287,7 +290,7 @@ class _EditProfileScreenState extends State<EditProfile>
               onPressed: () => Navigator.of(context).pop({'username': username, 'password': password}),
               child: Text('Verify', style: TextStyle(color: Colors.white)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
+                backgroundColor: primaryGreenColor,
               ),
             ),
           ],
@@ -395,13 +398,14 @@ class _EditProfileScreenState extends State<EditProfile>
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           boxShadow: [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 10,
-              spreadRadius: 2,
-              offset: Offset(0, 4),
-            ),
-          ],
+          BoxShadow(
+          color: Colors.black26,
+          blurRadius: 10,
+          spreadRadius: 2,
+          offset: Offset(0, 4),
+          ), ],
+
+
         ),
         child: Stack(
           children: [
@@ -430,7 +434,7 @@ class _EditProfileScreenState extends State<EditProfile>
               child: Container(
                 padding: EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor,
+                  color: primaryGreenColor,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.edit, color: Colors.white, size: 20),
@@ -535,7 +539,7 @@ class _EditProfileScreenState extends State<EditProfile>
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Theme.of(context).primaryColor),
+          borderSide: BorderSide(color: primaryGreenColor),
         ),
         filled: true,
         fillColor: Colors.grey[100],
@@ -606,7 +610,7 @@ class _EditProfileScreenState extends State<EditProfile>
           ),
         ),
         centerTitle: true,
-        backgroundColor: Theme.of(context).primaryColor,
+        backgroundColor: primaryGreenColor,
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
@@ -650,7 +654,7 @@ class _EditProfileScreenState extends State<EditProfile>
               fontWeight: FontWeight.bold,
             ),
           ),
-          backgroundColor: Theme.of(context).primaryColor,
+          backgroundColor: primaryGreenColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
