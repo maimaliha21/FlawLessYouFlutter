@@ -100,8 +100,11 @@ class LoginScreen extends StatelessWidget {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => chatexpert(),
-              ),
+                builder: (context) => Profile(
+                  token: token,
+                  userInfo: userInfo,
+                ),
+                ),
             );
           }
 
