@@ -10,6 +10,7 @@ import 'package:FlawlessYou/Product/productPage.dart';
 import 'dart:convert';
 import 'package:FlawlessYou/Card/Card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http_parser/http_parser.dart';
 
 import '../CustomBottomNavigationBar.dart';
 import '../FaceAnalysisManager.dart';
@@ -58,11 +59,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final ImagePicker _picker = ImagePicker();
   String? _baseUrl;
   String? _skinType;
+  bool _isUploading = false;
 
   @override
   void initState() {
     super.initState();
     _loadBaseUrl();
+    _loadSkinType();
   }
 
   Future<void> _loadBaseUrl() async {
@@ -72,30 +75,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  Future<void> _loadSkinType() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _skinType = prefs.getString('skinType');
+    });
+  }
+
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final XFile? image = await _picker.pickImage(source: source);
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+
       if (image != null) {
-        print('Selected file: ${image.path}, MIME type: ${image.mimeType}');
-        if (image.mimeType?.startsWith('image/') ?? false) {
-          setState(() {
-            _profileImage = File(image.path);
-          });
-          await _uploadProfilePicture(_profileImage!);
-        } else {
+        final file = File(image.path);
+        final fileSize = await file.length();
+        const maxSize = 5 * 1024 * 1024; // 5MB
+
+        if (fileSize > maxSize) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please select a valid image file')),
+            const SnackBar(content: Text('Image size too large (max 5MB)')),
           );
+          return;
         }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No image selected')),
-        );
+
+        setState(() {
+          _profileImage = file;
+        });
+        await _uploadProfilePicture(_profileImage!);
       }
     } catch (e) {
       print('Error picking image: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to pick image')),
+        SnackBar(content: Text('Failed to pick image: ${e.toString()}')),
       );
     }
   }
@@ -108,6 +124,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
+    setState(() {
+      _isUploading = true;
+    });
+
     try {
       var request = http.MultipartRequest(
         'POST',
@@ -116,43 +136,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       request.headers.addAll({
         'Authorization': 'Bearer ${widget.token}',
+        'Accept': 'application/json',
       });
+
+      final mimeType = _getMimeType(imageFile.path);
+      final fileExtension = imageFile.path.split('.').last.toLowerCase();
 
       var multipartFile = await http.MultipartFile.fromPath(
         'file',
         imageFile.path,
-        filename: imageFile.path.split('/').last,
+        filename: 'profile_${DateTime.now().millisecondsSinceEpoch}.$fileExtension',
+        contentType: MediaType('image', fileExtension),
       );
 
       request.files.add(multipartFile);
 
-      print('Sending request with file: ${imageFile.path}');
+      print('Uploading profile picture to: $_baseUrl/api/users/profilePicture');
+      print('File details: ${imageFile.path}, size: ${imageFile.lengthSync()} bytes');
 
       var response = await request.send();
+      var responseData = await response.stream.bytesToString();
+      var jsonResponse = jsonDecode(responseData);
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: $responseData');
 
       if (response.statusCode == 200) {
-        var responseData = await response.stream.bytesToString();
-        var jsonResponse = jsonDecode(responseData);
-
         setState(() {
           widget.userInfo['profilePicture'] = jsonResponse['url'];
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile picture updated successfully')),
+          SnackBar(
+            content: Text(jsonResponse['message'] ?? 'Profile picture updated successfully'),
+            backgroundColor: Colors.green,
+          ),
         );
       } else {
-        var errorResponse = await response.stream.bytesToString();
-        print('Error response: $errorResponse');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to upload profile picture: $errorResponse')),
+          SnackBar(
+            content: Text(jsonResponse['message'] ?? 'Failed to upload profile picture'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (e) {
       print('Error uploading profile picture: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to upload profile picture: $e')),
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
       );
+    } finally {
+      setState(() {
+        _isUploading = false;
+      });
+    }
+  }
+
+  String _getMimeType(String filePath) {
+    final extension = filePath.split('.').last.toLowerCase();
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+        return 'jpeg';
+      case 'png':
+        return 'png';
+      case 'gif':
+        return 'gif';
+      default:
+        return 'jpg';
     }
   }
 
@@ -197,7 +251,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               clipBehavior: Clip.none,
               children: [
                 Container(
-                  height: screenHeight * 0.25, // 30% من ارتفاع الشاشة
+                  height: screenHeight * 0.25,
                   decoration: BoxDecoration(
                     image: DecorationImage(
                       image: NetworkImage(
@@ -243,6 +297,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Text('About Us'),
                       ),
                       const PopupMenuItem(
+                        value: 'skin_type',
+                        child: Text('Skin Type Analysis'),
+                      ),
+                      const PopupMenuItem(
                         value: 'logout',
                         child: Text('Log Out'),
                       ),
@@ -255,8 +313,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 Positioned(
-                  top: screenHeight * 0.18, // 15% من ارتفاع الشاشة
-                  left: screenWidth / 2 - (screenWidth * 0.15), // في المنتصف مع تعديل بسيط
+                  top: screenHeight * 0.18,
+                  left: screenWidth / 2 - (screenWidth * 0.15),
                   child: GestureDetector(
                     onTap: () => showDialog(
                       context: context,
@@ -281,7 +339,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               left: 50,
                               right: 50,
                               child: ElevatedButton(
-                                onPressed: () => _pickImage(ImageSource.gallery),
+                                onPressed: _isUploading
+                                    ? null
+                                    : () => _pickImage(ImageSource.gallery),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFB0BEC5),
                                   foregroundColor: Colors.white,
@@ -291,7 +351,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
-                                child: const Text('Change Picture'),
+                                child: _isUploading
+                                    ? const CircularProgressIndicator(color: Colors.white)
+                                    : const Text('Change Picture'),
                               ),
                             ),
                           ],
@@ -299,14 +361,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     child: CircleAvatar(
-                      radius: screenWidth * 0.15, // 15% من عرض الشاشة
+                      radius: screenWidth * 0.15,
                       backgroundColor: Colors.white,
                       child: CircleAvatar(
-                        radius: screenWidth * 0.14, // 14% من عرض الشاشة
+                        radius: screenWidth * 0.14,
                         backgroundColor: Colors.white,
                         child: CircleAvatar(
-                          radius: screenWidth * 0.13, // 13% من عرض الشاشة
+                          radius: screenWidth * 0.13,
                           backgroundImage: _getProfileImage(),
+                          child: _isUploading
+                              ? Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Center(
+                              child: CircularProgressIndicator(color: Colors.white),
+                            ),
+                          )
+                              : null,
                         ),
                       ),
                     ),
@@ -349,9 +422,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF88A383),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 37, vertical: 11), // تم تصغير الحجم
+                    padding: const EdgeInsets.symmetric(horizontal: 37, vertical: 11),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20), // حواف أكثر استدارة
+                      borderRadius: BorderRadius.circular(20),
                     ),
                   ),
                   child: const Text('Edit profile'),
@@ -367,9 +440,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF88A383),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 11), // تم تصغير الحجم
+                    padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 11),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20), // حواف أكثر استدارة
+                      borderRadius: BorderRadius.circular(20),
                     ),
                   ),
                   child: const Text('View Routine'),
@@ -441,7 +514,6 @@ class _TabBarSectionState extends State<TabBarSection>
               ),
               const Center(
                 child: SkinAnalysisHistoryScreen(),
-
               ),
             ],
           ),
