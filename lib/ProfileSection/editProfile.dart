@@ -23,8 +23,16 @@ class EditProfile extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfile>
     with SingleTickerProviderStateMixin {
-  File? _profileImage;
+  // Controllers and Variables
+  late TabController _tabController;
   final ImagePicker _picker = ImagePicker();
+  File? _profileImage;
+  String? _profileImageUrl;
+  String? _selectedGender;
+  bool _isLoading = false;
+  String baseUrl = '';
+
+  // Form Controllers
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -32,12 +40,10 @@ class _EditProfileScreenState extends State<EditProfile>
   final TextEditingController _newPasswordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
 
-  late TabController _tabController;
-  String baseUrl = '';
-  bool _isLoading = false;
-  String? _profileImageUrl;
-  String? _selectedGender;
-  List<String> genders = ['MALE', 'FEMALE'];
+  // Constants
+  final List<String> genders = ['MALE', 'FEMALE'];
+  final double profileImageSize = 100.0;
+  final double formPadding = 20.0;
 
   @override
   void initState() {
@@ -46,6 +52,7 @@ class _EditProfileScreenState extends State<EditProfile>
     _initializeData();
   }
 
+  // Initialization Methods
   Future<void> _initializeData() async {
     setState(() => _isLoading = true);
     try {
@@ -53,9 +60,7 @@ class _EditProfileScreenState extends State<EditProfile>
       await _loadUserDataFromCache();
       await fetchUserData();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error initializing data: $e')),
-      );
+      _showErrorSnackbar('Error initializing data: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -75,21 +80,19 @@ class _EditProfileScreenState extends State<EditProfile>
         _emailController.text = userInfo['email'] ?? '';
         _phoneController.text = userInfo['phoneNumber'] ?? '';
         _selectedGender = userInfo['gender'];
-        _profileImageUrl = userInfo['profilePicture'] ?? userInfo['profilePictureUrl'];
+        _profileImageUrl = userInfo['profilePicture'];
       });
     }
   }
 
+  // Data Handling Methods
   Future<void> fetchUserData() async {
     try {
       if (baseUrl.isEmpty) return;
 
       final response = await http.get(
         Uri.parse('$baseUrl/api/users/profile'),
-        headers: {
-          'accept': '*/*',
-          'Authorization': 'Bearer ${widget.token}',
-        },
+        headers: _buildHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -99,7 +102,7 @@ class _EditProfileScreenState extends State<EditProfile>
           _emailController.text = userData['email'] ?? _emailController.text;
           _phoneController.text = userData['phoneNumber'] ?? _phoneController.text;
           _selectedGender = userData['gender'];
-          _profileImageUrl = userData['profilePicture'] ?? _profileImageUrl;
+          _profileImageUrl = userData['profilePicture'];
         });
         await _updateSharedPreferences(userData);
       } else {
@@ -110,6 +113,234 @@ class _EditProfileScreenState extends State<EditProfile>
     }
   }
 
+  Map<String, String> _buildHeaders() {
+    return {
+      'accept': '*/*',
+      'Authorization': 'Bearer ${widget.token}',
+    };
+  }
+
+  // Image Handling
+  Future<void> _pickImage() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        final imageFile = File(image.path);
+        if (await _validateImageSize(imageFile)) {
+          setState(() {
+            _profileImage = imageFile;
+            _isLoading = true;
+          });
+          await _uploadProfileImage(imageFile);
+        }
+      }
+    } catch (e) {
+      _showErrorSnackbar('Error selecting image: $e');
+    }
+  }
+
+  Future<bool> _validateImageSize(File imageFile) async {
+    final fileSize = await imageFile.length();
+    const maxSize = 5 * 1024 * 1024;
+    if (fileSize > maxSize) {
+      _showErrorSnackbar('Image size should be less than 5MB');
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _uploadProfileImage(File imageFile) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/api/users/profilePicture'),
+      );
+
+      request.headers.addAll(_buildHeaders());
+
+      final extension = imageFile.path.split('.').last.toLowerCase();
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          imageFile.path,
+          contentType: MediaType.parse(extension == 'jpg' ? 'image/jpeg' : 'image/$extension'),
+        ),
+      );
+
+      final response = await request.send();
+      final responseData = await response.stream.bytesToString();
+      final jsonResponse = jsonDecode(responseData);
+
+      if (response.statusCode == 200) {
+        setState(() => _profileImageUrl = jsonResponse['url']);
+        await _updateSharedPreferences({'profilePicture': jsonResponse['url']});
+        _showSuccessSnackbar('Profile picture updated successfully');
+      } else {
+        throw Exception(jsonResponse['message'] ?? 'Upload failed');
+      }
+    } catch (e) {
+      _showErrorSnackbar('Upload error: ${e.toString()}');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  // Profile Update Methods
+  Future<void> _saveChanges() async {
+    _tabController.index == 1
+        ? await _handlePasswordChange()
+        : await _handleProfileUpdate();
+  }
+
+  Future<void> _handlePasswordChange() async {
+    if (_newPasswordController.text != _confirmPasswordController.text) {
+      _showErrorSnackbar('New password and confirmation do not match');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/api/auth/changePassword'),
+        headers: {
+          ..._buildHeaders(),
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'oldPassword': _oldPasswordController.text,
+          'newPassword': _newPasswordController.text,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        _showSuccessSnackbar('Password changed successfully');
+        _navigateToLogin();
+      } else {
+        throw Exception('Failed with status: ${response.statusCode}');
+      }
+    } catch (e) {
+      _showErrorSnackbar('Error changing password: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleProfileUpdate() async {
+    final result = await _showVerificationDialog();
+    if (result == null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _verifyCredentials(result['username']!, result['password']!);
+      await _updateProfile();
+    } catch (e) {
+      _showErrorSnackbar('Error updating profile: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<Map<String, String>?> _showVerificationDialog() async {
+    String username = '';
+    String password = '';
+
+    return await showDialog<Map<String, String>>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Identity Verification', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                decoration: InputDecoration(
+                  labelText: 'Username',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) => username = value,
+              ),
+              SizedBox(height: 15),
+              TextField(
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  border: OutlineInputBorder(),
+                ),
+                obscureText: true,
+                onChanged: (value) => password = value,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop({'username': username, 'password': password}),
+              child: Text('Verify', style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).primaryColor,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _verifyCredentials(String username, String password) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/auth/signin'),
+      headers: {
+        'accept': '*/*',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'username': username,
+        'password': password,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Username or password is incorrect');
+    }
+  }
+
+  Future<void> _updateProfile() async {
+    final requestBody = {
+      "userName": _usernameController.text,
+      "email": _emailController.text,
+      "phoneNumber": _phoneController.text,
+      "gender": _selectedGender,
+    };
+
+    final response = await http.put(
+      Uri.parse('$baseUrl/api/users/update'),
+      headers: {
+        ..._buildHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(requestBody),
+    );
+
+    if (response.statusCode == 200) {
+      _showSuccessSnackbar('Profile updated successfully');
+      await _updateSharedPreferences(requestBody);
+      _navigateToLogin();
+    } else {
+      throw Exception('Failed with status: ${response.statusCode}');
+    }
+  }
+
+  // Helper Methods
   Future<void> _updateSharedPreferences(Map<String, dynamic> userData) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -130,270 +361,260 @@ class _EditProfileScreenState extends State<EditProfile>
     }
   }
 
-  Future<void> _pickImage() async {
-    try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
-      );
-
-      if (image != null) {
-        final imageFile = File(image.path);
-        final fileSize = await imageFile.length();
-        const maxSize = 5 * 1024 * 1024;
-
-        if (fileSize > maxSize) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Image size should be less than 5MB')),
-          );
-          return;
-        }
-
-        setState(() {
-          _profileImage = imageFile;
-          _isLoading = true;
-        });
-
-        await _uploadProfileImage(imageFile);
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error selecting image: $e')),
-      );
-    }
+  void _showErrorSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
-  Future<void> _uploadProfileImage(File imageFile) async {
-    try {
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$baseUrl/api/users/profilePicture'),
-      );
-
-      request.headers['Authorization'] = 'Bearer ${widget.token}';
-      request.headers['accept'] = '*/*';
-
-      final extension = imageFile.path.split('.').last.toLowerCase();
-      final contentType = extension == 'jpg' ? 'image/jpeg' : 'image/$extension';
-
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'file',
-          imageFile.path,
-          contentType: MediaType.parse(contentType),
-        ),
-      );
-
-      final response = await request.send();
-      final responseData = await response.stream.bytesToString();
-      final jsonResponse = jsonDecode(responseData);
-
-      if (response.statusCode == 200) {
-        setState(() => _profileImageUrl = jsonResponse['url']);
-        await _updateSharedPreferences({'profilePicture': jsonResponse['url']});
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profile picture updated successfully')),
-        );
-      } else {
-        throw Exception(jsonResponse['message'] ?? 'Upload failed');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Upload error: ${e.toString()}')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
-    }
+  void _showSuccessSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 
-  Future<void> _saveChanges() async {
-    if (_tabController.index == 1) {
-      await _handlePasswordChange();
-    } else {
-      await _handleProfileUpdate();
-    }
+  void _navigateToLogin() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+    );
   }
 
-  Future<void> _handlePasswordChange() async {
-    if (_newPasswordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('New password and confirmation do not match')),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/api/auth/changePassword'),
-        headers: {
-          'accept': '*/*',
-          'Authorization': 'Bearer ${widget.token}',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'oldPassword': _oldPasswordController.text,
-          'newPassword': _newPasswordController.text,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Password changed successfully')),
-        );
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => LoginScreen()),
-        );
-      } else {
-        throw Exception('Failed with status: ${response.statusCode}');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error changing password: $e')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _handleProfileUpdate() async {
-    final result = await showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        String username = '';
-        String password = '';
-
-        return AlertDialog(
-          title: Text('Identity verification'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                decoration: InputDecoration(labelText: 'Username'),
-                onChanged: (value) => username = value,
-              ),
-              TextField(
-                decoration: InputDecoration(labelText: 'Password'),
-                obscureText: true,
-                onChanged: (value) => password = value,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop({'username': username, 'password': password}),
-              child: Text('Confirmation'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel'),
+  // UI Components
+  Widget _buildProfileImage() {
+    return GestureDetector(
+      onTap: _pickImage,
+      child: Container(
+        width: profileImageSize,
+        height: profileImageSize,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 10,
+              spreadRadius: 2,
+              offset: Offset(0, 4),
             ),
           ],
-        );
-      },
+        ),
+        child: Stack(
+          children: [
+            CircleAvatar(
+              radius: profileImageSize / 2,
+              backgroundColor: Colors.grey[200],
+              backgroundImage: _profileImage != null
+                  ? FileImage(_profileImage!)
+                  : (_profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                  ? NetworkImage(_profileImageUrl!)
+                  : null),
+              child: _profileImage == null && (_profileImageUrl == null || _profileImageUrl!.isEmpty)
+                  ? Icon(Icons.person, size: profileImageSize / 2, color: Colors.white)
+                  : null,
+            ),
+            if (_isLoading)
+              Positioned.fill(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 3,
+                ),
+              ),
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                padding: EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.edit, color: Colors.white, size: 20),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
-
-    if (result == null) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final authResponse = await http.post(
-        Uri.parse('$baseUrl/api/auth/signin'),
-        headers: {
-          'accept': '*/*',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'username': result['username'],
-          'password': result['password'],
-        }),
-      );
-
-      if (authResponse.statusCode != 200) {
-        throw Exception('Username or password is incorrect');
-      }
-
-      final requestBody = {
-        "userName": _usernameController.text,
-        "email": _emailController.text,
-        "phoneNumber": _phoneController.text,
-        "gender": _selectedGender,
-      };
-
-      final updateResponse = await http.put(
-        Uri.parse('$baseUrl/api/users/update'),
-        headers: {
-          'accept': '*/*',
-          'Authorization': 'Bearer ${widget.token}',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(requestBody),
-      );
-
-      if (updateResponse.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profile updated successfully')),
-        );
-        await _updateSharedPreferences(requestBody);
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => LoginScreen()),
-        );
-      } else {
-        throw Exception('Failed with status: ${updateResponse.statusCode}');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error updating profile: $e')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
-    }
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _usernameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    _oldPasswordController.dispose();
-    _newPasswordController.dispose();
-    _confirmPasswordController.dispose();
-    super.dispose();
+  Widget _buildPersonalInfoTab() {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(formPadding),
+      child: Column(
+        children: [
+          _buildInputField(
+            controller: _usernameController,
+            label: 'Username',
+            hint: 'Enter your username',
+            icon: Icons.person,
+          ),
+          SizedBox(height: 15),
+          _buildInputField(
+            controller: _emailController,
+            label: 'Email',
+            hint: 'Enter your email address',
+            icon: Icons.email,
+            keyboardType: TextInputType.emailAddress,
+          ),
+          SizedBox(height: 15),
+          _buildInputField(
+            controller: _phoneController,
+            label: 'Phone Number',
+            hint: 'Enter your phone number',
+            icon: Icons.phone,
+            keyboardType: TextInputType.phone,
+          ),
+          SizedBox(height: 15),
+          _buildGenderDropdown(),
+        ],
+      ),
+    );
   }
 
-  Widget _buildProfileImage() {
-    if (_profileImage != null) {
-      return CircleAvatar(
-        radius: 60,
-        backgroundImage: FileImage(_profileImage!),
-      );
-    } else if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
-      return CircleAvatar(
-        radius: 60,
-        backgroundImage: NetworkImage(_profileImageUrl!),
-      );
-    }
-    return CircleAvatar(
-      radius: 60,
-      child: Icon(Icons.person, size: 60),
+  Widget _buildSecurityTab() {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(formPadding),
+      child: Column(
+        children: [
+          _buildInputField(
+            controller: _oldPasswordController,
+            label: 'Old Password',
+            hint: 'Enter your current password',
+            icon: Icons.lock,
+            isPassword: true,
+          ),
+          SizedBox(height: 15),
+          _buildInputField(
+            controller: _newPasswordController,
+            label: 'New Password',
+            hint: 'Enter your new password',
+            icon: Icons.lock_outline,
+            isPassword: true,
+          ),
+          SizedBox(height: 15),
+          _buildInputField(
+            controller: _confirmPasswordController,
+            label: 'Confirm Password',
+            hint: 'Re-enter your new password',
+            icon: Icons.lock_reset,
+            isPassword: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    bool isPassword = false,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: isPassword,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(icon, color: Colors.grey[600]),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Theme.of(context).primaryColor),
+        ),
+        filled: true,
+        fillColor: Colors.grey[100],
+      ),
+    );
+  }
+
+  Widget _buildGenderDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(left: 5, bottom: 5),
+          child: Text(
+            'Gender',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[700],
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            color: Colors.grey[100],
+            border: Border.all(color: Colors.grey),
+          ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 15),
+            child: DropdownButtonFormField<String>(
+              value: _selectedGender,
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                prefixIcon: Icon(Icons.transgender, color: Colors.grey[600]),
+              ),
+              items: genders.map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              onChanged: (newValue) {
+                setState(() {
+                  _selectedGender = newValue;
+                });
+              },
+              style: TextStyle(color: Colors.black87),
+              dropdownColor: Colors.white,
+              icon: Icon(Icons.arrow_drop_down, color: Colors.grey[600]),
+              hint: Text('Select your gender'),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Edit Profile'),
+        title: Text(
+          'Edit Profile',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Theme.of(context).primaryColor,
         bottom: TabBar(
           controller: _tabController,
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white.withOpacity(0.7),
           tabs: [
-            Tab(text: 'Personal Info'),
-            Tab(text: 'Security'),
+            Tab(icon: Icon(Icons.person), text: 'Personal Info'),
+            Tab(icon: Icon(Icons.security), text: 'Security'),
           ],
         ),
       ),
@@ -402,26 +623,7 @@ class _EditProfileScreenState extends State<EditProfile>
           : Column(
         children: [
           SizedBox(height: 20),
-          Padding(
-            padding: EdgeInsets.only(top: 20),
-            child: GestureDetector(
-              onTap: _pickImage,
-              child: Container(
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 10,
-                      spreadRadius: 2,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                  shape: BoxShape.circle,
-                ),
-                child: _buildProfileImage(),
-              ),
-            ),
-          ),
+          Center(child: _buildProfileImage()),
           SizedBox(height: 20),
           Expanded(
             child: TabBarView(
@@ -437,12 +639,18 @@ class _EditProfileScreenState extends State<EditProfile>
       floatingActionButton: _isLoading
           ? null
           : Padding(
-        padding: EdgeInsets.only(bottom: 155),
+        padding: EdgeInsets.only(bottom: 20),
         child: FloatingActionButton.extended(
           onPressed: _saveChanges,
           icon: Icon(Icons.save, color: Colors.white),
-          label: Text('Save Changes', style: TextStyle(color: Colors.white)),
-          backgroundColor: Colors.blue,
+          label: Text(
+            'Save Changes',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: Theme.of(context).primaryColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
@@ -454,128 +662,15 @@ class _EditProfileScreenState extends State<EditProfile>
     );
   }
 
-  Widget _buildPersonalInfoTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          _buildTextFieldWithDescription(
-            'Username',
-            _usernameController,
-            description: 'Enter your username',
-          ),
-          const SizedBox(height: 10),
-          _buildTextFieldWithDescription(
-            'Email',
-            _emailController,
-            description: 'Enter your email address',
-          ),
-          const SizedBox(height: 10),
-          _buildTextFieldWithDescription(
-            'Phone Number',
-            _phoneController,
-            description: 'Enter your phone number',
-          ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: EdgeInsets.only(bottom: 5),
-            child: Text(
-              'Select your gender',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ),
-          DropdownButtonFormField<String>(
-            value: _selectedGender,
-            decoration: InputDecoration(
-              labelText: 'Gender',
-              border: OutlineInputBorder(),
-              filled: true,
-              fillColor: Colors.grey[200],
-            ),
-            items: genders.map((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
-            onChanged: (newValue) {
-              setState(() {
-                _selectedGender = newValue;
-              });
-            },
-          ),
-          const SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSecurityTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          _buildTextFieldWithDescription(
-            'Old Password',
-            _oldPasswordController,
-            description: 'Enter your old password',
-            isPassword: true,
-          ),
-          _buildTextFieldWithDescription(
-            'New Password',
-            _newPasswordController,
-            description: 'Enter your new password',
-            isPassword: true,
-          ),
-          _buildTextFieldWithDescription(
-            'Confirm New Password',
-            _confirmPasswordController,
-            description: 'Confirm your new password',
-            isPassword: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTextFieldWithDescription(
-      String label,
-      TextEditingController controller, {
-        String? description,
-        bool isPassword = false,
-      }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (description != null)
-          Padding(
-            padding: EdgeInsets.only(bottom: 5),
-            child: Text(
-              description,
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ),
-        _buildTextField(label, controller, isPassword: isPassword),
-      ],
-    );
-  }
-
-  Widget _buildTextField(String label, TextEditingController controller,
-      {bool isPassword = false}) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 20),
-      child: TextField(
-        controller: controller,
-        obscureText: isPassword,
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          filled: true,
-          fillColor: Colors.grey[200],
-        ),
-      ),
-    );
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _usernameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _oldPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
   }
 }
