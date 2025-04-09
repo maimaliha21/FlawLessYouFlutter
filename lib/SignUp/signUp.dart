@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:mime/mime.dart';
+import 'package:http_parser/http_parser.dart';
 import '../ProfileSection/profile.dart';
 import '../SharedPreferences.dart';
 
@@ -28,6 +30,7 @@ class CreateProfileScreen extends StatefulWidget {
 
 class _CreateProfileScreenState extends State<CreateProfileScreen> {
   bool isChecked = false;
+  bool _isLoading = false;
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -60,12 +63,30 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    try {
+      final pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
 
-    if (pickedFile != null) {
-      setState(() {
-        _imageFile = File(pickedFile.path);
-      });
+      if (pickedFile != null) {
+        final file = File(pickedFile.path);
+        final fileSize = await file.length();
+        const maxSize = 5 * 1024 * 1024; // 5MB
+
+        if (fileSize > maxSize) {
+          _showSnackBar('Image size too large (max 5MB)');
+          return;
+        }
+
+        setState(() {
+          _imageFile = file;
+        });
+      }
+    } catch (e) {
+      _showSnackBar('Failed to pick image: ${e.toString()}');
     }
   }
 
@@ -80,6 +101,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         _showSnackBar('Please agree to the Privacy Policy');
         return;
       }
+
+      setState(() {
+        _isLoading = true;
+      });
 
       final baseUrl = await getBaseUrl();
       final signupUrl = '$baseUrl/api/auth/signup';
@@ -103,10 +128,15 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           _showSnackBar('Registration successful!');
           await _signIn();
         } else {
-          _showSnackBar('Registration failed: ${response.body}');
+          final errorResponse = jsonDecode(response.body);
+          _showSnackBar('Registration failed: ${errorResponse['message'] ?? 'Unknown error'}');
         }
       } catch (e) {
-        _showSnackBar('An error occurred: $e');
+        _showSnackBar('An error occurred: ${e.toString()}');
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -131,16 +161,18 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         final data = jsonDecode(response.body);
         final token = data['accessToken'];
 
+        // Upload image if exists
         if (_imageFile != null) {
           await _uploadProfilePicture(token);
         }
 
         await _fetchUserInfo(token);
       } else {
-        _showSnackBar('Login failed: ${response.body}');
+        final errorResponse = jsonDecode(response.body);
+        _showSnackBar('Login failed: ${errorResponse['message'] ?? 'Unknown error'}');
       }
     } catch (e) {
-      _showSnackBar('An error occurred: $e');
+      _showSnackBar('An error occurred: ${e.toString()}');
     }
   }
 
@@ -148,25 +180,36 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
     final baseUrl = await getBaseUrl();
     final uploadUrl = '$baseUrl/api/users/profilePicture';
 
+    if (_imageFile == null) return;
+
     try {
       var request = http.MultipartRequest('POST', Uri.parse(uploadUrl));
       request.headers['Authorization'] = 'Bearer $token';
+
+      // Determine the mime type and add the file
+      final mimeType = lookupMimeType(_imageFile!.path) ?? 'image/jpeg';
+      final fileExtension = mimeType.split('/').last;
 
       request.files.add(
         await http.MultipartFile.fromPath(
           'file',
           _imageFile!.path,
+          contentType: MediaType('image', fileExtension),
         ),
       );
 
       var response = await request.send();
       final responseBody = await response.stream.bytesToString();
+      final jsonResponse = jsonDecode(responseBody);
 
-      if (response.statusCode != 200) {
-        _showSnackBar('Failed to upload profile picture: $responseBody');
+      if (response.statusCode == 200) {
+        debugPrint('Profile picture uploaded: ${jsonResponse['url']}');
+      } else {
+        throw Exception(jsonResponse['message'] ?? 'Failed to upload profile picture');
       }
     } catch (e) {
-      _showSnackBar('Upload error: $e');
+      debugPrint('Profile picture upload error: ${e.toString()}');
+      throw Exception('Profile picture upload failed');
     }
   }
 
@@ -186,17 +229,18 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       if (response.statusCode == 200) {
         final userInfo = jsonDecode(response.body);
         await saveUserData(token, userInfo);
-        Navigator.push(
+
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => Profile(token: token, userInfo: userInfo),
           ),
         );
       } else {
-        _showSnackBar('Failed to fetch user info: ${response.body}');
+        throw Exception('Failed to fetch user info: ${response.body}');
       }
     } catch (e) {
-      _showSnackBar('An error occurred: $e');
+      _showSnackBar('An error occurred: ${e.toString()}');
     }
   }
 
@@ -274,7 +318,9 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                     const SizedBox(height: 24),
                     _buildTermsCheckbox(),
                     const SizedBox(height: 32),
-                    _buildsignupButton(),
+                    _isLoading
+                        ? const CircularProgressIndicator(color: Color(0xFF88A383))
+                        : _buildsignupButton(),
                   ],
                 ),
               ),
