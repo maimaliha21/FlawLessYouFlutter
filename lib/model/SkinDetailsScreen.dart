@@ -292,7 +292,7 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create routine: ${response.statusCode}')),
+          SnackBar(content: Text('Failed to create routine: ${response.body}')),
         );
       }
     } catch (e) {
