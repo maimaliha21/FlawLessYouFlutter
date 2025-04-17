@@ -139,12 +139,19 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
   String? userRole;
   bool _isLoading = true;
   String? _baseUrl;
+  List<Product> _products = [];
+  bool _hasError = false;
 
   @override
   void initState() {
     super.initState();
-    _loadToken();
-    _loadBaseUrl();
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    await _loadToken();
+    await _loadBaseUrl();
+    await _loadProducts();
   }
 
   Future<void> _loadToken() async {
@@ -155,7 +162,6 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
     setState(() {
       token = prefs.getString('token');
       userRole = userInfoMap['role'];
-      _isLoading = false;
     });
   }
 
@@ -166,21 +172,30 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
     });
   }
 
-  Future<List<Product>> fetchProducts() async {
+  Future<void> _loadProducts() async {
     if (token == null) {
-      throw Exception('Token is not available');
+      setState(() {
+        _hasError = true;
+        _isLoading = false;
+      });
+      return;
     }
 
-    final response = await http.get(
-      Uri.parse('$_baseUrl/product/random?limit=12'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
 
-    if (response.statusCode == 200) {
-      try {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/product/random?limit=12'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
         final List<dynamic> responseData = jsonDecode(response.body);
         List<Product> products = [];
 
@@ -192,53 +207,96 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
           }
         }
 
-        return products;
-      } catch (e) {
-        throw Exception('Failed to parse response: $e');
+        setState(() {
+          _products = products;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _hasError = true;
+          _isLoading = false;
+        });
       }
-    } else {
-      throw Exception('Failed to load products: ${response.statusCode}');
+    } catch (e) {
+      setState(() {
+        _hasError = true;
+        _isLoading = false;
+      });
     }
-  }
-
-  Future<void> _refreshProducts() async {
-    setState(() {
-      _isLoading = true;
-    });
-    await fetchProducts();
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : FutureBuilder<List<Product>>(
-        future: fetchProducts(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          return ProductList(
-            products: snapshot.data!,
-            token: token!,
-            userRole: userRole!,
-            baseUrl: _baseUrl!,
-            pageName: widget.pageName,
-            treatmentId: widget.treatmentId,
-            onDelete: _refreshProducts,
-          );
-        },
+      body: RefreshIndicator(
+        onRefresh: _loadProducts,
+        color: Colors.blue,
+        backgroundColor: Colors.white,
+        displacement: 40.0,
+        edgeOffset: 20.0,
+        strokeWidth: 3.0,
+        triggerMode: RefreshIndicatorTriggerMode.onEdge,
+        child: _buildContent(),
       ),
+    );
+  }
+
+  Widget _buildContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_hasError) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 50, color: Colors.red),
+            const SizedBox(height: 20),
+            const Text(
+              'Failed to load products',
+              style: TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _loadProducts,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_products.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.search_off, size: 50, color: Colors.grey),
+            const SizedBox(height: 20),
+            const Text(
+              'No products available',
+              style: TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _loadProducts,
+              child: const Text('Refresh'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ProductList(
+      products: _products,
+      token: token!,
+      userRole: userRole!,
+      baseUrl: _baseUrl!,
+      pageName: widget.pageName,
+      treatmentId: widget.treatmentId,
+      onDelete: _loadProducts,
     );
   }
 }
