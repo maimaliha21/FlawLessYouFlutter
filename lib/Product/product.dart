@@ -57,7 +57,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_selectedIndex],
-
     );
   }
 }
@@ -172,12 +171,8 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
       throw Exception('Token is not available');
     }
 
-    final Uri
-      uri = Uri.parse(widget.apiUrl);
-
-
     final response = await http.get(
-      uri,
+      Uri.parse('$_baseUrl/product/random?limit=12'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -186,33 +181,18 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
 
     if (response.statusCode == 200) {
       try {
-        final decodedBody = jsonDecode(response.body);
-        if (decodedBody is List) {
-          List<Product> products = decodedBody.map((json) => Product.fromJson(json)).toList();
+        final List<dynamic> responseData = jsonDecode(response.body);
+        List<Product> products = [];
 
-          for (var product in products) {
-            final savedResponse = await http.get(
-              Uri.parse('$_baseUrl/product/${product.productId}/isSaved'),
-              headers: {
-                'Authorization': 'Bearer $token',
-                'Content-Type': 'application/json',
-              },
-            );
-
-            if (savedResponse.statusCode == 200) {
-              if (savedResponse.body == 'true' || savedResponse.body == 'false') {
-                product.isSaved = savedResponse.body == 'true';
-              } else {
-                final savedData = jsonDecode(savedResponse.body);
-                product.isSaved = savedData['isSaved'] is bool ? savedData['isSaved'] : false;
-              }
-            }
+        for (var item in responseData) {
+          if (item is Map<String, dynamic>) {
+            Product product = Product.fromJson(item['product']);
+            product.isSaved = item['saved'] is bool ? item['saved'] : false;
+            products.add(product);
           }
-
-          return products;
-        } else {
-          throw Exception('Invalid response format: Expected a list of products');
         }
+
+        return products;
       } catch (e) {
         throw Exception('Failed to parse response: $e');
       }
@@ -308,7 +288,6 @@ class ProductList extends StatelessWidget {
         },
       ),
     );
-
   }
 }
 
@@ -350,21 +329,14 @@ class _ProductCardState extends State<ProductCard> {
     setState(() => isSaved = newState);
 
     try {
-      final response = await (newState
-          ? http.post(
+      final response = await http.post(
         Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/savedProduct'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
         },
-      )
-          : http.post(
-        Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/savedProduct'),
-        headers: {
-          'Authorization': 'Bearer ${widget.token}',
-          'Content-Type': 'application/json',
-        },
-      ));
+        body: jsonEncode({'saved': newState}),
+      );
 
       if (response.statusCode != 200) {
         setState(() => isSaved = !newState);
@@ -423,8 +395,7 @@ class _ProductCardState extends State<ProductCard> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${widget.baseUrl}/api/treatments/${widget.treatmentId}/products/${widget.product.productId}')),
-          // SnackBar(content: Text('Failed to add product to treatment')),
+          SnackBar(content: Text('Failed to add product to treatment')),
         );
       }
     } catch (e) {
@@ -604,20 +575,18 @@ class _ProductCardState extends State<ProductCard> {
   }
 }
 
-// باقي الأكواد (ProductDetailsPopup, EditProductPopup, CustomBottomNavigationBar, BottomWaveClipper) تبقى كما هي.
-// باقي الأكواد (ProductDetailsPopup, EditProductPopup, CustomBottomNavigationBar, BottomWaveClipper) تبقى كما هي.
 class ProductDetailsPopup extends StatefulWidget {
   final Product product;
   final String token;
   final String baseUrl;
-  final String? treatmentId; // إضافة treatmentId هنا
+  final String? treatmentId;
 
   const ProductDetailsPopup({
     Key? key,
     required this.product,
     required this.token,
     required this.baseUrl,
-    this.treatmentId, // إضافة treatmentId هنا
+    this.treatmentId,
   }) : super(key: key);
 
   @override
@@ -819,7 +788,7 @@ class EditProductPopup extends StatefulWidget {
   final Product product;
   final String token;
   final String baseUrl;
-  const EditProductPopup({Key? key, required this.product, required this.token,required this.baseUrl}) : super(key: key);
+  const EditProductPopup({Key? key, required this.product, required this.token, required this.baseUrl}) : super(key: key);
 
   @override
   _EditProductPopupState createState() => _EditProductPopupState();
@@ -853,7 +822,7 @@ class _EditProductPopupState extends State<EditProductPopup> {
   Future<void> _updateProduct() async {
     try {
       final response = await http.put(
-        Uri.parse('http://localhost:8080/product/product'),
+        Uri.parse('${widget.baseUrl}/product/product'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
