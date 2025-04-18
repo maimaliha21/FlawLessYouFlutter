@@ -5,62 +5,6 @@ import 'dart:async';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class ProductApp extends StatelessWidget {
-  const ProductApp({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: HomeScreen(),
-    );
-  }
-}
-
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
-
-  @override
-  _HomeScreenState createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 1;
-  String? _baseUrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadBaseUrl();
-  }
-
-  Future<void> _loadBaseUrl() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _baseUrl = prefs.getString('baseUrl') ?? 'http://localhost:8080';
-    });
-  }
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  final List<Widget> _pages = [
-    const Center(child: Text("Home")),
-    const Center(child: Text("Search")),
-    const Center(child: Text("Settings")),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: _pages[_selectedIndex],
-    );
-  }
-}
-
 class Product {
   final String productId;
   final String? name;
@@ -85,8 +29,11 @@ class Product {
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
+    // Handle both nested and flat structure
+    final productData = json['product'] ?? json;
+
     double avgRating = 0.0;
-    final reviews = json['reviews'];
+    final reviews = productData['reviews'];
     if (reviews != null && reviews is Map<String, dynamic>) {
       final ratings = reviews.values.whereType<int>().toList();
       if (ratings.isNotEmpty) {
@@ -95,25 +42,25 @@ class Product {
     }
 
     List<String>? photos;
-    if (json['photos'] is List) {
-      photos = List<String>.from(json['photos']);
+    if (productData['photos'] is List) {
+      photos = List<String>.from(productData['photos']);
     }
 
     List<String>? usageTime;
-    if (json['usageTime'] is List) {
-      usageTime = List<String>.from(json['usageTime']);
+    if (productData['usageTime'] is List) {
+      usageTime = List<String>.from(productData['usageTime']);
     }
 
     return Product(
-      productId: json['productId'] as String? ?? 'unknown',
-      name: json['name'] as String?,
-      skinType: List<String>.from(json['skinType'] ?? []),
-      ingredients: List<String>.from(json['ingredients'] ?? []),
-      description: json['description'] as String?,
+      productId: productData['productId'] as String? ?? 'unknown',
+      name: productData['name'] as String?,
+      skinType: List<String>.from(productData['skinType'] ?? []),
+      ingredients: List<String>.from(productData['ingredients'] ?? []),
+      description: productData['description'] as String?,
       rating: avgRating,
       photos: photos,
       usageTime: usageTime,
-      isSaved: json['isSaved'] is bool ? json['isSaved'] : false,
+      isSaved: json['saved'] is bool ? json['saved'] : false,
     );
   }
 }
@@ -139,19 +86,12 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
   String? userRole;
   bool _isLoading = true;
   String? _baseUrl;
-  List<Product> _products = [];
-  bool _hasError = false;
 
   @override
   void initState() {
     super.initState();
-    _loadInitialData();
-  }
-
-  Future<void> _loadInitialData() async {
-    await _loadToken();
-    await _loadBaseUrl();
-    await _loadProducts();
+    _loadToken();
+    _loadBaseUrl();
   }
 
   Future<void> _loadToken() async {
@@ -162,6 +102,7 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
     setState(() {
       token = prefs.getString('token');
       userRole = userInfoMap['role'];
+      _isLoading = false;
     });
   }
 
@@ -172,135 +113,78 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
     });
   }
 
-  Future<void> _loadProducts() async {
+  Future<List<Product>> fetchProducts() async {
     if (token == null) {
-      setState(() {
-        _hasError = true;
-        _isLoading = false;
-      });
-      return;
+      throw Exception('Token is not available');
     }
 
+    final Uri uri = Uri.parse(widget.apiUrl);
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      try {
+        final decodedBody = jsonDecode(response.body);
+        if (decodedBody is List) {
+          return decodedBody.map((json) => Product.fromJson(json)).toList();
+        } else {
+          throw Exception('Invalid response format: Expected a list of products');
+        }
+      } catch (e) {
+        throw Exception('Failed to parse response: $e');
+      }
+    } else {
+      throw Exception('Failed to load products: ${response.statusCode}');
+    }
+  }
+
+  Future<void> _refreshProducts() async {
     setState(() {
       _isLoading = true;
-      _hasError = false;
     });
-
-    try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/product/random?limit=12'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> responseData = jsonDecode(response.body);
-        List<Product> products = [];
-
-        for (var item in responseData) {
-          if (item is Map<String, dynamic>) {
-            Product product = Product.fromJson(item['product']);
-            product.isSaved = item['saved'] is bool ? item['saved'] : false;
-            products.add(product);
-          }
-        }
-
-        setState(() {
-          _products = products;
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _hasError = true;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _hasError = true;
-        _isLoading = false;
-      });
-    }
+    await fetchProducts();
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
-      body: RefreshIndicator(
-        onRefresh: _loadProducts,
-        color: Colors.blue,
-        backgroundColor: Colors.white,
-        displacement: 40.0,
-        edgeOffset: 20.0,
-        strokeWidth: 3.0,
-        triggerMode: RefreshIndicatorTriggerMode.onEdge,
-        child: _buildContent(),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : FutureBuilder<List<Product>>(
+        future: fetchProducts(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return ProductList(
+            products: snapshot.data!,
+            token: token!,
+            userRole: userRole!,
+            baseUrl: _baseUrl!,
+            pageName: widget.pageName,
+            treatmentId: widget.treatmentId,
+            onDelete: _refreshProducts,
+          );
+        },
       ),
     );
   }
-
-  Widget _buildContent() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_hasError) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 50, color: Colors.red),
-            const SizedBox(height: 20),
-            const Text(
-              'Failed to load products',
-              style: TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _loadProducts,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_products.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.search_off, size: 50, color: Colors.grey),
-            const SizedBox(height: 20),
-            const Text(
-              'No products available',
-              style: TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _loadProducts,
-              child: const Text('Refresh'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ProductList(
-      products: _products,
-      token: token!,
-      userRole: userRole!,
-      baseUrl: _baseUrl!,
-      pageName: widget.pageName,
-      treatmentId: widget.treatmentId,
-      onDelete: _loadProducts,
-    );
-  }
 }
-
 class ProductList extends StatelessWidget {
   final List<Product> products;
   final String token;
@@ -346,6 +230,7 @@ class ProductList extends StatelessWidget {
         },
       ),
     );
+
   }
 }
 
@@ -387,14 +272,21 @@ class _ProductCardState extends State<ProductCard> {
     setState(() => isSaved = newState);
 
     try {
-      final response = await http.post(
+      final response = await (newState
+          ? http.post(
         Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/savedProduct'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'saved': newState}),
-      );
+      )
+          : http.post(
+        Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/savedProduct'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+      ));
 
       if (response.statusCode != 200) {
         setState(() => isSaved = !newState);
@@ -453,7 +345,8 @@ class _ProductCardState extends State<ProductCard> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add product to treatment')),
+          SnackBar(content: Text('${widget.baseUrl}/api/treatments/${widget.treatmentId}/products/${widget.product.productId}')),
+          // SnackBar(content: Text('Failed to add product to treatment')),
         );
       }
     } catch (e) {
@@ -633,18 +526,20 @@ class _ProductCardState extends State<ProductCard> {
   }
 }
 
+// باقي الأكواد (ProductDetailsPopup, EditProductPopup, CustomBottomNavigationBar, BottomWaveClipper) تبقى كما هي.
+// باقي الأكواد (ProductDetailsPopup, EditProductPopup, CustomBottomNavigationBar, BottomWaveClipper) تبقى كما هي.
 class ProductDetailsPopup extends StatefulWidget {
   final Product product;
   final String token;
   final String baseUrl;
-  final String? treatmentId;
+  final String? treatmentId; // إضافة treatmentId هنا
 
   const ProductDetailsPopup({
     Key? key,
     required this.product,
     required this.token,
     required this.baseUrl,
-    this.treatmentId,
+    this.treatmentId, // إضافة treatmentId هنا
   }) : super(key: key);
 
   @override
@@ -846,7 +741,7 @@ class EditProductPopup extends StatefulWidget {
   final Product product;
   final String token;
   final String baseUrl;
-  const EditProductPopup({Key? key, required this.product, required this.token, required this.baseUrl}) : super(key: key);
+  const EditProductPopup({Key? key, required this.product, required this.token,required this.baseUrl}) : super(key: key);
 
   @override
   _EditProductPopupState createState() => _EditProductPopupState();
@@ -880,7 +775,7 @@ class _EditProductPopupState extends State<EditProductPopup> {
   Future<void> _updateProduct() async {
     try {
       final response = await http.put(
-        Uri.parse('${widget.baseUrl}/product/product'),
+        Uri.parse('http://localhost:8080/product/product'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
