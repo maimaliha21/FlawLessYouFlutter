@@ -50,7 +50,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.FlawlwssYou"
+    namespace = "com.example.flawlessyou"
     compileSdk = 35  // استخدم الإصدار المناسب هنا (مثال: 33)
 
     // تحديد إصدار الـ NDK الذي لديك

@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:ui'; // Import for ImageFilter.blur
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,6 +26,7 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
     "NIGHT": [],
   };
   bool _isLoading = true;
+  bool _hasError = false;
 
   @override
   void initState() {
@@ -34,33 +35,36 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
   }
 
   Future<void> _fetchData() async {
+    try {
+      String? baseUrl = await getBaseUrl();
+      if (baseUrl == null) {
+        throw Exception("Base URL not found in SharedPreferences");
+      }
 
-      try {
-        String? baseUrl = await getBaseUrl(); // احصل على baseUrl من SharedPreferences
-        if (baseUrl == null) {
-          throw Exception("Base URL not found in SharedPreferences");
-        }
-        final response = await http.get(
-          Uri.parse('$baseUrl/api/routines/by-time'), // استخدم baseUrl المسترجع
-          headers: {
-            'Authorization': 'Bearer ${widget.token}',
-          },
-        );
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/routines/by-time'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+        },
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          _routines["MORNING"] = List<Map<String, dynamic>>.from(data["MORNING"]);
-          _routines["AFTERNOON"] = List<Map<String, dynamic>>.from(data["AFTERNOON"]);
-          _routines["NIGHT"] = List<Map<String, dynamic>>.from(data["NIGHT"]);
+          _routines["MORNING"] = List<Map<String, dynamic>>.from(data["MORNING"] ?? []);
+          _routines["AFTERNOON"] = List<Map<String, dynamic>>.from(data["AFTERNOON"] ?? []);
+          _routines["NIGHT"] = List<Map<String, dynamic>>.from(data["NIGHT"] ?? []);
+          _currentStep = 0;
           _isLoading = false;
+          _hasError = false;
         });
       } else {
-        throw Exception('Failed to load data');
+        throw Exception('Failed to load data: ${response.statusCode}');
       }
     } catch (e) {
       setState(() {
         _isLoading = false;
+        _hasError = true;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to load data: $e')),
@@ -68,8 +72,25 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
     }
   }
 
+  List<Map<String, dynamic>> _getAllRoutines() {
+    return [
+      ..._routines["MORNING"] ?? [],
+      ..._routines["AFTERNOON"] ?? [],
+      ..._routines["NIGHT"] ?? [],
+    ];
+  }
+
   void _nextStep(BuildContext context) {
-    if (_currentStep < _routines.values.expand((list) => list).length - 1) {
+    final allRoutines = _getAllRoutines();
+    if (allRoutines.isEmpty) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomeScreen()),
+      );
+      return;
+    }
+
+    if (_currentStep < allRoutines.length - 1) {
       setState(() {
         _currentStep++;
       });
@@ -81,14 +102,11 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
     }
   }
 
-  List<Map<String, dynamic>> _getAllRoutines() {
-    return _routines.values.expand((list) => list).toList();
-  }
-
   String _getCurrentTime() {
     final allRoutines = _getAllRoutines();
+    if (allRoutines.isEmpty || _currentStep >= allRoutines.length) return "";
     final currentRoutine = allRoutines[_currentStep];
-    return currentRoutine['usageTime'].join(', ');
+    return currentRoutine['usageTime']?.join(', ') ?? "";
   }
 
   @override
@@ -101,15 +119,68 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
       );
     }
 
+    if (_hasError) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Failed to load data',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _fetchData,
+                child: Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final allRoutines = _getAllRoutines();
+
+    if (allRoutines.isEmpty) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'No skincare routines available',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => HomeScreen()),
+                  );
+                },
+                child: Text('Go Back'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Ensure current step is within bounds
+    if (_currentStep >= allRoutines.length) {
+      _currentStep = 0;
+    }
+
     final currentRoutine = allRoutines[_currentStep];
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.transparent, // جعل لون الخلفية شفاف
-        elevation: 0, // إزالة الظل
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         title: Text(
-          'Skincare Routine ${_currentStep + 1}',
+          'Skincare Routine ${_currentStep + 1}/${allRoutines.length}',
           style: TextStyle(fontStyle: FontStyle.italic, color: Colors.white),
         ),
         centerTitle: true,
@@ -125,14 +196,13 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
       ),
       body: Stack(
         children: [
-          // Background Image (Normal - No Blur)
           Positioned.fill(
             child: Image.network(
               _backgroundImageUrl,
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey),
             ),
           ),
-          // Time Header
           Positioned(
             top: 16,
             left: 0,
@@ -155,14 +225,13 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
               ),
             ),
           ),
-          // Content with Blurred Card
           Center(
             child: AnimatedSwitcher(
-              duration: Duration(milliseconds: 500), // Animation duration
+              duration: Duration(milliseconds: 500),
               transitionBuilder: (Widget child, Animation<double> animation) {
                 return SlideTransition(
                   position: Tween<Offset>(
-                    begin: Offset(0, 0.5), // Slide from bottom
+                    begin: Offset(0, 0.5),
                     end: Offset.zero,
                   ).animate(CurvedAnimation(
                     parent: animation,
@@ -172,10 +241,10 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
                 );
               },
               child: BackdropFilter(
-                key: ValueKey<int>(_currentStep), // Unique key for animation
+                key: ValueKey<int>(_currentStep),
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Card(
-                  color: Colors.transparent, // جعل لون الخلفية شفاف
+                  color: Colors.black.withOpacity(0.5),
                   margin: EdgeInsets.all(16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -185,21 +254,24 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Image (Normal)
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: Image.network(
-                            currentRoutine['photos'][0],
-                            width: double.infinity, // Take full width
+                            currentRoutine['photos']?[0] ?? '',
+                            width: double.infinity,
                             height: 120,
-                            fit: BoxFit.cover, // Ensure the image covers the area
+                            fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) =>
-                                Icon(Icons.error, color: Colors.white),
+                                Container(
+                                  color: Colors.grey,
+                                  height: 120,
+                                  child: Icon(Icons.error, color: Colors.white),
+                                ),
                           ),
                         ),
                         SizedBox(height: 16),
                         Text(
-                          currentRoutine['name'],
+                          currentRoutine['name'] ?? 'No Name',
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -209,14 +281,13 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
                         ),
                         SizedBox(height: 8),
                         Text(
-                          currentRoutine['smaledescription'],
+                          currentRoutine['smaledescription'] ?? 'No Description',
                           style: TextStyle(fontSize: 16, color: Colors.white),
                           textAlign: TextAlign.center,
                         ),
-
                         SizedBox(height: 8),
                         Text(
-                          'Usage Time: ${currentRoutine['usageTime'].join(', ')}',
+                          'Usage Time: ${_getCurrentTime()}',
                           style: TextStyle(fontSize: 16, color: Colors.white),
                         ),
                         SizedBox(height: 24),
@@ -227,10 +298,13 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 40, vertical: 16),
                           ),
                           child: Text(
-                            _currentStep < allRoutines.length - 1 ? 'Next' : 'Finish',
+                            _currentStep < allRoutines.length - 1
+                                ? 'Next'
+                                : 'Finish',
                             style: TextStyle(fontSize: 18, color: Colors.white),
                           ),
                         ),
@@ -253,30 +327,34 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Routine'),
-        backgroundColor: Colors.transparent, // جعل لون الخلفية شفاف
-        elevation: 0, // إزالة الظل
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: Stack(
         children: [
-          // Background Image
           Positioned.fill(
             child: Image.network(
               _backgroundImageUrl,
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  Container(color: Colors.grey),
             ),
           ),
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  'A moment of care that brings back the radiance to your skin! 🌟 With our app, your glowing look becomes easier and gentler than ever!',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    'A moment of care that brings back the radiance to your skin! 🌟 With our app, your glowing look becomes easier and gentler than ever!',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 30),
                 ElevatedButton(
@@ -287,9 +365,8 @@ class HomeScreen extends StatelessWidget {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                            builder: (context) =>Home(
-                              token: token,
-                            ),),
+                          builder: (context) => SkincareRoutine(token: token),
+                        ),
                       );
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(

@@ -5,63 +5,6 @@ import 'dart:async';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class ProductApp extends StatelessWidget {
-  const ProductApp({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: HomeScreen(),
-    );
-  }
-}
-
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
-
-  @override
-  _HomeScreenState createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 1;
-  String? _baseUrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadBaseUrl();
-  }
-
-  Future<void> _loadBaseUrl() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _baseUrl = prefs.getString('baseUrl') ?? 'http://localhost:8080';
-    });
-  }
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  final List<Widget> _pages = [
-    const Center(child: Text("Home")),
-    const Center(child: Text("Search")),
-    const Center(child: Text("Settings")),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: _pages[_selectedIndex],
-
-    );
-  }
-}
-
 class Product {
   final String productId;
   final String? name;
@@ -86,8 +29,11 @@ class Product {
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
+    // Handle both nested and flat structure
+    final productData = json['product'] ?? json;
+
     double avgRating = 0.0;
-    final reviews = json['reviews'];
+    final reviews = productData['reviews'];
     if (reviews != null && reviews is Map<String, dynamic>) {
       final ratings = reviews.values.whereType<int>().toList();
       if (ratings.isNotEmpty) {
@@ -96,25 +42,25 @@ class Product {
     }
 
     List<String>? photos;
-    if (json['photos'] is List) {
-      photos = List<String>.from(json['photos']);
+    if (productData['photos'] is List) {
+      photos = List<String>.from(productData['photos']);
     }
 
     List<String>? usageTime;
-    if (json['usageTime'] is List) {
-      usageTime = List<String>.from(json['usageTime']);
+    if (productData['usageTime'] is List) {
+      usageTime = List<String>.from(productData['usageTime']);
     }
 
     return Product(
-      productId: json['productId'] as String? ?? 'unknown',
-      name: json['name'] as String?,
-      skinType: List<String>.from(json['skinType'] ?? []),
-      ingredients: List<String>.from(json['ingredients'] ?? []),
-      description: json['description'] as String?,
+      productId: productData['productId'] as String? ?? 'unknown',
+      name: productData['name'] as String?,
+      skinType: List<String>.from(productData['skinType'] ?? []),
+      ingredients: List<String>.from(productData['ingredients'] ?? []),
+      description: productData['description'] as String?,
       rating: avgRating,
       photos: photos,
       usageTime: usageTime,
-      isSaved: json['isSaved'] is bool ? json['isSaved'] : false,
+      isSaved: json['saved'] is bool ? json['saved'] : false,
     );
   }
 }
@@ -172,9 +118,7 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
       throw Exception('Token is not available');
     }
 
-    final Uri
-      uri = Uri.parse(widget.apiUrl);
-
+    final Uri uri = Uri.parse(widget.apiUrl);
 
     final response = await http.get(
       uri,
@@ -188,28 +132,7 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
       try {
         final decodedBody = jsonDecode(response.body);
         if (decodedBody is List) {
-          List<Product> products = decodedBody.map((json) => Product.fromJson(json)).toList();
-
-          for (var product in products) {
-            final savedResponse = await http.get(
-              Uri.parse('$_baseUrl/product/${product.productId}/isSaved'),
-              headers: {
-                'Authorization': 'Bearer $token',
-                'Content-Type': 'application/json',
-              },
-            );
-
-            if (savedResponse.statusCode == 200) {
-              if (savedResponse.body == 'true' || savedResponse.body == 'false') {
-                product.isSaved = savedResponse.body == 'true';
-              } else {
-                final savedData = jsonDecode(savedResponse.body);
-                product.isSaved = savedData['isSaved'] is bool ? savedData['isSaved'] : false;
-              }
-            }
-          }
-
-          return products;
+          return decodedBody.map((json) => Product.fromJson(json)).toList();
         } else {
           throw Exception('Invalid response format: Expected a list of products');
         }
@@ -262,7 +185,6 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
     );
   }
 }
-
 class ProductList extends StatelessWidget {
   final List<Product> products;
   final String token;
