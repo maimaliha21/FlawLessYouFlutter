@@ -62,6 +62,7 @@ Future<void> saveBaseUrl(String baseUrl) async {
     print('Base URL saved successfully: $baseUrl');
   } catch (e) {
     print('Error saving base URL: $e');
+
     throw Exception('Failed to save base URL');
   }
 }
