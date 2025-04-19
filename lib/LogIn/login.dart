@@ -252,11 +252,13 @@ class LoginScreen extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      const SizedBox(height: 40), // أضف مسافة من الأعلى لخفض اللوجو
                       Image.asset(
-                        'assets/logoflutter.png',
-                        height: 100,
+                        'assets/logo.png',
+                        height: 180, // كبر الحجم من 100 إلى 140 (أو الحجم الذي يناسبك)
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 10), // مسافة بين اللوجو والعناصر اللي بعده
+
                       const Text(
                         'Login to Your Account',
                         style: TextStyle(
