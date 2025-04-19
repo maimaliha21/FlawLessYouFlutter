@@ -75,6 +75,7 @@ class Home extends StatelessWidget {
               length: 1, // Update to match the number of tabs
               child: Scaffold(
                 appBar: AppBar(
+                  automaticallyImplyLeading: false, // هذا يخفي السهم
                   title: const Text(
                     'Flawless You',
                     style: TextStyle(
