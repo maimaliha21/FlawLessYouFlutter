@@ -29,7 +29,6 @@ class Product {
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
-    // Handle both nested and flat structure
     final productData = json['product'] ?? json;
 
     double avgRating = 0.0;
@@ -85,38 +84,59 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
   String? token;
   String? userRole;
   bool _isLoading = true;
+  bool _isLoadingMore = false;
   String? _baseUrl;
+  List<Product> _products = [];
+  int _currentPage = 0;
+  bool _hasMore = true;
+  ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _loadToken();
     _loadBaseUrl();
+    _scrollController.addListener(_onScroll);
   }
 
-  Future<void> _loadToken() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? userInfoString = prefs.getString('userInfo');
-    Map<String, dynamic> userInfoMap = json.decode(userInfoString ?? '{}');
-
-    setState(() {
-      token = prefs.getString('token');
-      userRole = userInfoMap['role'];
-      _isLoading = false;
-    });
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
-  Future<void> _loadBaseUrl() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _baseUrl = prefs.getString('baseUrl') ?? 'http://localhost:8080';
-    });
-  }
-
-  Future<List<Product>> fetchProducts() async {
-    if (token == null) {
-      throw Exception('Token is not available');
+  void _onScroll() {
+    if (_scrollController.position.pixels ==
+        _scrollController.position.maxScrollExtent &&
+        !_isLoadingMore &&
+        _hasMore) {
+      _loadMoreProducts();
     }
+  }
+
+  Future<void> _loadMoreProducts() async {
+    if (!_hasMore || _isLoadingMore) return;
+
+    setState(() => _isLoadingMore = true);
+    _currentPage++;
+
+    try {
+      final newProducts = await _fetchProducts(_currentPage);
+      setState(() {
+        _products.addAll(newProducts);
+        _hasMore = newProducts.isNotEmpty;
+        _isLoadingMore = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingMore = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load more products')),
+      );
+    }
+  }
+
+  Future<List<Product>> _fetchProducts(int page) async {
+    if (token == null) throw Exception('Token is not available');
 
     final Uri uri = Uri.parse(widget.apiUrl);
 
@@ -133,8 +153,11 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
         final decodedBody = jsonDecode(response.body);
         if (decodedBody is List) {
           return decodedBody.map((json) => Product.fromJson(json)).toList();
+        } else if (decodedBody['products'] is List) {
+          return List<Product>.from(
+              decodedBody['products'].map((x) => Product.fromJson(x)));
         } else {
-          throw Exception('Invalid response format: Expected a list of products');
+          throw Exception('Invalid response format');
         }
       } catch (e) {
         throw Exception('Failed to parse response: $e');
@@ -144,93 +167,101 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
     }
   }
 
+  Future<void> _loadToken() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userInfoString = prefs.getString('userInfo');
+    Map<String, dynamic> userInfoMap = json.decode(userInfoString ?? '{}');
+
+    setState(() {
+      token = prefs.getString('token');
+      userRole = userInfoMap['role'];
+    });
+    await _refreshProducts();
+  }
+
+  Future<void> _loadBaseUrl() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _baseUrl = prefs.getString('baseUrl') ?? 'http://localhost:8080';
+    });
+  }
+
   Future<void> _refreshProducts() async {
     setState(() {
       _isLoading = true;
+      _currentPage = 0;
+      _products = [];
+      _hasMore = true;
     });
-    await fetchProducts();
-    setState(() {
-      _isLoading = false;
-    });
+
+    try {
+      final products = await _fetchProducts(0);
+      setState(() {
+        _products = products;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load products: $e')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
-      body: _isLoading
+      body: _isLoading && _products.isEmpty
           ? const Center(child: CircularProgressIndicator())
-          : FutureBuilder<List<Product>>(
-        future: fetchProducts(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          return ProductList(
-            products: snapshot.data!,
-            token: token!,
-            userRole: userRole!,
-            baseUrl: _baseUrl!,
-            pageName: widget.pageName,
-            treatmentId: widget.treatmentId,
-            onDelete: _refreshProducts,
-          );
-        },
-      ),
-    );
-  }
-}
-class ProductList extends StatelessWidget {
-  final List<Product> products;
-  final String token;
-  final String userRole;
-  final String baseUrl;
-  final String pageName;
-  final String? treatmentId;
-  final VoidCallback onDelete;
-
-  const ProductList({
-    Key? key,
-    required this.products,
-    required this.token,
-    required this.userRole,
-    required this.baseUrl,
-    required this.pageName,
-    this.treatmentId,
-    required this.onDelete,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: GridView.builder(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 0.8,
+          : RefreshIndicator(
+        onRefresh: _refreshProducts,
+        child: CustomScrollView(
+          controller: _scrollController,
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.all(16.0),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.8,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                    return ProductCard(
+                      product: _products[index],
+                      token: token!,
+                      userRole: userRole!,
+                      baseUrl: _baseUrl!,
+                      pageName: widget.pageName,
+                      treatmentId: widget.treatmentId,
+                      onDelete: _refreshProducts,
+                    );
+                  },
+                  childCount: _products.length,
+                ),
+              ),
+            ),
+            if (_isLoadingMore)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ),
+            if (!_hasMore && _products.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Center(child: Text('No more products')),
+                ),
+              ),
+          ],
         ),
-        itemCount: products.length,
-        itemBuilder: (context, index) {
-          return ProductCard(
-            product: products[index],
-            token: token,
-            userRole: userRole,
-            baseUrl: baseUrl,
-            pageName: pageName,
-            treatmentId: treatmentId,
-            onDelete: onDelete,
-          );
-        },
       ),
     );
-
   }
 }
 
@@ -257,6 +288,7 @@ class ProductCard extends StatefulWidget {
   @override
   _ProductCardState createState() => _ProductCardState();
 }
+
 
 class _ProductCardState extends State<ProductCard> {
   bool isSaved = false;

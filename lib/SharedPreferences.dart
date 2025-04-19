@@ -58,8 +58,8 @@ Future<bool> hasUserData() async {
 Future<void> saveBaseUrl(String baseUrl) async {
   try {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('baseUrl', 'http://192.168.60.112:8080'); // حفظ الرابط
-    print('Base URL saved successfully: $baseUrl');
+    await prefs.setString('baseUrl', 'http://192.168.1.203:8080'); // حفظ الرابط
+        print('Base URL saved successfully: $baseUrl');
   } catch (e) {
     print('Error saving base URL: $e');
 
