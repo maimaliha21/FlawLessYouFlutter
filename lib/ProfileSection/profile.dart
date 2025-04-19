@@ -71,7 +71,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadBaseUrl() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      _baseUrl = prefs.getString('baseUrl') ?? 'https://44c2-5-43-193-232.ngrok-free.app';
+      _baseUrl = prefs.getString('baseUrl') ?? '';
     });
   }
 
@@ -504,14 +504,15 @@ class _TabBarSectionState extends State<TabBarSection>
         ),
         Container(
           height: MediaQuery.of(context).size.height * 0.40,
-          child: TabBarView(
+          child:TabBarView(
             controller: _tabController,
             children: [
-              ProductTabScreen(
-                apiUrl: widget.baseUrl != null
-                    ? '${widget.baseUrl}/product/Saved'
-                    : '', pageName: 'home',
-              ),
+              widget.baseUrl != null
+                  ? ProductTabScreen(
+                apiUrl: '${widget.baseUrl}/product/Saved',
+                pageName: 'home',
+              )
+                  : Center(child: CircularProgressIndicator()),
               const Center(
                 child: SkinAnalysisHistoryScreen(),
               ),
