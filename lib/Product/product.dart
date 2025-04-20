@@ -16,7 +16,7 @@ class Product {
   final String? description;
   final String? smallDescription;
   final double rating;
-  final List<String>? photos;
+   List<String>? photos;
   final List<String>? usageTime;
   bool isSaved;
 
@@ -804,6 +804,7 @@ class _ProductCardState extends State<ProductCard> {
               product: widget.product,
               token: widget.token,
               baseUrl: widget.baseUrl,
+              onProductDeleted: widget.onDelete,
             ),
           );
         },
@@ -1180,12 +1181,14 @@ class EditProductPopup extends StatefulWidget {
   final Product product;
   final String token;
   final String baseUrl;
+  final VoidCallback? onProductDeleted;
 
   const EditProductPopup({
     Key? key,
     required this.product,
     required this.token,
     required this.baseUrl,
+    this.onProductDeleted,
   }) : super(key: key);
 
   @override
@@ -1202,6 +1205,7 @@ class _EditProductPopupState extends State<EditProductPopup> {
   List<File> _newImages = [];
   List<String> _deletedImageUrls = [];
   bool _isLoading = false;
+  bool _isDeleting = false;
 
   @override
   void initState() {
@@ -1300,6 +1304,68 @@ class _EditProductPopupState extends State<EditProductPopup> {
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _deleteProduct() async {
+    setState(() => _isDeleting = true);
+
+    try {
+      final response = await http.delete(
+        Uri.parse('${widget.baseUrl}/product/${widget.product.productId}'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'accept': '*/*',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Product deleted successfully')),
+        );
+
+        // إغلاق النافذة وإرسال إشارة أن المنتج تم حذفه
+        Navigator.of(context).pop(true);
+
+        // استدعاء callback إذا كان موجوداً
+        if (widget.onProductDeleted != null) {
+          widget.onProductDeleted!();
+        }
+      } else {
+        throw Exception('Failed to delete product: ${response.statusCode}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting product: $e')),
+      );
+    } finally {
+      setState(() => _isDeleting = false);
+    }
+  }
+
+  void _confirmDelete() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Confirm Delete'),
+        content: Text('Are you sure you want to delete this product? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteProduct();
+            },
+            child: Text(
+              'Delete',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _pickImages() async {
@@ -1409,7 +1475,7 @@ class _EditProductPopupState extends State<EditProductPopup> {
         if (response.statusCode == 200) {
           final updatedProduct = Product.fromJson(json.decode(responseBody));
           setState(() {
-            widget.product.photos!= updatedProduct.photos;
+            widget.product.photos = updatedProduct.photos;
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Images added successfully')),
@@ -1631,6 +1697,33 @@ class _EditProductPopupState extends State<EditProductPopup> {
                     : Text('Update Product'),
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 16),
+
+              // Delete Button
+              ElevatedButton(
+                onPressed: _isDeleting ? null : _confirmDelete,
+                child: _isDeleting
+                    ? SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+                    : Text(
+                  'Delete Product',
+                  style: TextStyle(color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: Size(double.infinity, 50),
+                  backgroundColor: Colors.red,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
