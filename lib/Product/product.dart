@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http_parser/http_parser.dart';
 import 'dart:io';
+
 class Product {
   final String productId;
   final String? name;
@@ -308,6 +309,7 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
     );
   }
 }
+
 class AddProductPopup extends StatefulWidget {
   final String token;
   final String baseUrl;
@@ -668,6 +670,7 @@ class _AddProductPopupState extends State<AddProductPopup> {
     );
   }
 }
+
 class ProductCard extends StatefulWidget {
   final Product product;
   final String token;
@@ -691,7 +694,6 @@ class ProductCard extends StatefulWidget {
   @override
   _ProductCardState createState() => _ProductCardState();
 }
-
 
 class _ProductCardState extends State<ProductCard> {
   bool isSaved = false;
@@ -805,7 +807,11 @@ class _ProductCardState extends State<ProductCard> {
             ),
           );
         },
-      );
+      ).then((shouldRefresh) {
+        if (shouldRefresh == true) {
+          widget.onDelete(); // Refresh the product list
+        }
+      });
     } else {
       showDialog(
         context: context,
@@ -961,20 +967,18 @@ class _ProductCardState extends State<ProductCard> {
   }
 }
 
-// باقي الأكواد (ProductDetailsPopup, EditProductPopup, CustomBottomNavigationBar, BottomWaveClipper) تبقى كما هي.
-// باقي الأكواد (ProductDetailsPopup, EditProductPopup, CustomBottomNavigationBar, BottomWaveClipper) تبقى كما هي.
 class ProductDetailsPopup extends StatefulWidget {
   final Product product;
   final String token;
   final String baseUrl;
-  final String? treatmentId; // إضافة treatmentId هنا
+  final String? treatmentId;
 
   const ProductDetailsPopup({
     Key? key,
     required this.product,
     required this.token,
     required this.baseUrl,
-    this.treatmentId, // إضافة treatmentId هنا
+    this.treatmentId,
   }) : super(key: key);
 
   @override
@@ -1176,7 +1180,13 @@ class EditProductPopup extends StatefulWidget {
   final Product product;
   final String token;
   final String baseUrl;
-  const EditProductPopup({Key? key, required this.product, required this.token,required this.baseUrl}) : super(key: key);
+
+  const EditProductPopup({
+    Key? key,
+    required this.product,
+    required this.token,
+    required this.baseUrl,
+  }) : super(key: key);
 
   @override
   _EditProductPopupState createState() => _EditProductPopupState();
@@ -1185,15 +1195,20 @@ class EditProductPopup extends StatefulWidget {
 class _EditProductPopupState extends State<EditProductPopup> {
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
+  late TextEditingController _smallDescriptionController;
   late Map<String, bool> _skinType;
   late List<String> _ingredients;
   late Map<String, bool> _usageTime;
+  List<File> _newImages = [];
+  List<String> _deletedImageUrls = [];
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.product.name);
     _descriptionController = TextEditingController(text: widget.product.description);
+    _smallDescriptionController = TextEditingController(text: widget.product.smallDescription);
     _skinType = {
       'OILY': widget.product.skinType.contains('OILY'),
       'DRY': widget.product.skinType.contains('DRY'),
@@ -1208,9 +1223,12 @@ class _EditProductPopupState extends State<EditProductPopup> {
   }
 
   Future<void> _updateProduct() async {
+    setState(() => _isLoading = true);
+
     try {
-      final response = await http.put(
-        Uri.parse('http://localhost:8080/product/product'),
+      // Step 1: Update product details
+      final detailsResponse = await http.put(
+        Uri.parse('${widget.baseUrl}/product/product'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
@@ -1218,162 +1236,420 @@ class _EditProductPopupState extends State<EditProductPopup> {
         body: jsonEncode({
           'productId': widget.product.productId,
           'name': _nameController.text,
-          'skinType': _skinType.entries.where((entry) => entry.value).map((entry) => entry.key).toList(),
+          'skinType': _skinType.entries.where((e) => e.value).map((e) => e.key).toList(),
           'description': _descriptionController.text,
+          'smaledescription': _smallDescriptionController.text,
           'ingredients': _ingredients,
-          'usageTime': _usageTime.entries.where((entry) => entry.value).map((entry) => entry.key).toList(),
+          'usageTime': _usageTime.entries.where((e) => e.value).map((e) => e.key).toList(),
         }),
       );
 
-      if (response.statusCode == 200) {
+      if (detailsResponse.statusCode == 200) {
+        // Step 2: Delete marked images
+        if (_deletedImageUrls.isNotEmpty) {
+          final deleteResponse = await http.post(
+            Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/deletePhotos'),
+            headers: {
+              'Authorization': 'Bearer ${widget.token}',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'photoUrls': _deletedImageUrls}),
+          );
+
+          if (deleteResponse.statusCode != 200) {
+            throw Exception('Failed to delete images');
+          }
+        }
+
+        // Step 3: Upload new images
+        if (_newImages.isNotEmpty) {
+          var request = http.MultipartRequest(
+            'POST',
+            Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/photos'),
+          );
+
+          request.headers['Authorization'] = 'Bearer ${widget.token}';
+
+          for (var image in _newImages) {
+            request.files.add(
+              await http.MultipartFile.fromPath(
+                'files',
+                image.path,
+                contentType: MediaType('image', 'jpeg'),
+              ),
+            );
+          }
+
+          var response = await request.send();
+          if (response.statusCode != 200) {
+            throw Exception('Failed to upload images');
+          }
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Product updated successfully')),
         );
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update product')),
-        );
+        throw Exception('Failed to update product details');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Connection error')),
+        SnackBar(content: Text('Error updating product: $e')),
       );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _pickImages() async {
+    final pickedFiles = await ImagePicker().pickMultiImage(
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
+    );
+
+    if (pickedFiles != null) {
+      setState(() {
+        _newImages.addAll(pickedFiles.map((file) => File(file.path)));
+      });
     }
   }
 
   void _addIngredient() async {
     final newIngredient = await showDialog<String>(
       context: context,
-      builder: (context) {
-        final TextEditingController controller = TextEditingController();
-        return AlertDialog(
-          title: Text('Add Ingredient'),
-          content: TextField(
-            controller: controller,
-            decoration: InputDecoration(hintText: 'Enter ingredient'),
+      builder: (context) => AlertDialog(
+        title: Text('Add Ingredient'),
+        content: TextField(
+          autofocus: true,
+          decoration: InputDecoration(hintText: 'Enter ingredient name'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(controller.text);
-              },
-              child: Text('Add'),
-            ),
-          ],
-        );
-      },
+          TextButton(
+            onPressed: () {
+              final controller = (context as Element).findAncestorWidgetOfExactType<TextField>()?.controller as TextEditingController?;
+              Navigator.pop(context, controller?.text ?? '');
+            },
+            child: Text('Add'),
+          ),
+        ],
+      ),
     );
 
     if (newIngredient != null && newIngredient.isNotEmpty) {
-      setState(() {
-        _ingredients.add(newIngredient);
-      });
+      setState(() => _ingredients.add(newIngredient));
+    }
+  }
+
+  Future<void> _deleteImageByIndex(int index) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/photos/$index'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          widget.product.photos!.removeAt(index);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Image deleted successfully')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete image')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting image: $e')),
+      );
+    }
+  }
+
+  Future<void> _addNewImages() async {
+    final pickedFiles = await ImagePicker().pickMultiImage(
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
+    );
+
+    if (pickedFiles != null && pickedFiles.isNotEmpty) {
+      setState(() => _isLoading = true);
+
+      try {
+        var request = http.MultipartRequest(
+          'POST',
+          Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/photos'),
+        );
+
+        request.headers['Authorization'] = 'Bearer ${widget.token}';
+
+        for (var pickedFile in pickedFiles) {
+          final file = File(pickedFile.path);
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'files',
+              file.path,
+              contentType: MediaType('image', 'jpeg'),
+            ),
+          );
+        }
+
+        var response = await request.send();
+        final responseBody = await response.stream.bytesToString();
+
+        if (response.statusCode == 200) {
+          final updatedProduct = Product.fromJson(json.decode(responseBody));
+          setState(() {
+            widget.product.photos!= updatedProduct.photos;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Images added successfully')),
+          );
+        } else {
+          throw Exception('Failed to upload images: ${response.statusCode}');
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error adding images: $e')),
+        );
+      } finally {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (widget.product.photos != null && widget.product.photos!.isNotEmpty)
-            Image.network(
-              widget.product.photos![0],
-              fit: BoxFit.cover,
-              height: 200,
-              width: double.infinity,
-            ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: _nameController,
-                  decoration: InputDecoration(labelText: 'Product Name'),
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      insetPadding: EdgeInsets.all(16),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Edit Product',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              SizedBox(height: 24),
+
+              // Product Images Section
+              _buildSectionHeader('Product Images'),
+              SizedBox(height: 8),
+
+              if (widget.product.photos?.isEmpty ?? true)
+                Text('No images available', style: TextStyle(color: Colors.grey)),
+
+              if (widget.product.photos?.isNotEmpty ?? false)
+                SizedBox(
+                  height: 120,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: widget.product.photos!.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                widget.product.photos![index],
+                                width: 120,
+                                height: 120,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: GestureDetector(
+                                onTap: () => _deleteImageByIndex(index),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  padding: EdgeInsets.all(4),
+                                  child: Icon(Icons.close, size: 16, color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
-                SizedBox(height: 16),
-                TextField(
-                  controller: _descriptionController,
-                  decoration: InputDecoration(labelText: 'Description'),
-                  maxLines: 3,
+
+              SizedBox(height: 16),
+
+              ElevatedButton.icon(
+                onPressed: _isLoading ? null : _addNewImages,
+                icon: Icon(Icons.add_photo_alternate),
+                label: Text('Add Images'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: Size(double.infinity, 50),
                 ),
-                SizedBox(height: 16),
-                Text(
-                  'Skin Type:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+
+              SizedBox(height: 24),
+
+              // Product Details Section
+              _buildSectionHeader('Product Details'),
+              SizedBox(height: 16),
+
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(
+                  labelText: 'Product Name',
+                  border: OutlineInputBorder(),
                 ),
-                SizedBox(height: 8),
-                Row(
-                  children: _skinType.entries.map((entry) {
-                    return Expanded(
-                      child: CheckboxListTile(
-                        title: Text(entry.key),
-                        value: entry.value,
-                        onChanged: (value) {
-                          setState(() {
-                            _skinType[entry.key] = value ?? false;
-                          });
-                        },
-                      ),
-                    );
-                  }).toList(),
+              ),
+
+              SizedBox(height: 16),
+
+              TextFormField(
+                controller: _descriptionController,
+                decoration: InputDecoration(
+                  labelText: 'Description',
+                  border: OutlineInputBorder(),
                 ),
-                SizedBox(height: 16),
-                Text(
-                  'Ingredients:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                maxLines: 3,
+              ),
+
+              SizedBox(height: 16),
+
+              TextFormField(
+                controller: _smallDescriptionController,
+                decoration: InputDecoration(
+                  labelText: 'Short Description',
+                  border: OutlineInputBorder(),
                 ),
-                SizedBox(height: 8),
-                Wrap(
-                  spacing: 8.0,
-                  children: _ingredients.map((ingredient) {
-                    return Chip(
-                      label: Text(ingredient),
-                      onDeleted: () {
-                        setState(() {
-                          _ingredients.remove(ingredient);
-                        });
-                      },
-                    );
-                  }).toList(),
+              ),
+
+              SizedBox(height: 24),
+
+              // Skin Type Section
+              _buildSectionHeader('Skin Type'),
+              SizedBox(height: 8),
+
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _skinType.entries.map((e) => ChoiceChip(
+                  label: Text(e.key),
+                  selected: e.value,
+                  onSelected: (v) => setState(() => _skinType[e.key] = v),
+                )).toList(),
+              ),
+
+              SizedBox(height: 24),
+
+              // Ingredients Section
+              _buildSectionHeader('Ingredients'),
+              SizedBox(height: 8),
+
+              if (_ingredients.isEmpty)
+                Text('No ingredients added', style: TextStyle(color: Colors.grey)),
+
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _ingredients.map((ingredient) => Chip(
+                  label: Text(ingredient),
+                  deleteIcon: Icon(Icons.close, size: 18),
+                  onDeleted: () => setState(() => _ingredients.remove(ingredient)),
+                )).toList(),
+              ),
+
+              TextButton.icon(
+                onPressed: _addIngredient,
+                icon: Icon(Icons.add, size: 18),
+                label: Text('Add Ingredient'),
+                style: TextButton.styleFrom(
+                  alignment: Alignment.centerLeft,
                 ),
-                IconButton(
-                  icon: Icon(Icons.add),
-                  onPressed: _addIngredient,
+              ),
+
+              SizedBox(height: 24),
+
+              // Usage Time Section
+              _buildSectionHeader('Usage Time'),
+              SizedBox(height: 8),
+
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _usageTime.entries.map((e) => ChoiceChip(
+                  label: Text(e.key),
+                  selected: e.value,
+                  onSelected: (v) => setState(() => _usageTime[e.key] = v),
+                )).toList(),
+              ),
+
+              SizedBox(height: 32),
+
+              // Update Button
+              ElevatedButton(
+                onPressed: _isLoading ? null : _updateProduct,
+                child: _isLoading
+                    ? SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+                    : Text('Update Product'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                SizedBox(height: 16),
-                Text(
-                  'Usage Time:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Row(
-                  children: _usageTime.entries.map((entry) {
-                    return Expanded(
-                      child: CheckboxListTile(
-                        title: Text(entry.key),
-                        value: entry.value,
-                        onChanged: (value) {
-                          setState(() {
-                            _usageTime[entry.key] = value ?? false;
-                          });
-                        },
-                      ),
-                    );
-                  }).toList(),
-                ),
-                SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _updateProduct,
-                  child: Text('Update Product'),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: Colors.blue[800],
       ),
     );
   }
