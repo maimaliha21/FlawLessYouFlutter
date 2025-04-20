@@ -4,7 +4,9 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:image_picker/image_picker.dart';
+import 'package:http_parser/http_parser.dart';
+import 'dart:io';
 class Product {
   final String productId;
   final String? name;
@@ -306,7 +308,6 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
     );
   }
 }
-
 class AddProductPopup extends StatefulWidget {
   final String token;
   final String baseUrl;
@@ -338,10 +339,74 @@ class _AddProductPopupState extends State<AddProductPopup> {
   List<String> _selectedUsageTimes = [];
   final List<String> _usageTimeOptions = ['MORNING', 'AFTERNOON', 'NIGHT'];
 
+  List<File> _selectedImages = [];
+  bool _isUploading = false;
+  String? _newProductId;
+
+  Future<void> _pickImages() async {
+    final pickedFiles = await ImagePicker().pickMultiImage(
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
+    );
+
+    if (pickedFiles != null) {
+      setState(() {
+        _selectedImages.addAll(pickedFiles.map((file) => File(file.path)).toList());
+      });
+    }
+  }
+
+  Future<void> _uploadImages(String productId) async {
+    if (_selectedImages.isEmpty) return;
+
+    setState(() => _isUploading = true);
+
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${widget.baseUrl}/product/$productId/photos'),
+      );
+
+      request.headers['Authorization'] = 'Bearer ${widget.token}';
+
+      for (var image in _selectedImages) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'files',
+            image.path,
+            contentType: MediaType('image', 'jpeg'),
+          ),
+        );
+      }
+
+      var response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(responseBody);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Images uploaded successfully')),
+        );
+      } else {
+        throw Exception('Failed to upload images: ${response.statusCode}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error uploading images: $e')),
+      );
+    } finally {
+      setState(() => _isUploading = false);
+    }
+  }
+
   Future<void> _addProduct() async {
     if (!_formKey.currentState!.validate()) return;
 
+    setState(() => _isUploading = true);
+
     try {
+      // First create the product
       final response = await http.post(
         Uri.parse('${widget.baseUrl}/product'),
         headers: {
@@ -359,20 +424,28 @@ class _AddProductPopupState extends State<AddProductPopup> {
       );
 
       if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        _newProductId = responseData['productId'];
+
+        // Then upload images if any
+        if (_selectedImages.isNotEmpty) {
+          await _uploadImages(_newProductId!);
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Product added successfully')),
         );
         widget.onProductAdded();
         Navigator.of(context).pop();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add product: ${response.body}')),
-        );
+        throw Exception('Failed to add product: ${response.body}');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Connection error: $e')),
+        SnackBar(content: Text('Error: $e')),
       );
+    } finally {
+      setState(() => _isUploading = false);
     }
   }
 
@@ -388,6 +461,12 @@ class _AddProductPopupState extends State<AddProductPopup> {
   void _removeIngredient(int index) {
     setState(() {
       _ingredients.removeAt(index);
+    });
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
     });
   }
 
@@ -417,6 +496,56 @@ class _AddProductPopupState extends State<AddProductPopup> {
             ),
             SizedBox(height: 16),
 
+            // Product Images Section
+            Text('Product Images', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 8),
+
+            if (_selectedImages.isNotEmpty)
+              SizedBox(
+                height: 100,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _selectedImages.length,
+                  itemBuilder: (context, index) {
+                    return Stack(
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 100,
+                          margin: EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            image: DecorationImage(
+                              image: FileImage(_selectedImages[index]),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: IconButton(
+                            icon: Icon(Icons.close, color: Colors.red),
+                            onPressed: () => _removeImage(index),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+
+            ElevatedButton.icon(
+              onPressed: _pickImages,
+              icon: Icon(Icons.photo_library),
+              label: Text('Add Images'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: Size(double.infinity, 50),
+              ),
+            ),
+            SizedBox(height: 16),
+
+            // Product Details Section
             TextFormField(
               controller: _nameController,
               decoration: InputDecoration(
@@ -469,6 +598,7 @@ class _AddProductPopupState extends State<AddProductPopup> {
             ),
             SizedBox(height: 16),
 
+            // Ingredients Section
             Text('Ingredients', style: TextStyle(fontWeight: FontWeight.bold)),
             SizedBox(height: 8),
 
@@ -504,6 +634,7 @@ class _AddProductPopupState extends State<AddProductPopup> {
             ],
             SizedBox(height: 16),
 
+            // Usage Time Section
             Text('Usage Time', style: TextStyle(fontWeight: FontWeight.bold)),
             SizedBox(height: 8),
 
@@ -519,8 +650,11 @@ class _AddProductPopupState extends State<AddProductPopup> {
             ),
             SizedBox(height: 24),
 
+            // Submit Button
             Center(
-              child: ElevatedButton(
+              child: _isUploading
+                  ? CircularProgressIndicator()
+                  : ElevatedButton(
                 onPressed: _addProduct,
                 child: Text('Add Product'),
                 style: ElevatedButton.styleFrom(
@@ -534,9 +668,6 @@ class _AddProductPopupState extends State<AddProductPopup> {
     );
   }
 }
-
-// Rest of your existing code (ProductCard, ProductDetailsPopup, EditProductPopup) remains the same
-
 class ProductCard extends StatefulWidget {
   final Product product;
   final String token;
