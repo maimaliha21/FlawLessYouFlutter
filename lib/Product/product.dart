@@ -4,6 +4,9 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http_parser/http_parser.dart';
+import 'dart:io';
 
 class Product {
   final String productId;
@@ -11,6 +14,7 @@ class Product {
   final List<String> skinType;
   final List<String> ingredients;
   final String? description;
+  final String? smallDescription;
   final double rating;
   final List<String>? photos;
   final List<String>? usageTime;
@@ -22,6 +26,7 @@ class Product {
     required this.skinType,
     required this.ingredients,
     this.description,
+    this.smallDescription,
     required this.rating,
     this.photos,
     this.usageTime,
@@ -56,6 +61,7 @@ class Product {
       skinType: List<String>.from(productData['skinType'] ?? []),
       ingredients: List<String>.from(productData['ingredients'] ?? []),
       description: productData['description'] as String?,
+      smallDescription: productData['smaledescription'] as String?,
       rating: avgRating,
       photos: photos,
       usageTime: usageTime,
@@ -123,17 +129,15 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
     try {
       final newProducts = await _fetchProducts();
 
-      // إنشاء مجموعة من productIds الموجودة حالياً
       final existingIds = _products.map((p) => p.productId).toSet();
 
-      // تصفية المنتجات الجديدة لإزالة أي تكرارات
       final filteredNewProducts = newProducts.where(
               (product) => !existingIds.contains(product.productId)
       ).toList();
 
       setState(() {
         _products.addAll(filteredNewProducts);
-        _hasMore = newProducts.isNotEmpty; // نظل نتحقق من وجود المزيد حتى لو تمت تصفية بعض العناصر
+        _hasMore = newProducts.isNotEmpty;
         _isLoadingMore = false;
       });
     } catch (e) {
@@ -143,6 +147,7 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
       );
     }
   }
+
   Future<List<Product>> _fetchProducts() async {
     if (token == null) throw Exception('Token is not available');
 
@@ -170,7 +175,6 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
           throw Exception('Invalid response format');
         }
 
-        // إزالة التكرارات باستخدام Set
         final uniqueProducts = <String, Product>{};
         for (var product in products) {
           uniqueProducts[product.productId] = product;
@@ -184,6 +188,7 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
       throw Exception('Failed to load products: ${response.statusCode}');
     }
   }
+
   Future<void> _loadToken() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? userInfoString = prefs.getString('userInfo');
@@ -225,10 +230,33 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
     }
   }
 
+  void _showAddProductDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          insetPadding: EdgeInsets.all(16),
+          child: AddProductPopup(
+            token: token!,
+            baseUrl: _baseUrl!,
+            onProductAdded: _refreshProducts,
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
+      floatingActionButton: userRole == 'ADMIN'
+          ? FloatingActionButton(
+        onPressed: () => _showAddProductDialog(context),
+        child: Icon(Icons.add),
+        backgroundColor: Colors.blue,
+      )
+          : null,
       body: _isLoading && _products.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -282,6 +310,367 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
   }
 }
 
+class AddProductPopup extends StatefulWidget {
+  final String token;
+  final String baseUrl;
+  final VoidCallback onProductAdded;
+
+  const AddProductPopup({
+    Key? key,
+    required this.token,
+    required this.baseUrl,
+    required this.onProductAdded,
+  }) : super(key: key);
+
+  @override
+  _AddProductPopupState createState() => _AddProductPopupState();
+}
+
+class _AddProductPopupState extends State<AddProductPopup> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _smallDescriptionController = TextEditingController();
+
+  List<String> _ingredients = [];
+  final TextEditingController _ingredientController = TextEditingController();
+
+  String? _selectedSkinType;
+  final List<String> _skinTypes = ['OILY', 'DRY', 'NORMAL'];
+
+  List<String> _selectedUsageTimes = [];
+  final List<String> _usageTimeOptions = ['MORNING', 'AFTERNOON', 'NIGHT'];
+
+  List<File> _selectedImages = [];
+  bool _isUploading = false;
+  String? _newProductId;
+
+  Future<void> _pickImages() async {
+    final pickedFiles = await ImagePicker().pickMultiImage(
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
+    );
+
+    if (pickedFiles != null) {
+      setState(() {
+        _selectedImages.addAll(pickedFiles.map((file) => File(file.path)).toList());
+      });
+    }
+  }
+
+  Future<void> _uploadImages(String productId) async {
+    if (_selectedImages.isEmpty) return;
+
+    setState(() => _isUploading = true);
+
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${widget.baseUrl}/product/$productId/photos'),
+      );
+
+      request.headers['Authorization'] = 'Bearer ${widget.token}';
+
+      for (var image in _selectedImages) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'files',
+            image.path,
+            contentType: MediaType('image', 'jpeg'),
+          ),
+        );
+      }
+
+      var response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(responseBody);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Images uploaded successfully')),
+        );
+      } else {
+        throw Exception('Failed to upload images: ${response.statusCode}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error uploading images: $e')),
+      );
+    } finally {
+      setState(() => _isUploading = false);
+    }
+  }
+
+  Future<void> _addProduct() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isUploading = true);
+
+    try {
+      // First create the product
+      final response = await http.post(
+        Uri.parse('${widget.baseUrl}/product'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'name': _nameController.text,
+          'skinType': _selectedSkinType != null ? [_selectedSkinType!] : [],
+          'description': _descriptionController.text,
+          'smaledescription': _smallDescriptionController.text,
+          'ingredients': _ingredients,
+          'usageTime': _selectedUsageTimes,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        _newProductId = responseData['productId'];
+
+        // Then upload images if any
+        if (_selectedImages.isNotEmpty) {
+          await _uploadImages(_newProductId!);
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Product added successfully')),
+        );
+        widget.onProductAdded();
+        Navigator.of(context).pop();
+      } else {
+        throw Exception('Failed to add product: ${response.body}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      setState(() => _isUploading = false);
+    }
+  }
+
+  void _addIngredient() {
+    if (_ingredientController.text.isNotEmpty) {
+      setState(() {
+        _ingredients.add(_ingredientController.text);
+        _ingredientController.clear();
+      });
+    }
+  }
+
+  void _removeIngredient(int index) {
+    setState(() {
+      _ingredients.removeAt(index);
+    });
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+    });
+  }
+
+  void _toggleUsageTime(String time) {
+    setState(() {
+      if (_selectedUsageTimes.contains(time)) {
+        _selectedUsageTimes.remove(time);
+      } else {
+        _selectedUsageTimes.add(time);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Add New Product',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+
+            // Product Images Section
+            Text('Product Images', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 8),
+
+            if (_selectedImages.isNotEmpty)
+              SizedBox(
+                height: 100,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _selectedImages.length,
+                  itemBuilder: (context, index) {
+                    return Stack(
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 100,
+                          margin: EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            image: DecorationImage(
+                              image: FileImage(_selectedImages[index]),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: IconButton(
+                            icon: Icon(Icons.close, color: Colors.red),
+                            onPressed: () => _removeImage(index),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+
+            ElevatedButton.icon(
+              onPressed: _pickImages,
+              icon: Icon(Icons.photo_library),
+              label: Text('Add Images'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: Size(double.infinity, 50),
+              ),
+            ),
+            SizedBox(height: 16),
+
+            // Product Details Section
+            TextFormField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                labelText: 'Product Name',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+            ),
+            SizedBox(height: 16),
+
+            DropdownButtonFormField<String>(
+              value: _selectedSkinType,
+              decoration: InputDecoration(
+                labelText: 'Skin Type',
+                border: OutlineInputBorder(),
+              ),
+              items: _skinTypes.map((type) {
+                return DropdownMenuItem(
+                  value: type,
+                  child: Text(type),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedSkinType = value;
+                });
+              },
+              validator: (value) => value == null ? 'Required' : null,
+            ),
+            SizedBox(height: 16),
+
+            TextFormField(
+              controller: _descriptionController,
+              decoration: InputDecoration(
+                labelText: 'Description',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+              validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+            ),
+            SizedBox(height: 16),
+
+            TextFormField(
+              controller: _smallDescriptionController,
+              decoration: InputDecoration(
+                labelText: 'Small Description',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+            ),
+            SizedBox(height: 16),
+
+            // Ingredients Section
+            Text('Ingredients', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 8),
+
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _ingredientController,
+                    decoration: InputDecoration(
+                      labelText: 'Add Ingredient',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.add),
+                  onPressed: _addIngredient,
+                ),
+              ],
+            ),
+
+            if (_ingredients.isNotEmpty) ...[
+              SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: List.generate(_ingredients.length, (index) {
+                  return Chip(
+                    label: Text(_ingredients[index]),
+                    onDeleted: () => _removeIngredient(index),
+                  );
+                }),
+              ),
+            ],
+            SizedBox(height: 16),
+
+            // Usage Time Section
+            Text('Usage Time', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 8),
+
+            Wrap(
+              spacing: 8,
+              children: _usageTimeOptions.map((time) {
+                return FilterChip(
+                  label: Text(time),
+                  selected: _selectedUsageTimes.contains(time),
+                  onSelected: (selected) => _toggleUsageTime(time),
+                );
+              }).toList(),
+            ),
+            SizedBox(height: 24),
+
+            // Submit Button
+            Center(
+              child: _isUploading
+                  ? CircularProgressIndicator()
+                  : ElevatedButton(
+                onPressed: _addProduct,
+                child: Text('Add Product'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: Size(200, 50),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class ProductCard extends StatefulWidget {
   final Product product;
   final String token;
@@ -305,7 +694,6 @@ class ProductCard extends StatefulWidget {
   @override
   _ProductCardState createState() => _ProductCardState();
 }
-
 
 class _ProductCardState extends State<ProductCard> {
   bool isSaved = false;
@@ -419,7 +807,11 @@ class _ProductCardState extends State<ProductCard> {
             ),
           );
         },
-      );
+      ).then((shouldRefresh) {
+        if (shouldRefresh == true) {
+          widget.onDelete(); // Refresh the product list
+        }
+      });
     } else {
       showDialog(
         context: context,
@@ -575,20 +967,18 @@ class _ProductCardState extends State<ProductCard> {
   }
 }
 
-// باقي الأكواد (ProductDetailsPopup, EditProductPopup, CustomBottomNavigationBar, BottomWaveClipper) تبقى كما هي.
-// باقي الأكواد (ProductDetailsPopup, EditProductPopup, CustomBottomNavigationBar, BottomWaveClipper) تبقى كما هي.
 class ProductDetailsPopup extends StatefulWidget {
   final Product product;
   final String token;
   final String baseUrl;
-  final String? treatmentId; // إضافة treatmentId هنا
+  final String? treatmentId;
 
   const ProductDetailsPopup({
     Key? key,
     required this.product,
     required this.token,
     required this.baseUrl,
-    this.treatmentId, // إضافة treatmentId هنا
+    this.treatmentId,
   }) : super(key: key);
 
   @override
@@ -790,7 +1180,13 @@ class EditProductPopup extends StatefulWidget {
   final Product product;
   final String token;
   final String baseUrl;
-  const EditProductPopup({Key? key, required this.product, required this.token,required this.baseUrl}) : super(key: key);
+
+  const EditProductPopup({
+    Key? key,
+    required this.product,
+    required this.token,
+    required this.baseUrl,
+  }) : super(key: key);
 
   @override
   _EditProductPopupState createState() => _EditProductPopupState();
@@ -799,15 +1195,20 @@ class EditProductPopup extends StatefulWidget {
 class _EditProductPopupState extends State<EditProductPopup> {
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
+  late TextEditingController _smallDescriptionController;
   late Map<String, bool> _skinType;
   late List<String> _ingredients;
   late Map<String, bool> _usageTime;
+  List<File> _newImages = [];
+  List<String> _deletedImageUrls = [];
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.product.name);
     _descriptionController = TextEditingController(text: widget.product.description);
+    _smallDescriptionController = TextEditingController(text: widget.product.smallDescription);
     _skinType = {
       'OILY': widget.product.skinType.contains('OILY'),
       'DRY': widget.product.skinType.contains('DRY'),
@@ -822,9 +1223,12 @@ class _EditProductPopupState extends State<EditProductPopup> {
   }
 
   Future<void> _updateProduct() async {
+    setState(() => _isLoading = true);
+
     try {
-      final response = await http.put(
-        Uri.parse('http://localhost:8080/product/product'),
+      // Step 1: Update product details
+      final detailsResponse = await http.put(
+        Uri.parse('${widget.baseUrl}/product/product'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
@@ -832,162 +1236,420 @@ class _EditProductPopupState extends State<EditProductPopup> {
         body: jsonEncode({
           'productId': widget.product.productId,
           'name': _nameController.text,
-          'skinType': _skinType.entries.where((entry) => entry.value).map((entry) => entry.key).toList(),
+          'skinType': _skinType.entries.where((e) => e.value).map((e) => e.key).toList(),
           'description': _descriptionController.text,
+          'smaledescription': _smallDescriptionController.text,
           'ingredients': _ingredients,
-          'usageTime': _usageTime.entries.where((entry) => entry.value).map((entry) => entry.key).toList(),
+          'usageTime': _usageTime.entries.where((e) => e.value).map((e) => e.key).toList(),
         }),
       );
 
-      if (response.statusCode == 200) {
+      if (detailsResponse.statusCode == 200) {
+        // Step 2: Delete marked images
+        if (_deletedImageUrls.isNotEmpty) {
+          final deleteResponse = await http.post(
+            Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/deletePhotos'),
+            headers: {
+              'Authorization': 'Bearer ${widget.token}',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'photoUrls': _deletedImageUrls}),
+          );
+
+          if (deleteResponse.statusCode != 200) {
+            throw Exception('Failed to delete images');
+          }
+        }
+
+        // Step 3: Upload new images
+        if (_newImages.isNotEmpty) {
+          var request = http.MultipartRequest(
+            'POST',
+            Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/photos'),
+          );
+
+          request.headers['Authorization'] = 'Bearer ${widget.token}';
+
+          for (var image in _newImages) {
+            request.files.add(
+              await http.MultipartFile.fromPath(
+                'files',
+                image.path,
+                contentType: MediaType('image', 'jpeg'),
+              ),
+            );
+          }
+
+          var response = await request.send();
+          if (response.statusCode != 200) {
+            throw Exception('Failed to upload images');
+          }
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Product updated successfully')),
         );
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update product')),
-        );
+        throw Exception('Failed to update product details');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Connection error')),
+        SnackBar(content: Text('Error updating product: $e')),
       );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _pickImages() async {
+    final pickedFiles = await ImagePicker().pickMultiImage(
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
+    );
+
+    if (pickedFiles != null) {
+      setState(() {
+        _newImages.addAll(pickedFiles.map((file) => File(file.path)));
+      });
     }
   }
 
   void _addIngredient() async {
     final newIngredient = await showDialog<String>(
       context: context,
-      builder: (context) {
-        final TextEditingController controller = TextEditingController();
-        return AlertDialog(
-          title: Text('Add Ingredient'),
-          content: TextField(
-            controller: controller,
-            decoration: InputDecoration(hintText: 'Enter ingredient'),
+      builder: (context) => AlertDialog(
+        title: Text('Add Ingredient'),
+        content: TextField(
+          autofocus: true,
+          decoration: InputDecoration(hintText: 'Enter ingredient name'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(controller.text);
-              },
-              child: Text('Add'),
-            ),
-          ],
-        );
-      },
+          TextButton(
+            onPressed: () {
+              final controller = (context as Element).findAncestorWidgetOfExactType<TextField>()?.controller as TextEditingController?;
+              Navigator.pop(context, controller?.text ?? '');
+            },
+            child: Text('Add'),
+          ),
+        ],
+      ),
     );
 
     if (newIngredient != null && newIngredient.isNotEmpty) {
-      setState(() {
-        _ingredients.add(newIngredient);
-      });
+      setState(() => _ingredients.add(newIngredient));
+    }
+  }
+
+  Future<void> _deleteImageByIndex(int index) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/photos/$index'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          widget.product.photos!.removeAt(index);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Image deleted successfully')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete image')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting image: $e')),
+      );
+    }
+  }
+
+  Future<void> _addNewImages() async {
+    final pickedFiles = await ImagePicker().pickMultiImage(
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
+    );
+
+    if (pickedFiles != null && pickedFiles.isNotEmpty) {
+      setState(() => _isLoading = true);
+
+      try {
+        var request = http.MultipartRequest(
+          'POST',
+          Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/photos'),
+        );
+
+        request.headers['Authorization'] = 'Bearer ${widget.token}';
+
+        for (var pickedFile in pickedFiles) {
+          final file = File(pickedFile.path);
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'files',
+              file.path,
+              contentType: MediaType('image', 'jpeg'),
+            ),
+          );
+        }
+
+        var response = await request.send();
+        final responseBody = await response.stream.bytesToString();
+
+        if (response.statusCode == 200) {
+          final updatedProduct = Product.fromJson(json.decode(responseBody));
+          setState(() {
+            widget.product.photos!= updatedProduct.photos;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Images added successfully')),
+          );
+        } else {
+          throw Exception('Failed to upload images: ${response.statusCode}');
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error adding images: $e')),
+        );
+      } finally {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (widget.product.photos != null && widget.product.photos!.isNotEmpty)
-            Image.network(
-              widget.product.photos![0],
-              fit: BoxFit.cover,
-              height: 200,
-              width: double.infinity,
-            ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: _nameController,
-                  decoration: InputDecoration(labelText: 'Product Name'),
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      insetPadding: EdgeInsets.all(16),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Edit Product',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              SizedBox(height: 24),
+
+              // Product Images Section
+              _buildSectionHeader('Product Images'),
+              SizedBox(height: 8),
+
+              if (widget.product.photos?.isEmpty ?? true)
+                Text('No images available', style: TextStyle(color: Colors.grey)),
+
+              if (widget.product.photos?.isNotEmpty ?? false)
+                SizedBox(
+                  height: 120,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: widget.product.photos!.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                widget.product.photos![index],
+                                width: 120,
+                                height: 120,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: GestureDetector(
+                                onTap: () => _deleteImageByIndex(index),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  padding: EdgeInsets.all(4),
+                                  child: Icon(Icons.close, size: 16, color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
-                SizedBox(height: 16),
-                TextField(
-                  controller: _descriptionController,
-                  decoration: InputDecoration(labelText: 'Description'),
-                  maxLines: 3,
+
+              SizedBox(height: 16),
+
+              ElevatedButton.icon(
+                onPressed: _isLoading ? null : _addNewImages,
+                icon: Icon(Icons.add_photo_alternate),
+                label: Text('Add Images'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: Size(double.infinity, 50),
                 ),
-                SizedBox(height: 16),
-                Text(
-                  'Skin Type:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+
+              SizedBox(height: 24),
+
+              // Product Details Section
+              _buildSectionHeader('Product Details'),
+              SizedBox(height: 16),
+
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(
+                  labelText: 'Product Name',
+                  border: OutlineInputBorder(),
                 ),
-                SizedBox(height: 8),
-                Row(
-                  children: _skinType.entries.map((entry) {
-                    return Expanded(
-                      child: CheckboxListTile(
-                        title: Text(entry.key),
-                        value: entry.value,
-                        onChanged: (value) {
-                          setState(() {
-                            _skinType[entry.key] = value ?? false;
-                          });
-                        },
-                      ),
-                    );
-                  }).toList(),
+              ),
+
+              SizedBox(height: 16),
+
+              TextFormField(
+                controller: _descriptionController,
+                decoration: InputDecoration(
+                  labelText: 'Description',
+                  border: OutlineInputBorder(),
                 ),
-                SizedBox(height: 16),
-                Text(
-                  'Ingredients:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                maxLines: 3,
+              ),
+
+              SizedBox(height: 16),
+
+              TextFormField(
+                controller: _smallDescriptionController,
+                decoration: InputDecoration(
+                  labelText: 'Short Description',
+                  border: OutlineInputBorder(),
                 ),
-                SizedBox(height: 8),
-                Wrap(
-                  spacing: 8.0,
-                  children: _ingredients.map((ingredient) {
-                    return Chip(
-                      label: Text(ingredient),
-                      onDeleted: () {
-                        setState(() {
-                          _ingredients.remove(ingredient);
-                        });
-                      },
-                    );
-                  }).toList(),
+              ),
+
+              SizedBox(height: 24),
+
+              // Skin Type Section
+              _buildSectionHeader('Skin Type'),
+              SizedBox(height: 8),
+
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _skinType.entries.map((e) => ChoiceChip(
+                  label: Text(e.key),
+                  selected: e.value,
+                  onSelected: (v) => setState(() => _skinType[e.key] = v),
+                )).toList(),
+              ),
+
+              SizedBox(height: 24),
+
+              // Ingredients Section
+              _buildSectionHeader('Ingredients'),
+              SizedBox(height: 8),
+
+              if (_ingredients.isEmpty)
+                Text('No ingredients added', style: TextStyle(color: Colors.grey)),
+
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _ingredients.map((ingredient) => Chip(
+                  label: Text(ingredient),
+                  deleteIcon: Icon(Icons.close, size: 18),
+                  onDeleted: () => setState(() => _ingredients.remove(ingredient)),
+                )).toList(),
+              ),
+
+              TextButton.icon(
+                onPressed: _addIngredient,
+                icon: Icon(Icons.add, size: 18),
+                label: Text('Add Ingredient'),
+                style: TextButton.styleFrom(
+                  alignment: Alignment.centerLeft,
                 ),
-                IconButton(
-                  icon: Icon(Icons.add),
-                  onPressed: _addIngredient,
+              ),
+
+              SizedBox(height: 24),
+
+              // Usage Time Section
+              _buildSectionHeader('Usage Time'),
+              SizedBox(height: 8),
+
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _usageTime.entries.map((e) => ChoiceChip(
+                  label: Text(e.key),
+                  selected: e.value,
+                  onSelected: (v) => setState(() => _usageTime[e.key] = v),
+                )).toList(),
+              ),
+
+              SizedBox(height: 32),
+
+              // Update Button
+              ElevatedButton(
+                onPressed: _isLoading ? null : _updateProduct,
+                child: _isLoading
+                    ? SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+                    : Text('Update Product'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                SizedBox(height: 16),
-                Text(
-                  'Usage Time:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Row(
-                  children: _usageTime.entries.map((entry) {
-                    return Expanded(
-                      child: CheckboxListTile(
-                        title: Text(entry.key),
-                        value: entry.value,
-                        onChanged: (value) {
-                          setState(() {
-                            _usageTime[entry.key] = value ?? false;
-                          });
-                        },
-                      ),
-                    );
-                  }).toList(),
-                ),
-                SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _updateProduct,
-                  child: Text('Update Product'),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: Colors.blue[800],
       ),
     );
   }
