@@ -11,6 +11,7 @@ class Product {
   final List<String> skinType;
   final List<String> ingredients;
   final String? description;
+  final String? smallDescription;
   final double rating;
   final List<String>? photos;
   final List<String>? usageTime;
@@ -22,6 +23,7 @@ class Product {
     required this.skinType,
     required this.ingredients,
     this.description,
+    this.smallDescription,
     required this.rating,
     this.photos,
     this.usageTime,
@@ -56,6 +58,7 @@ class Product {
       skinType: List<String>.from(productData['skinType'] ?? []),
       ingredients: List<String>.from(productData['ingredients'] ?? []),
       description: productData['description'] as String?,
+      smallDescription: productData['smaledescription'] as String?,
       rating: avgRating,
       photos: photos,
       usageTime: usageTime,
@@ -123,17 +126,15 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
     try {
       final newProducts = await _fetchProducts();
 
-      // إنشاء مجموعة من productIds الموجودة حالياً
       final existingIds = _products.map((p) => p.productId).toSet();
 
-      // تصفية المنتجات الجديدة لإزالة أي تكرارات
       final filteredNewProducts = newProducts.where(
               (product) => !existingIds.contains(product.productId)
       ).toList();
 
       setState(() {
         _products.addAll(filteredNewProducts);
-        _hasMore = newProducts.isNotEmpty; // نظل نتحقق من وجود المزيد حتى لو تمت تصفية بعض العناصر
+        _hasMore = newProducts.isNotEmpty;
         _isLoadingMore = false;
       });
     } catch (e) {
@@ -143,6 +144,7 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
       );
     }
   }
+
   Future<List<Product>> _fetchProducts() async {
     if (token == null) throw Exception('Token is not available');
 
@@ -170,7 +172,6 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
           throw Exception('Invalid response format');
         }
 
-        // إزالة التكرارات باستخدام Set
         final uniqueProducts = <String, Product>{};
         for (var product in products) {
           uniqueProducts[product.productId] = product;
@@ -184,6 +185,7 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
       throw Exception('Failed to load products: ${response.statusCode}');
     }
   }
+
   Future<void> _loadToken() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? userInfoString = prefs.getString('userInfo');
@@ -225,10 +227,33 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
     }
   }
 
+  void _showAddProductDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          insetPadding: EdgeInsets.all(16),
+          child: AddProductPopup(
+            token: token!,
+            baseUrl: _baseUrl!,
+            onProductAdded: _refreshProducts,
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
+      floatingActionButton: userRole == 'ADMIN'
+          ? FloatingActionButton(
+        onPressed: () => _showAddProductDialog(context),
+        child: Icon(Icons.add),
+        backgroundColor: Colors.blue,
+      )
+          : null,
       body: _isLoading && _products.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -281,6 +306,236 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
     );
   }
 }
+
+class AddProductPopup extends StatefulWidget {
+  final String token;
+  final String baseUrl;
+  final VoidCallback onProductAdded;
+
+  const AddProductPopup({
+    Key? key,
+    required this.token,
+    required this.baseUrl,
+    required this.onProductAdded,
+  }) : super(key: key);
+
+  @override
+  _AddProductPopupState createState() => _AddProductPopupState();
+}
+
+class _AddProductPopupState extends State<AddProductPopup> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _smallDescriptionController = TextEditingController();
+
+  List<String> _ingredients = [];
+  final TextEditingController _ingredientController = TextEditingController();
+
+  String? _selectedSkinType;
+  final List<String> _skinTypes = ['OILY', 'DRY', 'NORMAL'];
+
+  List<String> _selectedUsageTimes = [];
+  final List<String> _usageTimeOptions = ['MORNING', 'AFTERNOON', 'NIGHT'];
+
+  Future<void> _addProduct() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    try {
+      final response = await http.post(
+        Uri.parse('${widget.baseUrl}/product'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'name': _nameController.text,
+          'skinType': _selectedSkinType != null ? [_selectedSkinType!] : [],
+          'description': _descriptionController.text,
+          'smaledescription': _smallDescriptionController.text,
+          'ingredients': _ingredients,
+          'usageTime': _selectedUsageTimes,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Product added successfully')),
+        );
+        widget.onProductAdded();
+        Navigator.of(context).pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to add product: ${response.body}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Connection error: $e')),
+      );
+    }
+  }
+
+  void _addIngredient() {
+    if (_ingredientController.text.isNotEmpty) {
+      setState(() {
+        _ingredients.add(_ingredientController.text);
+        _ingredientController.clear();
+      });
+    }
+  }
+
+  void _removeIngredient(int index) {
+    setState(() {
+      _ingredients.removeAt(index);
+    });
+  }
+
+  void _toggleUsageTime(String time) {
+    setState(() {
+      if (_selectedUsageTimes.contains(time)) {
+        _selectedUsageTimes.remove(time);
+      } else {
+        _selectedUsageTimes.add(time);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Add New Product',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+
+            TextFormField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                labelText: 'Product Name',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+            ),
+            SizedBox(height: 16),
+
+            DropdownButtonFormField<String>(
+              value: _selectedSkinType,
+              decoration: InputDecoration(
+                labelText: 'Skin Type',
+                border: OutlineInputBorder(),
+              ),
+              items: _skinTypes.map((type) {
+                return DropdownMenuItem(
+                  value: type,
+                  child: Text(type),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedSkinType = value;
+                });
+              },
+              validator: (value) => value == null ? 'Required' : null,
+            ),
+            SizedBox(height: 16),
+
+            TextFormField(
+              controller: _descriptionController,
+              decoration: InputDecoration(
+                labelText: 'Description',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+              validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+            ),
+            SizedBox(height: 16),
+
+            TextFormField(
+              controller: _smallDescriptionController,
+              decoration: InputDecoration(
+                labelText: 'Small Description',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+            ),
+            SizedBox(height: 16),
+
+            Text('Ingredients', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 8),
+
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _ingredientController,
+                    decoration: InputDecoration(
+                      labelText: 'Add Ingredient',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.add),
+                  onPressed: _addIngredient,
+                ),
+              ],
+            ),
+
+            if (_ingredients.isNotEmpty) ...[
+              SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: List.generate(_ingredients.length, (index) {
+                  return Chip(
+                    label: Text(_ingredients[index]),
+                    onDeleted: () => _removeIngredient(index),
+                  );
+                }),
+              ),
+            ],
+            SizedBox(height: 16),
+
+            Text('Usage Time', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 8),
+
+            Wrap(
+              spacing: 8,
+              children: _usageTimeOptions.map((time) {
+                return FilterChip(
+                  label: Text(time),
+                  selected: _selectedUsageTimes.contains(time),
+                  onSelected: (selected) => _toggleUsageTime(time),
+                );
+              }).toList(),
+            ),
+            SizedBox(height: 24),
+
+            Center(
+              child: ElevatedButton(
+                onPressed: _addProduct,
+                child: Text('Add Product'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: Size(200, 50),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Rest of your existing code (ProductCard, ProductDetailsPopup, EditProductPopup) remains the same
 
 class ProductCard extends StatefulWidget {
   final Product product;
