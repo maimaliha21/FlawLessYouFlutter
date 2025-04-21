@@ -73,11 +73,16 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
   }
 
   List<Map<String, dynamic>> _getAllRoutines() {
-    return [
-      ..._routines["MORNING"] ?? [],
-      ..._routines["AFTERNOON"] ?? [],
-      ..._routines["NIGHT"] ?? [],
-    ];
+    List<Map<String, dynamic>> allRoutines = [];
+
+    // Add only non-empty routines
+    for (var time in _routines.keys) {
+      if (_routines[time] != null && _routines[time]!.isNotEmpty) {
+        allRoutines.addAll(_routines[time]!);
+      }
+    }
+
+    return allRoutines;
   }
 
   void _nextStep(BuildContext context) {
@@ -107,6 +112,126 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
     if (allRoutines.isEmpty || _currentStep >= allRoutines.length) return "";
     final currentRoutine = allRoutines[_currentStep];
     return currentRoutine['usageTime']?.join(', ') ?? "";
+  }
+
+  Widget _buildNoRoutinesScreen() {
+    return Scaffold(
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.network(
+              _backgroundImageUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey),
+            ),
+          ),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.sentiment_dissatisfied, size: 60, color: Colors.white),
+                  SizedBox(height: 20),
+                  Text(
+                    'No skincare routines available',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 15),
+                  Text(
+                    'You don\'t have any routines scheduled for today',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white70,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 30),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => HomeScreen()),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color.fromARGB(255, 166, 224, 228),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                    ),
+                    child: Text(
+                      'Go to Home',
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRoutineItem(Map<String, dynamic> routine) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (routine['photos'] != null && routine['photos'].isNotEmpty)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              routine['photos'][0],
+              width: double.infinity,
+              height: 120,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  Container(
+                    color: Colors.grey,
+                    height: 120,
+                    child: Icon(Icons.error, color: Colors.white),
+                  ),
+            ),
+          )
+        else
+          Container(
+            height: 120,
+            color: Colors.grey.withOpacity(0.5),
+            child: Center(
+              child: Icon(Icons.image_not_supported,
+                  color: Colors.white, size: 40),
+            ),
+          ),
+        SizedBox(height: 16),
+        Text(
+          routine['name'] ?? 'No Name',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        SizedBox(height: 8),
+        Text(
+          routine['smaledescription'] ?? 'No Description',
+          style: TextStyle(fontSize: 16, color: Colors.white),
+          textAlign: TextAlign.center,
+        ),
+        SizedBox(height: 8),
+        Text(
+          'Usage Time: ${_getCurrentTime()}',
+          style: TextStyle(fontSize: 16, color: Colors.white),
+        ),
+      ],
+    );
   }
 
   @override
@@ -143,29 +268,7 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
     final allRoutines = _getAllRoutines();
 
     if (allRoutines.isEmpty) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'No skincare routines available',
-                style: TextStyle(color: Colors.white, fontSize: 18),
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => HomeScreen()),
-                  );
-                },
-                child: Text('Go Back'),
-              ),
-            ],
-          ),
-        ),
-      );
+      return _buildNoRoutinesScreen();
     }
 
     // Ensure current step is within bounds
@@ -254,42 +357,7 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            currentRoutine['photos']?[0] ?? '',
-                            width: double.infinity,
-                            height: 120,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
-                                  color: Colors.grey,
-                                  height: 120,
-                                  child: Icon(Icons.error, color: Colors.white),
-                                ),
-                          ),
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          currentRoutine['name'] ?? 'No Name',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          currentRoutine['smaledescription'] ?? 'No Description',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Usage Time: ${_getCurrentTime()}',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
-                        ),
+                        _buildRoutineItem(currentRoutine),
                         SizedBox(height: 24),
                         ElevatedButton(
                           onPressed: () => _nextStep(context),
