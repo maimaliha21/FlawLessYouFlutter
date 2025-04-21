@@ -91,11 +91,23 @@ class _SkincareRoutineFlowState extends State<SkincareRoutineFlow> {
     if (_currentPeriod == period.name) {
       return Colors.green;
     } else if (_isPeriodPassed(period)) {
-      return Colors.green.withOpacity(0.5);
+      return Colors.red.withOpacity(0.7);
     } else if (_isPeriodUpcoming(period)) {
       return Colors.orange.withOpacity(0.7);
     }
     return Colors.grey.withOpacity(0.3);
+  }
+
+  void _navigateToRoutine(String period) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SkincareRoutine(
+          token: widget.token,
+          currentPeriod: period,
+        ),
+      ),
+    );
   }
 
   @override
@@ -152,28 +164,31 @@ class _SkincareRoutineFlowState extends State<SkincareRoutineFlow> {
                     itemCount: _periods.length,
                     itemBuilder: (context, index) {
                       final period = _periods[index];
-                      return Card(
-                        color: _getPeriodColor(period).withOpacity(0.8),
-                        margin: EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: ListTile(
-                          title: Text(
-                            period.name,
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                      return GestureDetector(
+                        onTap: () => _navigateToRoutine(period.name),
+                        child: Card(
+                          color: _getPeriodColor(period).withOpacity(0.8),
+                          margin: EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ListTile(
+                            title: Text(
+                              period.name,
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
+                            subtitle: Text(
+                              '${period.start.format(context)} - ${period.end.format(context)}',
+                              style: TextStyle(fontSize: 16, color: Colors.white70),
+                            ),
+                            trailing: _currentPeriod == period.name
+                                ? Icon(Icons.check_circle, color: Colors.white)
+                                : null,
                           ),
-                          subtitle: Text(
-                            '${period.start.format(context)} - ${period.end.format(context)}',
-                            style: TextStyle(fontSize: 16, color: Colors.white70),
-                          ),
-                          trailing: _currentPeriod == period.name
-                              ? Icon(Icons.check_circle, color: Colors.white)
-                              : null,
                         ),
                       );
                     },
@@ -183,15 +198,7 @@ class _SkincareRoutineFlowState extends State<SkincareRoutineFlow> {
                   child: ElevatedButton(
                     onPressed: () {
                       if (_currentPeriod.isNotEmpty) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => SkincareRoutine(
-                              token: widget.token,
-                              currentPeriod: _currentPeriod,
-                            ),
-                          ),
-                        );
+                        _navigateToRoutine(_currentPeriod);
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('No active period now')),
@@ -206,7 +213,7 @@ class _SkincareRoutineFlowState extends State<SkincareRoutineFlow> {
                       ),
                     ),
                     child: Text(
-                      'Start Routine',
+                      'Start Current Routine',
                       style: TextStyle(fontSize: 18, color: Colors.white),
                     ),
                   ),
@@ -296,19 +303,22 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
     return _routines[widget.currentPeriod] ?? [];
   }
 
-  void _nextStep(BuildContext context) {
+  void _nextStep() {
     final currentRoutines = _getCurrentPeriodRoutines();
-    if (currentRoutines.isEmpty) {
-      Navigator.pop(context);
-      return;
-    }
-
     if (_currentStep < currentRoutines.length - 1) {
       setState(() {
         _currentStep++;
       });
     } else {
       Navigator.pop(context);
+    }
+  }
+
+  void _prevStep() {
+    if (_currentStep > 0) {
+      setState(() {
+        _currentStep--;
+      });
     }
   }
 
@@ -534,22 +544,43 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
                       children: [
                         _buildRoutineItem(currentRoutine),
                         SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: () => _nextStep(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _getPeriodColor(),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            if (_currentStep > 0)
+                              ElevatedButton(
+                                onPressed: _prevStep,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 30, vertical: 16),
+                                ),
+                                child: Text(
+                                  'Previous',
+                                  style: TextStyle(fontSize: 16, color: Colors.white),
+                                ),
+                              ),
+                            ElevatedButton(
+                              onPressed: _nextStep,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _getPeriodColor(),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 40, vertical: 16),
+                              ),
+                              child: Text(
+                                _currentStep < currentRoutines.length - 1
+                                    ? 'Next'
+                                    : 'Finish',
+                                style: TextStyle(fontSize: 18, color: Colors.white),
+                              ),
                             ),
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 40, vertical: 16),
-                          ),
-                          child: Text(
-                            _currentStep < currentRoutines.length - 1
-                                ? 'Next'
-                                : 'Finish',
-                            style: TextStyle(fontSize: 18, color: Colors.white),
-                          ),
+                          ],
                         ),
                       ],
                     ),
