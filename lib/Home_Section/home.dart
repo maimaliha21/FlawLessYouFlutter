@@ -186,7 +186,7 @@ class Home extends StatelessWidget {
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) =>
-                                                SkincareRoutine(token: token),
+                                                SkincareRoutineFlow(token: token),
                                           ),
                                         );
                                       },
