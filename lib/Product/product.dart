@@ -766,34 +766,34 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
         );
       }
     }
-  
+
     Future<void> _addProductToTreatment() async {
       try {
         final response = await http.post(
-          Uri.parse('${widget.baseUrl}/api/treatments/${widget.treatmentId}/products/${widget.product.productId}'),
+          Uri.parse(
+              '${widget.baseUrl}/api/treatments/${widget.treatmentId}/products/${widget.product.productId}/${Uri.encodeComponent(widget.product.name!)}'
+          ),
           headers: {
             'Authorization': 'Bearer ${widget.token}',
             'Content-Type': 'application/json',
           },
         );
-  
+
         if (response.statusCode == 200) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Product added to treatment successfully')),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${widget.baseUrl}/api/treatments/${widget.treatmentId}/products/${widget.product.productId}')),
-            // SnackBar(content: Text('Failed to add product to treatment')),
+            SnackBar(content: Text('Failed to add product to treatment. Status code: ${response.statusCode}')),
           );
         }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Connection error')),
+          SnackBar(content: Text('Connection error: $e')),
         );
       }
     }
-  
     void _showProductDetails(BuildContext context) {
       if (widget.userRole == 'ADMIN') {
         showDialog(
