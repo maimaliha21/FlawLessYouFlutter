@@ -58,7 +58,7 @@ Future<bool> hasUserData() async {
 Future<void> saveBaseUrl(String baseUrl) async {
   try {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('baseUrl', 'http://192.168.118.164:8080'); // حفظ الرابط
+    await prefs.setString('baseUrl', 'http://192.168.1.38:8080'); // حفظ الرابط
         print('Base URL saved successfully: $baseUrl');
   } catch (e) {
     print('Error saving base URL: $e');
@@ -69,19 +69,16 @@ Future<void> saveBaseUrl(String baseUrl) async {
 
 
 // استرجاع الرابط
-Future<String?> getBaseUrl() async {
+Future<String> getBaseUrl() async {
   try {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? baseUrl = prefs.getString('baseUrl');
-    if (baseUrl != null) {
-      print('Base URL retrieved successfully: $baseUrl');
-      return baseUrl;
-    } else {
-      print('No base URL found');
-      return null;
+    String? url = prefs.getString('baseUrl');
+    if (url == null || url.isEmpty) {
+      throw Exception('Base URL not found');
     }
+    return url;
   } catch (e) {
-    print('Error retrieving base URL: $e');
-    throw Exception('Failed to retrieve base URL');
+    print('Error getting base URL: $e');
+    throw Exception('Failed to get base URL');
   }
 }

@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:FlawlessYou/SharedPreferences.dart';
 import '../CustomBottomNavigationBarAdmin.dart';
 import '../Home_Section/search.dart';
-import '../Product/product.dart'; // استيراد الملف المساعد
+import '../Product/product.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -22,6 +22,8 @@ class _TreatmentPageState extends State<TreatmentPage> {
   List<dynamic> oilyTreatments = [];
   List<dynamic> normalTreatments = [];
   List<dynamic> dryTreatments = [];
+  bool isLoading = true;
+  String errorMessage = '';
 
   @override
   void initState() {
@@ -31,7 +33,6 @@ class _TreatmentPageState extends State<TreatmentPage> {
 
   Future<void> fetchTreatments() async {
     try {
-      // استرجاع التوكن والرابط الأساسي
       final userData = await getUserData();
       final baseUrl = await getBaseUrl();
 
@@ -53,35 +54,49 @@ class _TreatmentPageState extends State<TreatmentPage> {
           oilyTreatments = treatments.where((treatment) => treatment['skinType'] == 'OILY').toList();
           normalTreatments = treatments.where((treatment) => treatment['skinType'] == 'NORMAL').toList();
           dryTreatments = treatments.where((treatment) => treatment['skinType'] == 'DRY').toList();
+          isLoading = false;
         });
       } else {
         throw Exception('Failed to load treatments');
       }
     } catch (e) {
+      setState(() {
+        isLoading = false;
+        errorMessage = 'Error loading treatments: ${e.toString()}';
+      });
       print('Error fetching treatments: $e');
-      throw Exception('Failed to fetch treatments');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        backgroundColor: Color(0xFFF5F5F5),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (errorMessage.isNotEmpty) {
+      return Scaffold(
+        backgroundColor: Color(0xFFF5F5F5),
+        body: Center(child: Text(errorMessage)),
+      );
+    }
+
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        backgroundColor: Color(0xFFF5F5F5)
-        ,  // جعل الخلفية بيضاء
+        backgroundColor: Color(0xFFF5F5F5),
         appBar: AppBar(
-          backgroundColor: Color(0xFF88A383)
-          ,  // جعل شريط العنوان أبيض
+          backgroundColor: Color(0xFF88A383),
           title: Text(
             'Skin Treatments',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black), // تغيير لون النص إلى الأسود
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
           ),
           bottom: TabBar(
-            indicatorColor: Color(0xFF596D56),  // تغيير اللون عند النقر
-            labelStyle: TextStyle(
-              color: Color(0xFF596D56),  // تغيير اللون عند النقر
-            ),
+            indicatorColor: Color(0xFF596D56),
+            labelStyle: TextStyle(color: Color(0xFF596D56)),
             tabs: [
               Tab(
                 text: 'Oily',
@@ -116,7 +131,6 @@ class TreatmentCategoryList extends StatelessWidget {
 
   TreatmentCategoryList({required this.treatments});
 
-  // تصنيف العلاجات حسب المشكلة
   Map<String, List<dynamic>> categorizeTreatments(List<dynamic> treatments) {
     Map<String, List<dynamic>> categorized = {
       'ACNE': [],
@@ -148,142 +162,102 @@ class TreatmentCategoryList extends StatelessWidget {
           ),
           children: [
             Container(
-              height: MediaQuery.of(context).size.height * 0.6, // تحديد الارتفاع باستخدام MediaQuery
+              height: MediaQuery.of(context).size.height * 0.6,
               child: ListView(
                 padding: EdgeInsets.all(8),
                 children: entry.value.length > 4
                     ? [
                   ...entry.value.take(4).map((treatment) {
-                    return GestureDetector(
-                      onTap: () {
-                        // الانتقال إلى صفحة تفاصيل العلاج
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => TreatmentDetailsPage(
-                              treatment: treatment,
-                            ),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        margin: EdgeInsets.symmetric(vertical: 6),
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.3),
-                              spreadRadius: 2,
-                              blurRadius: 5,
-                              offset: Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              treatment['description'] ?? 'No Description',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF596D56)),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              'Problem: ${treatment['problem']}',
-                              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
+                    return _buildTreatmentCard(context, treatment);
                   }).toList(),
-                  GestureDetector(
-                    onTap: () {
-                      // الانتقال إلى صفحة تفاصيل العلاج
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => TreatmentDetailsPage(
-                            treatment: entry.value[4],
-                          ),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      margin: EdgeInsets.symmetric(vertical: 6),
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.3),
-                            spreadRadius: 2,
-                            blurRadius: 5,
-                            offset: Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Text(
-                          'View More',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF596D56)),
-                        ),
-                      ),
-                    ),
-                  ),
+                  _buildViewMoreCard(context, entry.value[4]),
                 ]
                     : entry.value.map((treatment) {
-                  return GestureDetector(
-                    onTap: () {
-                      // الانتقال إلى صفحة تفاصيل العلاج
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => TreatmentDetailsPage(
-                            treatment: treatment,
-                          ),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      margin: EdgeInsets.symmetric(vertical: 6),
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.3),
-                            spreadRadius: 2,
-                            blurRadius: 5,
-                            offset: Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            treatment['description'] ?? 'No Description',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF596D56)),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Problem: ${treatment['problem']}',
-                            style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                  return _buildTreatmentCard(context, treatment);
                 }).toList(),
               ),
             ),
           ],
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildTreatmentCard(BuildContext context, dynamic treatment) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TreatmentDetailsPage(treatment: treatment),
+          ),
+        );
+      },
+      child: Container(
+        margin: EdgeInsets.symmetric(vertical: 6),
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              spreadRadius: 2,
+              blurRadius: 5,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              treatment['description'] ?? 'No Description',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF596D56)),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Problem: ${treatment['problem']}',
+              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildViewMoreCard(BuildContext context, dynamic treatment) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TreatmentDetailsPage(treatment: treatment),
+          ),
+        );
+      },
+      child: Container(
+        margin: EdgeInsets.symmetric(vertical: 6),
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              spreadRadius: 2,
+              blurRadius: 5,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            'View More',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF596D56)),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -300,23 +274,13 @@ class TreatmentDetailsPage extends StatefulWidget {
 class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController searchController = TextEditingController();
-  String token = '';
-  String baseUrl = ''; // إضافة متغير baseUrl
+  late Future<String> _baseUrlFuture;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 1, vsync: this);
-    _loadTokenAndBaseUrl(); // تحميل التوكن و baseUrl
-  }
-
-  Future<void> _loadTokenAndBaseUrl() async {
-    final userData = await getUserData();
-    final baseUrlData = await getBaseUrl(); // استرجاع baseUrl
-    setState(() {
-      token = userData?['token'];
-      baseUrl = baseUrlData ?? ''; // تعيين baseUrl
-    });
+    _baseUrlFuture = getBaseUrl();
   }
 
   @override
@@ -331,64 +295,75 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
     return Scaffold(
       appBar: AppBar(
         title: Text('Treatment Details', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-        backgroundColor: Color(0xFF88A383),  // جعل شريط العنوان أبيض
+        backgroundColor: Color(0xFF88A383),
         iconTheme: IconThemeData(color: Colors.black),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.treatment['description'] ?? 'No Description',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF596D56)),
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Problem: ${widget.treatment['problem']}',
-              style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Details: ${widget.treatment['details'] ?? 'No details available'}',
-              style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Skin Type: ${widget.treatment['skinType']}',
-              style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Treatment Products',
-              style: TextStyle(
-                fontStyle: FontStyle.italic,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  ProductTabScreen(
-                    apiUrl: "$baseUrl/api/treatments/${widget.treatment['treatmentId']}/products", pageName: 'treatment', treatmentId: widget.treatment['treatmentId'], // استخدام baseUrl
+      body: FutureBuilder<String>(
+        future: _baseUrlFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          final baseUrl = snapshot.data!;
+
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.treatment['description'] ?? 'No Description',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF596D56)),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Problem: ${widget.treatment['problem']}',
+                  style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Details: ${widget.treatment['details'] ?? 'No details available'}',
+                  style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Skin Type: ${widget.treatment['skinType']}',
+                  style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+                ),
+                SizedBox(height: 20),
+                Text(
+                  'Treatment Products',
+                  style: TextStyle(
+                    fontStyle: FontStyle.italic,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
-              ),
+                ),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      ProductTabScreen(
+                        apiUrl: "$baseUrl/api/treatments/${widget.treatment['treatmentId']}/products",
+                        pageName: 'treatment',
+                        treatmentId: widget.treatment['treatmentId'],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _openSearchPage(context);
-
-        },
-        child: Icon(
-          Icons.add,
-          color: Colors.black,  // تعيين لون الأيقونة هنا
-        ),
+        onPressed: () => _openSearchPage(context),
+        child: Icon(Icons.add, color: Colors.black),
         backgroundColor: Color(0xFFFFFDA),
       ),
     );
@@ -410,24 +385,15 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
                     icon: Icon(Icons.search, color: Color(0xFF88A383)),
                     onPressed: () {
                       if (searchController.text.isNotEmpty) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => search(
-                              token: token,
-                              searchQuery: searchController.text,
-                              pageName: 'add',
-                              treatmentId: widget.treatment['treatmentId'],
-                            ),
-                          ),
-                        );
+                        Navigator.pop(context);
+                        _navigateToSearch(context, searchController.text);
                       }
                     },
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  focusedBorder: OutlineInputBorder(  // تغيير اللون عند التركيز
+                  focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: BorderSide(color: Color(0xFF596D56)),
                   ),
@@ -439,5 +405,28 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
         );
       },
     );
+  }
+
+  void _navigateToSearch(BuildContext context, String query) async {
+    try {
+      final userData = await getUserData();
+      if (userData == null) return;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => search(
+            token: userData['token'],
+            searchQuery: query,
+            pageName: 'add',
+            treatmentId: widget.treatment['treatmentId'],
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    }
   }
 }
