@@ -70,7 +70,7 @@ android {
         // TODO: Specify your own unique Application ID
         applicationId = "com.example.flawlessyou"
         // Update the following values to match your application needs.
-        minSdk = 21
+        minSdk = 23
         targetSdk = 35   // استخدم أحدث إصدار SDK مستهدف
         versionCode = flutter.versionCode  // تأكد من أن هذه القيمة معرفة في ملف `flutter`
         versionName = flutter.versionName  // تأكد من أن هذه القيمة معرفة في ملف `flutter`
