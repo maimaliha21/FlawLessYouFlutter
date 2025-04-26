@@ -82,7 +82,6 @@ class _TreatmentPageState extends State<TreatmentPage> {
         throw Exception('User data or base URL is missing');
       }
 
-      // تحضير productIds بالشكل المطلوب {productId: productName}
       final productIdsMap = {};
       for (final product in products) {
         final productId = product['productId']?.toString();
@@ -91,10 +90,9 @@ class _TreatmentPageState extends State<TreatmentPage> {
         }
       }
 
-      // إعداد request body بالهيكل المطلوب
       final requestBody = {
         'skinType': treatmentData['skinType'],
-        'description': treatmentData['description'], // استخدام getdescription بدلاً من description
+        'description': treatmentData['description'],
         'problem': treatmentData['problem'],
         'productIds': productIdsMap,
       };
@@ -116,7 +114,7 @@ class _TreatmentPageState extends State<TreatmentPage> {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تم إنشاء العلاج بنجاح')),
+          SnackBar(content: Text('treatment created successfully')),
         );
         await fetchTreatments();
       } else {
@@ -129,6 +127,7 @@ class _TreatmentPageState extends State<TreatmentPage> {
       print('Error creating treatment: $e');
     }
   }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -228,9 +227,9 @@ class _CreateTreatmentPageState extends State<CreateTreatmentPage> {
     final selectedProducts = await Navigator.push<List<dynamic>>(
       context,
       MaterialPageRoute(
-          builder: (context) =>  ProductSearchPage(
-            onProductsSelected: (products) => products,
-          ),
+        builder: (context) =>  ProductSearchPage(
+          onProductsSelected: (products) => products,
+        ),
       ),
     );
 
@@ -404,8 +403,6 @@ class _CreateTreatmentPageState extends State<CreateTreatmentPage> {
     );
   }
 }
-
-// باقي الأكواد (ProductSearchPage, TreatmentCategoryList, TreatmentDetailsPage) تبقى كما هي
 
 class ProductSearchPage extends StatefulWidget {
   final Function(List<dynamic>) onProductsSelected;
@@ -720,19 +717,158 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
   late TabController _tabController;
   final TextEditingController searchController = TextEditingController();
   late Future<String> _baseUrlFuture;
+  late TextEditingController _descriptionController;
+  late String _selectedSkinType;
+  late String _selectedProblem;
+  bool _isEditing = false;
+  bool _isLoading = false;
+
+  final List<String> _skinTypes = ['OILY', 'NORMAL', 'DRY'];
+  final List<String> _problems = ['ACNE', 'WRINKLES', 'PIGMENTATION', 'NORMAL'];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 1, vsync: this);
     _baseUrlFuture = getBaseUrl();
+    _descriptionController = TextEditingController(text: widget.treatment['description']);
+    _selectedSkinType = widget.treatment['skinType'];
+    _selectedProblem = widget.treatment['problem'];
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     searchController.dispose();
+    _descriptionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _updateTreatment() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final userData = await getUserData();
+      final baseUrl = await getBaseUrl();
+
+      if (userData == null || baseUrl == null) {
+        throw Exception('User data or base URL is missing');
+      }
+
+      // تحضير بيانات الطلب
+      final requestBody = {
+        'skinType': _selectedSkinType,
+        'description': _descriptionController.text,
+        'problem': _selectedProblem,
+      };
+
+      print('Sending PUT request to: $baseUrl/api/treatments/${widget.treatment['treatmentId']}');
+      print('Request body: $requestBody');
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/api/treatments/${widget.treatment['treatmentId']}'),
+        headers: {
+          'accept': 'application/json',
+          'Authorization': 'Bearer ${userData['token']}',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(requestBody),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('treatment updated successfully')),
+        );
+
+        setState(() {
+          _isEditing = false;
+          // تحديث بيانات العلاج المحلية
+          widget.treatment['description'] = _descriptionController.text;
+          widget.treatment['skinType'] = _selectedSkinType;
+          widget.treatment['problem'] = _selectedProblem;
+        });
+      } else {
+        throw Exception('فشل تحديث العلاج: ${response.statusCode} ${response.body}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('خطأ في تحديث العلاج: ${e.toString()}')),
+      );
+      // استعادة القيم الأصلية في حالة الخطأ
+      setState(() {
+        _descriptionController.text = widget.treatment['description'];
+        _selectedSkinType = widget.treatment['skinType'];
+        _selectedProblem = widget.treatment['problem'];
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+  Future<void> _deleteTreatment() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Confirm Delete'),
+        content: Text('Are you sure you want to delete this treatment?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final userData = await getUserData();
+      final baseUrl = await getBaseUrl();
+
+      if (userData == null || baseUrl == null) {
+        throw Exception('User data or base URL is missing');
+      }
+
+      final response = await http.delete(
+        Uri.parse('$baseUrl/api/treatments/${widget.treatment['treatmentId']}'),
+        headers: {
+          'accept': '*/*',
+          'Authorization': 'Bearer ${userData['token']}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Treatment deleted successfully')),
+        );
+        Navigator.pop(context); // Go back to previous page after deletion
+      } else {
+        throw Exception('Failed to delete treatment: ${response.statusCode}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting treatment: ${e.toString()}')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -742,6 +878,39 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
         title: Text('Treatment Details', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
         backgroundColor: Color(0xFF88A383),
         iconTheme: IconThemeData(color: Colors.black),
+        actions: [
+          if (!_isEditing) ...[
+            IconButton(
+              icon: Icon(Icons.edit),
+              onPressed: () {
+                setState(() {
+                  _isEditing = true;
+                });
+              },
+            ),
+            IconButton(
+              icon: Icon(Icons.delete, color: Colors.red),
+              onPressed: _isLoading ? null : _deleteTreatment,
+            ),
+          ],
+          if (_isEditing) ...[
+            IconButton(
+              icon: Icon(Icons.close),
+              onPressed: () {
+                setState(() {
+                  _isEditing = false;
+                  _descriptionController.text = widget.treatment['description'];
+                  _selectedSkinType = widget.treatment['skinType'];
+                  _selectedProblem = widget.treatment['problem'];
+                });
+              },
+            ),
+            IconButton(
+              icon: _isLoading ? CircularProgressIndicator() : Icon(Icons.check),
+              onPressed: _isLoading ? null : _updateTreatment,
+            ),
+          ],
+        ],
       ),
       body: FutureBuilder<String>(
         future: _baseUrlFuture,
@@ -761,25 +930,74 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  widget.treatment['description'] ?? 'No Description',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF596D56)),
-                ),
+                if (!_isEditing)
+                  Text(
+                    widget.treatment['description'] ?? 'No Description',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF596D56)),
+                  ),
+                if (_isEditing)
+                  TextFormField(
+                    controller: _descriptionController,
+                    decoration: InputDecoration(
+                      labelText: 'Description',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 3,
+                  ),
                 SizedBox(height: 16),
-                Text(
-                  'Problem: ${widget.treatment['problem']}',
-                  style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-                ),
-                // SizedBox(height: 16),
-                // Text(
-                //   'Details: ${widget.treatment['details'] ?? 'No details available'}',
-                //   style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-                // ),
+
+                if (!_isEditing)
+                  Text(
+                    'Problem: ${widget.treatment['problem']}',
+                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+                  ),
+                if (_isEditing)
+                  DropdownButtonFormField<String>(
+                    value: _selectedProblem,
+                    decoration: InputDecoration(
+                      labelText: 'Problem',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: _problems.map((problem) {
+                      return DropdownMenuItem<String>(
+                        value: problem,
+                        child: Text(problem),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedProblem = value!;
+                      });
+                    },
+                  ),
+
                 SizedBox(height: 16),
-                Text(
-                  'Skin Type: ${widget.treatment['skinType']}',
-                  style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-                ),
+
+                if (!_isEditing)
+                  Text(
+                    'Skin Type: ${widget.treatment['skinType']}',
+                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+                  ),
+                if (_isEditing)
+                  DropdownButtonFormField<String>(
+                    value: _selectedSkinType,
+                    decoration: InputDecoration(
+                      labelText: 'Skin Type',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: _skinTypes.map((type) {
+                      return DropdownMenuItem<String>(
+                        value: type,
+                        child: Text(type),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedSkinType = value!;
+                      });
+                    },
+                  ),
+
                 SizedBox(height: 20),
                 Text(
                   'Treatment Products',
