@@ -222,7 +222,7 @@ class _CreateTreatmentPageState extends State<CreateTreatmentPage> {
   List<dynamic> _selectedProducts = [];
 
   final List<String> _skinTypes = ['OILY', 'NORMAL', 'DRY'];
-  final List<String> _problems = ['ACNE', 'WRINKLES', 'PIGMENTATION'];
+  final List<String> _problems = ['ACNE', 'WRINKLES', 'PIGMENTATION','NORMAL'];
 
   Future<void> _addProducts() async {
     final selectedProducts = await Navigator.push<List<dynamic>>(
