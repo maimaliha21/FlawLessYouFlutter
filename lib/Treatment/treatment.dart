@@ -73,7 +73,7 @@ class _TreatmentPageState extends State<TreatmentPage> {
     }
   }
 
-  Future<void> createTreatment(Map<String, dynamic> treatmentData) async {
+  Future<void> createTreatment(Map<String, dynamic> treatmentData, List<dynamic> products) async {
     try {
       final userData = await getUserData();
       final baseUrl = await getBaseUrl();
@@ -82,7 +82,24 @@ class _TreatmentPageState extends State<TreatmentPage> {
         throw Exception('User data or base URL is missing');
       }
 
-      print('Creating treatment with data: $treatmentData');
+      // تحضير productIds بالشكل المطلوب {productId: productName}
+      final productIdsMap = {};
+      for (final product in products) {
+        final productId = product['productId']?.toString();
+        if (productId != null) {
+          productIdsMap[productId] = product['name'] ?? 'Unnamed Product';
+        }
+      }
+
+      // إعداد request body بالهيكل المطلوب
+      final requestBody = {
+        'skinType': treatmentData['skinType'],
+        'description': treatmentData['description'], // استخدام getdescription بدلاً من description
+        'problem': treatmentData['problem'],
+        'productIds': productIdsMap,
+      };
+
+      print('Sending request with body: ${json.encode(requestBody)}');
 
       final response = await http.post(
         Uri.parse('$baseUrl/api/treatments'),
@@ -91,10 +108,11 @@ class _TreatmentPageState extends State<TreatmentPage> {
           'Authorization': 'Bearer ${userData['token']}',
           'Content-Type': 'application/json',
         },
-        body: json.encode(treatmentData),
+        body: json.encode(requestBody),
       );
 
-      print('Treatment creation response: ${response.statusCode} - ${response.body}');
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -109,10 +127,8 @@ class _TreatmentPageState extends State<TreatmentPage> {
         SnackBar(content: Text('فشل في إنشاء العلاج: ${e.toString()}')),
       );
       print('Error creating treatment: $e');
-      rethrow;
     }
   }
-
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -186,7 +202,7 @@ class _TreatmentPageState extends State<TreatmentPage> {
 }
 
 class CreateTreatmentPage extends StatefulWidget {
-  final Function(Map<String, dynamic>) createTreatment;
+  final Function(Map<String, dynamic>, List<dynamic>) createTreatment;
 
   const CreateTreatmentPage({
     Key? key,
@@ -200,6 +216,7 @@ class CreateTreatmentPage extends StatefulWidget {
 class _CreateTreatmentPageState extends State<CreateTreatmentPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _detailsController = TextEditingController();
   String? _selectedSkinType;
   String? _selectedProblem;
   List<dynamic> _selectedProducts = [];
@@ -211,9 +228,9 @@ class _CreateTreatmentPageState extends State<CreateTreatmentPage> {
     final selectedProducts = await Navigator.push<List<dynamic>>(
       context,
       MaterialPageRoute(
-        builder: (context) => ProductSearchPage(
-          onProductsSelected: (products) => products,
-        ),
+          builder: (context) =>  ProductSearchPage(
+            onProductsSelected: (products) => products,
+          ),
       ),
     );
 
@@ -224,28 +241,22 @@ class _CreateTreatmentPageState extends State<CreateTreatmentPage> {
     }
   }
 
-  void _submitForm() async {
-    if (_formKey.currentState!.validate() && _selectedSkinType != null && _selectedProblem != null) {
-      final productIds = <String, String>{};
-      for (var product in _selectedProducts) {
-        productIds[product['productId']] = product['name'];
+  void _submitForm() {
+    if (_formKey.currentState!.validate()) {
+      if (_selectedSkinType == null || _selectedProblem == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Please select both skin type and problem')),
+        );
+        return;
       }
 
       final treatmentData = {
+        'description': _descriptionController.text,
         'skinType': _selectedSkinType,
-        'getdescription': _descriptionController.text,
         'problem': _selectedProblem,
-        'productIds': productIds,
       };
 
-      try {
-        await widget.createTreatment(treatmentData);
-        Navigator.pop(context);
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشل في إنشاء العلاج: ${e.toString()}')),
-        );
-      }
+      widget.createTreatment(treatmentData, _selectedProducts);
     }
   }
 
@@ -393,6 +404,8 @@ class _CreateTreatmentPageState extends State<CreateTreatmentPage> {
     );
   }
 }
+
+// باقي الأكواد (ProductSearchPage, TreatmentCategoryList, TreatmentDetailsPage) تبقى كما هي
 
 class ProductSearchPage extends StatefulWidget {
   final Function(List<dynamic>) onProductsSelected;
@@ -757,11 +770,11 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
                   'Problem: ${widget.treatment['problem']}',
                   style: TextStyle(fontSize: 18, color: Colors.grey[700]),
                 ),
-                SizedBox(height: 16),
-                Text(
-                  'Details: ${widget.treatment['details'] ?? 'No details available'}',
-                  style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-                ),
+                // SizedBox(height: 16),
+                // Text(
+                //   'Details: ${widget.treatment['details'] ?? 'No details available'}',
+                //   style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+                // ),
                 SizedBox(height: 16),
                 Text(
                   'Skin Type: ${widget.treatment['skinType']}',
