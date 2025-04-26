@@ -3,14 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:FlawlessYou/SharedPreferences.dart';
 import '../CustomBottomNavigationBarAdmin.dart';
-import '../Home_Section/search.dart';
 import '../Product/product.dart';
-
-void main() {
-  runApp(MaterialApp(
-    home: TreatmentPage(),
-  ));
-}
 
 class TreatmentPage extends StatefulWidget {
   @override
@@ -51,9 +44,9 @@ class _TreatmentPageState extends State<TreatmentPage> {
       if (response.statusCode == 200) {
         setState(() {
           treatments = json.decode(response.body);
-          oilyTreatments = treatments.where((treatment) => treatment['skinType'] == 'OILY').toList();
-          normalTreatments = treatments.where((treatment) => treatment['skinType'] == 'NORMAL').toList();
-          dryTreatments = treatments.where((treatment) => treatment['skinType'] == 'DRY').toList();
+          oilyTreatments = treatments.where((t) => t['skinType'] == 'OILY').toList();
+          normalTreatments = treatments.where((t) => t['skinType'] == 'NORMAL').toList();
+          dryTreatments = treatments.where((t) => t['skinType'] == 'DRY').toList();
           isLoading = false;
         });
       } else {
@@ -77,8 +70,8 @@ class _TreatmentPageState extends State<TreatmentPage> {
         throw Exception('User data or base URL is missing');
       }
 
-      // 1. Create the treatment first
-      final response = await http.post(
+      // Step 1: Create the treatment
+      final treatmentResponse = await http.post(
         Uri.parse('$baseUrl/api/treatments'),
         headers: {
           'accept': '*/*',
@@ -88,14 +81,14 @@ class _TreatmentPageState extends State<TreatmentPage> {
         body: json.encode(treatmentData),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final newTreatment = json.decode(response.body);
+      if (treatmentResponse.statusCode == 200 || treatmentResponse.statusCode == 201) {
+        final newTreatment = json.decode(treatmentResponse.body);
         final treatmentId = newTreatment['treatmentId'];
 
-        // 2. Add products to the treatment
+        // Step 2: Add products to treatment
         for (final product in products) {
           await http.post(
-            Uri.parse('$baseUrl/api/treatments/$treatmentId/products/${product['id']}/${product['name']}'),
+            Uri.parse('$baseUrl/api/treatments/$treatmentId/products/${product['id']}/${Uri.encodeComponent(product['name'])}'),
             headers: {
               'accept': '*/*',
               'Authorization': 'Bearer ${userData['token']}',
@@ -104,15 +97,15 @@ class _TreatmentPageState extends State<TreatmentPage> {
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تم إنشاء العلاج بنجاح')),
+          SnackBar(content: Text('Treatment created successfully')),
         );
-        await fetchTreatments(); // Refresh the list
+        await fetchTreatments(); // Refresh list
       } else {
-        throw Exception('Failed to create treatment: ${response.body}');
+        throw Exception('Failed to create treatment: ${treatmentResponse.body}');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل في إنشاء العلاج: ${e.toString()}')),
+        SnackBar(content: Text('Failed to create treatment: ${e.toString()}')),
       );
       print('Error creating treatment: $e');
     }
@@ -146,20 +139,11 @@ class _TreatmentPageState extends State<TreatmentPage> {
           ),
           bottom: TabBar(
             indicatorColor: Color(0xFF596D56),
-            labelStyle: TextStyle(color: Color(0xFF596D56)),
+            labelColor: Color(0xFF596D56),
             tabs: [
-              Tab(
-                text: 'Oily',
-                icon: Icon(Icons.opacity, color: Colors.white),
-              ),
-              Tab(
-                text: 'Normal',
-                icon: Icon(Icons.balance, color: Colors.white),
-              ),
-              Tab(
-                text: 'Dry',
-                icon: Icon(Icons.water_drop, color: Colors.white),
-              ),
+              Tab(text: 'Oily', icon: Icon(Icons.opacity, color: Colors.white)),
+              Tab(text: 'Normal', icon: Icon(Icons.balance, color: Colors.white)),
+              Tab(text: 'Dry', icon: Icon(Icons.water_drop, color: Colors.white)),
             ],
           ),
         ),
@@ -193,10 +177,7 @@ class _TreatmentPageState extends State<TreatmentPage> {
 class CreateTreatmentPage extends StatefulWidget {
   final Function(Map<String, dynamic>, List<dynamic>) createTreatment;
 
-  const CreateTreatmentPage({
-    Key? key,
-    required this.createTreatment,
-  }) : super(key: key);
+  const CreateTreatmentPage({required this.createTreatment});
 
   @override
   _CreateTreatmentPageState createState() => _CreateTreatmentPageState();
@@ -213,34 +194,38 @@ class _CreateTreatmentPageState extends State<CreateTreatmentPage> {
   final List<String> _skinTypes = ['OILY', 'NORMAL', 'DRY'];
   final List<String> _problems = ['ACNE', 'WRINKLES', 'PIGMENTATION'];
 
-  Future<void> _addProducts() async {
-    final selectedProducts = await Navigator.push(
+  Future<void> _searchProducts() async {
+    final userData = await getUserData();
+    final baseUrl = await getBaseUrl();
+
+    if (userData == null || baseUrl == null) return;
+
+    final selected = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ProductSearchPage(
-          treatmentId: null,
-          onProductSelected: (product) => product,
+          token: userData['token'],
+          baseUrl: baseUrl,
         ),
       ),
     );
 
-    if (selectedProducts != null && selectedProducts is List) {
-      setState(() {
-        _selectedProducts = List<dynamic>.from(selectedProducts);
-      });
+    if (selected != null && selected is List) {
+      setState(() => _selectedProducts = List.from(selected));
     }
   }
 
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
-      final treatmentData = {
-        'description': _descriptionController.text,
-        'details': _detailsController.text,
-        'skinType': _selectedSkinType,
-        'problem': _selectedProblem,
-      };
-
-      widget.createTreatment(treatmentData, _selectedProducts);
+      widget.createTreatment(
+        {
+          'description': _descriptionController.text,
+          'details': _detailsController.text,
+          'skinType': _selectedSkinType,
+          'problem': _selectedProblem,
+        },
+        _selectedProducts,
+      );
       Navigator.pop(context);
     }
   }
@@ -258,128 +243,69 @@ class _CreateTreatmentPageState extends State<CreateTreatmentPage> {
           key: _formKey,
           child: ListView(
             children: [
-              TextFormField(
-                controller: _descriptionController,
-                decoration: InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a description';
-                  }
-                  return null;
-                },
-                maxLines: 3,
-              ),
-              SizedBox(height: 20),
-
-              TextFormField(
-                controller: _detailsController,
-                decoration: InputDecoration(
-                  labelText: 'Details (Optional)',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 5,
-              ),
-              SizedBox(height: 20),
-
-              DropdownButtonFormField<String>(
-                value: _selectedSkinType,
-                decoration: InputDecoration(
-                  labelText: 'Skin Type',
-                  border: OutlineInputBorder(),
-                ),
-                items: _skinTypes.map((type) {
-                  return DropdownMenuItem<String>(
-                    value: type,
-                    child: Text(type),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedSkinType = value;
-                  });
-                },
-                validator: (value) {
-                  if (value == null) {
-                    return 'Please select skin type';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 20),
-
-              DropdownButtonFormField<String>(
-                value: _selectedProblem,
-                decoration: InputDecoration(
-                  labelText: 'Problem',
-                  border: OutlineInputBorder(),
-                ),
-                items: _problems.map((problem) {
-                  return DropdownMenuItem<String>(
-                    value: problem,
-                    child: Text(problem),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedProblem = value;
-                  });
-                },
-                validator: (value) {
-                  if (value == null) {
-                    return 'Please select problem';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 20),
-
-              Text('Selected Products:', style: TextStyle(fontWeight: FontWeight.bold)),
-              SizedBox(height: 8),
-
-              _selectedProducts.isEmpty
-                  ? Text('No products selected')
-                  : Wrap(
-                spacing: 8,
-                children: _selectedProducts.map((product) {
-                  return Chip(
-                    label: Text(product['name']),
-                    onDeleted: () {
-                      setState(() {
-                        _selectedProducts.removeWhere((p) => p['id'] == product['id']);
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
-
-              SizedBox(height: 16),
-
-              ElevatedButton(
-                onPressed: _addProducts,
-                child: Text('Add Products'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF88A383),
-                ),
-              ),
-
-              SizedBox(height: 30),
-
-              ElevatedButton(
-                onPressed: _submitForm,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Text('Create Treatment', style: TextStyle(fontSize: 18)),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF596D56),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
+            TextFormField(
+            controller: _descriptionController,
+            decoration: InputDecoration(labelText: 'Description'),
+            validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+            maxLines: 3,
+          ),
+          SizedBox(height: 20),
+          TextFormField(
+            controller: _detailsController,
+            decoration: InputDecoration(labelText: 'Details (Optional)'),
+            maxLines: 5,
+          ),
+          SizedBox(height: 20),
+          DropdownButtonFormField<String>(
+            value: _selectedSkinType,
+            items: _skinTypes.map((type) => DropdownMenuItem(
+              value: type,
+              child: Text(type),
+            )).toList(),
+            onChanged: (value) => setState(() => _selectedSkinType = value),
+            decoration: InputDecoration(labelText: 'Skin Type'),
+            validator: (value) => value == null ? 'Required' : null,
+          ),
+          SizedBox(height: 20),
+          DropdownButtonFormField<String>(
+            value: _selectedProblem,
+            items: _problems.map((problem) => DropdownMenuItem(
+              value: problem,
+              child: Text(problem),
+            )).toList(),
+            onChanged: (value) => setState(() => _selectedProblem = value),
+            decoration: InputDecoration(labelText: 'Problem'),
+            validator: (value) => value == null ? 'Required' : null,
+          ),
+          SizedBox(height: 20),
+          Text('Selected Products:', style: TextStyle(fontWeight: FontWeight.bold)),
+          _selectedProducts.isEmpty
+              ? Text('No products selected')
+              : Wrap(
+            spacing: 8,
+            children: _selectedProducts.map((p) => Chip(
+              label: Text(p['name']),
+              onDeleted: () => setState(() => _selectedProducts.removeWhere((prod) => prod['id'] == p['id'])),
+            )).toList(),
+          ),
+          SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _searchProducts,
+            child: Text('Search and Add Products'),
+            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF88A383)),
+          ),
+          SizedBox(height: 30),
+          ElevatedButton(
+            onPressed: _submitForm,
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text('Create Treatment', style: TextStyle(fontSize: 18)),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFF596D56),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            ),
             ],
           ),
         ),
@@ -389,14 +315,10 @@ class _CreateTreatmentPageState extends State<CreateTreatmentPage> {
 }
 
 class ProductSearchPage extends StatefulWidget {
-  final String? treatmentId;
-  final Function(dynamic) onProductSelected;
+  final String token;
+  final String baseUrl;
 
-  const ProductSearchPage({
-    Key? key,
-    this.treatmentId,
-    required this.onProductSelected,
-  }) : super(key: key);
+  const ProductSearchPage({required this.token, required this.baseUrl});
 
   @override
   _ProductSearchPageState createState() => _ProductSearchPageState();
@@ -404,98 +326,39 @@ class ProductSearchPage extends StatefulWidget {
 
 class _ProductSearchPageState extends State<ProductSearchPage> {
   final TextEditingController _searchController = TextEditingController();
-  List<dynamic> _searchResults = [];
-  bool _isLoading = false;
+  List<dynamic> _products = [];
   List<dynamic> _selectedProducts = [];
+  bool _isLoading = false;
 
-  Future<void> _searchProducts(String query) async {
-    if (query.isEmpty) return;
+  Future<void> _search(String query) async {
+    if (query.isEmpty) {
+      setState(() => _products = []);
+      return;
+    }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      final userData = await getUserData();
-      final baseUrl = await getBaseUrl();
-
-      if (userData == null || baseUrl == null) {
-        throw Exception('User data or base URL is missing');
-      }
-
       final response = await http.get(
-        Uri.parse('$baseUrl/api/products/search?query=$query'),
+        Uri.parse('${widget.baseUrl}/product/search?name=$query'),
         headers: {
           'accept': '*/*',
-          'Authorization': 'Bearer ${userData['token']}',
+          'Authorization': 'Bearer ${widget.token}',
         },
       );
 
       if (response.statusCode == 200) {
-        setState(() {
-          _searchResults = json.decode(response.body);
-        });
+        final results = json.decode(response.body);
+        setState(() => _products = results.map((p) => p['product']).toList());
       } else {
         throw Exception('Failed to search products');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error searching products: ${e.toString()}')),
+        SnackBar(content: Text('Error: ${e.toString()}')),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _addProductToTreatment(dynamic product) async {
-    if (widget.treatmentId == null) {
-      // For new treatment - just add to selected list
-      setState(() {
-        if (!_selectedProducts.any((p) => p['id'] == product['id'])) {
-          _selectedProducts.add({
-            'id': product['id'],
-            'name': product['name'],
-          });
-        }
-      });
-      return;
-    }
-
-    try {
-      final userData = await getUserData();
-      final baseUrl = await getBaseUrl();
-
-      if (userData == null || baseUrl == null) {
-        throw Exception('User data or base URL is missing');
-      }
-
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/treatments/${widget.treatmentId}/products/${product['id']}/${Uri.encodeComponent(product['name'])}'),
-        headers: {
-          'accept': '*/*',
-          'Authorization': 'Bearer ${userData['token']}',
-        },
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تم إضافة المنتج بنجاح')),
-        );
-        setState(() {
-          _selectedProducts.add({
-            'id': product['id'],
-            'name': product['name'],
-          });
-        });
-      } else {
-        throw Exception('Failed to add product: ${response.body}');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل في إضافة المنتج: ${e.toString()}')),
-      );
+      setState(() => _isLoading = false);
     }
   }
 
@@ -513,33 +376,42 @@ class _ProductSearchPageState extends State<ProductSearchPage> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                labelText: 'Search products',
+                labelText: 'Search',
                 suffixIcon: IconButton(
                   icon: Icon(Icons.search),
-                  onPressed: () => _searchProducts(_searchController.text),
+                  onPressed: () => _search(_searchController.text),
                 ),
-                border: OutlineInputBorder(),
               ),
-              onSubmitted: (value) => _searchProducts(value),
+              onSubmitted: (value) => _search(value),
             ),
           ),
           _isLoading
               ? Center(child: CircularProgressIndicator())
               : Expanded(
             child: ListView.builder(
-              itemCount: _searchResults.length,
+              itemCount: _products.length,
               itemBuilder: (context, index) {
-                final product = _searchResults[index];
-                final isSelected = _selectedProducts.any((p) => p['id'] == product['id']);
+                final product = _products[index];
+                final isSelected = _selectedProducts.any((p) => p['id'] == product['productId']);
 
                 return ListTile(
                   title: Text(product['name']),
+                  subtitle: Text(product['description'] ?? ''),
                   trailing: IconButton(
-                    icon: Icon(
-                      isSelected ? Icons.check : Icons.add,
-                      color: isSelected ? Colors.green : null,
-                    ),
-                    onPressed: () => _addProductToTreatment(product),
+                    icon: Icon(isSelected ? Icons.check_circle : Icons.add_circle),
+                    color: isSelected ? Colors.green : null,
+                    onPressed: () {
+                      setState(() {
+                        if (isSelected) {
+                          _selectedProducts.removeWhere((p) => p['id'] == product['productId']);
+                        } else {
+                          _selectedProducts.add({
+                            'id': product['productId'],
+                            'name': product['name'],
+                          });
+                        }
+                      });
+                    },
                   ),
                 );
               },
@@ -549,9 +421,7 @@ class _ProductSearchPageState extends State<ProductSearchPage> {
       ),
       floatingActionButton: _selectedProducts.isNotEmpty
           ? FloatingActionButton(
-        onPressed: () {
-          Navigator.pop(context, _selectedProducts);
-        },
+        onPressed: () => Navigator.pop(context, _selectedProducts),
         child: Icon(Icons.check),
         backgroundColor: Colors.green,
       )
@@ -560,136 +430,40 @@ class _ProductSearchPageState extends State<ProductSearchPage> {
   }
 }
 
-// باقي الأكواد الأخرى (TreatmentCategoryList, TreatmentDetailsPage) تبقى كما هي بدون تغيير
 class TreatmentCategoryList extends StatelessWidget {
   final List<dynamic> treatments;
 
-  TreatmentCategoryList({required this.treatments});
-
-  Map<String, List<dynamic>> categorizeTreatments(List<dynamic> treatments) {
-    Map<String, List<dynamic>> categorized = {
-      'ACNE': [],
-      'WRINKLES': [],
-      'PIGMENTATION': [],
-      'NORMAL': [],
-    };
-
-    for (var treatment in treatments) {
-      if (categorized.containsKey(treatment['problem'])) {
-        categorized[treatment['problem']]!.add(treatment);
-      }
-    }
-
-    return categorized;
-  }
+  const TreatmentCategoryList({required this.treatments});
 
   @override
   Widget build(BuildContext context) {
-    final categorizedTreatments = categorizeTreatments(treatments);
+    final categorized = {
+      'ACNE': treatments.where((t) => t['problem'] == 'ACNE').toList(),
+      'WRINKLES': treatments.where((t) => t['problem'] == 'WRINKLES').toList(),
+      'PIGMENTATION': treatments.where((t) => t['problem'] == 'PIGMENTATION').toList(),
+    };
 
     return ListView(
       padding: EdgeInsets.all(12),
-      children: categorizedTreatments.entries.map((entry) {
+      children: categorized.entries.map((entry) {
         return ExpansionTile(
-          title: Text(
-            entry.key,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF596D56)),
-          ),
-          children: [
-            Container(
-              height: MediaQuery.of(context).size.height * 0.6,
-              child: ListView(
-                padding: EdgeInsets.all(8),
-                children: entry.value.length > 4
-                    ? [
-                  ...entry.value.take(4).map((treatment) {
-                    return _buildTreatmentCard(context, treatment);
-                  }).toList(),
-                  _buildViewMoreCard(context, entry.value[4]),
-                ]
-                    : entry.value.map((treatment) {
-                  return _buildTreatmentCard(context, treatment);
-                }).toList(),
-              ),
-            ),
-          ],
+          title: Text(entry.key, style: TextStyle(color: Color(0xFF596D56), fontWeight: FontWeight.bold)),
+          children: entry.value.map((treatment) => _buildTreatmentCard(context, treatment)).toList(),
         );
       }).toList(),
     );
   }
 
   Widget _buildTreatmentCard(BuildContext context, dynamic treatment) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
+    return Card(
+      margin: EdgeInsets.symmetric(vertical: 8),
+      child: ListTile(
+        title: Text(treatment['description']),
+        subtitle: Text('Skin: ${treatment['skinType']}'),
+        onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => TreatmentDetailsPage(treatment: treatment),
-          ),
-        );
-      },
-      child: Container(
-        margin: EdgeInsets.symmetric(vertical: 6),
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              spreadRadius: 2,
-              blurRadius: 5,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              treatment['description'] ?? 'No Description',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF596D56)),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Problem: ${treatment['problem']}',
-              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildViewMoreCard(BuildContext context, dynamic treatment) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => TreatmentDetailsPage(treatment: treatment),
-          ),
-        );
-      },
-      child: Container(
-        margin: EdgeInsets.symmetric(vertical: 6),
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              spreadRadius: 2,
-              blurRadius: 5,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            'View More',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF596D56)),
           ),
         ),
       ),
@@ -697,171 +471,78 @@ class TreatmentCategoryList extends StatelessWidget {
   }
 }
 
-class TreatmentDetailsPage extends StatefulWidget {
+class TreatmentDetailsPage extends StatelessWidget {
   final dynamic treatment;
 
-  TreatmentDetailsPage({required this.treatment});
-
-  @override
-  _TreatmentDetailsPageState createState() => _TreatmentDetailsPageState();
-}
-
-class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  final TextEditingController searchController = TextEditingController();
-  late Future<String> _baseUrlFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 1, vsync: this);
-    _baseUrlFuture = getBaseUrl();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    searchController.dispose();
-    super.dispose();
-  }
+  const TreatmentDetailsPage({required this.treatment});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Treatment Details', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        title: Text('Treatment Details'),
         backgroundColor: Color(0xFF88A383),
-        iconTheme: IconThemeData(color: Colors.black),
       ),
-      body: FutureBuilder<String>(
-        future: _baseUrlFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          final baseUrl = snapshot.data!;
-
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.treatment['description'] ?? 'No Description',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF596D56)),
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Problem: ${widget.treatment['problem']}',
-                  style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Details: ${widget.treatment['details'] ?? 'No details available'}',
-                  style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Skin Type: ${widget.treatment['skinType']}',
-                  style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-                ),
-                SizedBox(height: 20),
-                Text(
-                  'Treatment Products',
-                  style: TextStyle(
-                    fontStyle: FontStyle.italic,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      ProductTabScreen(
-                        apiUrl: "$baseUrl/api/treatments/${widget.treatment['treatmentId']}/products",
-                        pageName: 'treatment',
-                        treatmentId: widget.treatment['treatmentId'],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(treatment['description'], style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            SizedBox(height: 16),
+            Text('Problem: ${treatment['problem']}'),
+            Text('Skin Type: ${treatment['skinType']}'),
+            SizedBox(height: 16),
+            Text('Details:', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(treatment['details'] ?? 'No details provided'),
+            SizedBox(height: 16),
+            Text('Products:', style: TextStyle(fontWeight: FontWeight.bold)),
+            Expanded(
+              child: FutureBuilder<List<dynamic>>(
+                future: _fetchTreatmentProducts(treatment['treatmentId']),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error loading products'));
+                  }
+                  return ListView.builder(
+                    itemCount: snapshot.data?.length ?? 0,
+                    itemBuilder: (context, index) {
+                      final product = snapshot.data![index];
+                      return ListTile(
+                        title: Text(product['name']),
+                        subtitle: Text(product['description'] ?? ''),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _openSearchPage(context),
-        child: Icon(Icons.add, color: Colors.black),
-        backgroundColor: Color(0xFFFFFDA),
+          ],
+        ),
       ),
     );
   }
 
-  void _openSearchPage(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search products',
-                  suffixIcon: IconButton(
-                    icon: Icon(Icons.search, color: Color(0xFF88A383)),
-                    onPressed: () {
-                      if (searchController.text.isNotEmpty) {
-                        Navigator.pop(context);
-                        _navigateToSearch(context, searchController.text);
-                      }
-                    },
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Color(0xFF596D56)),
-                  ),
-                ),
-              ),
-              SizedBox(height: 10),
-            ],
-          ),
-        );
+  Future<List<dynamic>> _fetchTreatmentProducts(String treatmentId) async {
+    final userData = await getUserData();
+    final baseUrl = await getBaseUrl();
+
+    if (userData == null || baseUrl == null) return [];
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/treatments/$treatmentId/products'),
+      headers: {
+        'accept': '*/*',
+        'Authorization': 'Bearer ${userData['token']}',
       },
     );
-  }
 
-  void _navigateToSearch(BuildContext context, String query) async {
-    try {
-      final userData = await getUserData();
-      if (userData == null) return;
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => search(
-            token: userData['token'],
-            searchQuery: query,
-            pageName: 'add',
-            treatmentId: widget.treatment['treatmentId'],
-          ),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
     }
+    return [];
   }
 }
