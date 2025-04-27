@@ -21,7 +21,7 @@ class FaceAnalysisManager {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://192.168.118.164:8000/analyze/'),
+        Uri.parse('http://192.168.1.146:8000/analyze/'),
       );
 
       request.files.add(
@@ -59,7 +59,7 @@ class FaceAnalysisManager {
             children: <Widget>[
               ListTile(
                 leading: Icon(Icons.camera),
-                title: Text('التقاط صورة من الكاميرا'),
+                title: Text('Capture a photo from the camera'),
                 onTap: () async {
                   final XFile? image = await _picker.pickImage(source: ImageSource.camera);
                   Navigator.pop(context, image);
@@ -67,7 +67,7 @@ class FaceAnalysisManager {
               ),
               ListTile(
                 leading: Icon(Icons.photo_library),
-                title: Text('تحميل صورة من المعرض'),
+                title: Text('Upload a photo from the gallery'),
                 onTap: () async {
                   final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
                   Navigator.pop(context, image);
@@ -98,7 +98,7 @@ class FaceAnalysisManager {
             Image.file(imageFile),
             const SizedBox(height: 20),
             Text(
-              'نوع بشرتك هو: $skinType',
+              'Your skin type is: $skinType',
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
@@ -128,7 +128,7 @@ class FaceAnalysisManager {
                   ),
                 );
               },
-              child: const Text('التالي'),
+              child: const Text('Next'),
             ),
           ],
         ),

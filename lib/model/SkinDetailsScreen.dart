@@ -23,13 +23,13 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
   String _detailsResult = "";
   String _treatmentResult = "";
   bool _isLoading = false;
-  final String apiDetailsUrl = 'http://192.168.118.164:8000/analyze_details/';
+  final String apiDetailsUrl = 'http://192.168.1.146:8000/analyze_details/';
   String apiTreatmentUrl = '';
   List<dynamic> treatments = [];
-  Map<String, bool> selectedProducts = {};
-  Map<String, String> productIdMap = {}; // Maps product names to IDs
+  Map<String, String?> selectedProductsPerProblem = {};
+  Map<String, String> productIdMap = {};
   List<String> confirmedProducts = [];
-  List<String> confirmedProductIds = []; // Stores selected product IDs
+  List<String> confirmedProductIds = [];
   Map<String, dynamic>? _productDetails;
   bool _showProductDetails = false;
   String? _analysisId;
@@ -51,14 +51,14 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
         final data = json.decode(responseString);
         setState(() {
           _detailsResult = """
-          Wrinkles: ${data['WRINKLES']}%
-          Pigmentation: ${data['PIGMENTATION']}%
-          Acne: ${data['ACNE']}%
-          Normal: ${data['NORMAL']}%
-          """;
+Wrinkles: ${data['WRINKLES']?.toString() ?? '0'}%
+Pigmentation: ${data['PIGMENTATION']?.toString() ?? '0'}%
+Acne: ${data['ACNE']?.toString() ?? '0'}%
+Normal: ${data['NORMAL']?.toString() ?? '0'}%
+""";
         });
         await _fetchTreatmentRecommendations(data);
-        await _uploadImageToServer(); // Call the new function after successful analysis
+        await _uploadImageToServer();
       } else {
         setState(() {
           _detailsResult = 'Analysis Error: ${response.statusCode}';
@@ -148,14 +148,20 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
-          treatments = data['treatmentId'];
-          _analysisId = data['id']; // Store the analysis ID
-          // Initialize selected products map and product ID map
-          for (var treatment in treatments) {
-            var products = treatment['productIds'] as Map<String, dynamic>;
+          treatments = data['treatmentId'] ?? [];
+          _analysisId = data['id'];
+          selectedProductsPerProblem = {};
+          productIdMap = {};
+
+          for (int i = 0; i < treatments.length; i++) {
+            var treatment = treatments[i];
+            var problem = treatment['problem']?.toString() ?? 'Unknown Problem';
+            String uniqueKey = '$problem-$i'; // Unique key with index
+            selectedProductsPerProblem[uniqueKey] = null;
+
+            var products = (treatment['productIds'] as Map<String, dynamic>?) ?? {};
             products.forEach((id, name) {
-              selectedProducts[name] = false;
-              productIdMap[name] = id; // Map product name to ID
+              productIdMap[name.toString()] = id.toString();
             });
           }
         });
@@ -220,20 +226,19 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
   }
 
   Future<void> _confirmSelection() async {
-    // Get the selected product IDs
-    confirmedProductIds = selectedProducts.entries
-        .where((entry) => entry.value)
-        .map((entry) => productIdMap[entry.key]!)
-        .toList();
+    confirmedProductIds = [];
+    confirmedProducts = [];
 
-    confirmedProducts = selectedProducts.entries
-        .where((entry) => entry.value)
-        .map((entry) => entry.key)
-        .toList();
+    selectedProductsPerProblem.forEach((problem, productName) {
+      if (productName != null && productIdMap.containsKey(productName)) {
+        confirmedProducts.add(productName);
+        confirmedProductIds.add(productIdMap[productName]!);
+      }
+    });
 
     if (confirmedProducts.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please select at least one product')),
+        SnackBar(content: Text('Please select at least one product from any problem')),
       );
       return;
     }
@@ -258,14 +263,14 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
       Map<String, dynamic> userInfo = jsonDecode(userInfoJson);
       String userId = userInfo['userId'];
 
-      // Get the main problem (the one with highest percentage)
-      final problems = _detailsResult.split('\n');
       String mainProblem = "general care";
-      if (problems.isNotEmpty) {
-        mainProblem = problems[0].split(':')[0].trim().toLowerCase();
+      if (_detailsResult.isNotEmpty) {
+        final problems = _detailsResult.split('\n');
+        if (problems.isNotEmpty && problems[0].contains(':')) {
+          mainProblem = problems[0].split(':')[0].trim().toLowerCase();
+        }
       }
 
-      // Create the routine
       final response = await http.post(
         Uri.parse('$baseUrl/api/routines/create'),
         headers: {
@@ -334,7 +339,6 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Full width image at top
                 Container(
                   width: double.infinity,
                   height: 250,
@@ -347,8 +351,6 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
                   ),
                 ),
                 SizedBox(height: 20),
-
-                // Skin type and analysis results
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16.0),
                   child: Column(
@@ -358,8 +360,7 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
                         'Your Skin Type: ${widget.skinType}',
                         style: TextStyle(
                             fontSize: 18,
-                            fontWeight: FontWeight.bold
-                        ),
+                            fontWeight: FontWeight.bold),
                       ),
                       SizedBox(height: 15),
                       Card(
@@ -373,8 +374,7 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
                                 'Analysis Results:',
                                 style: TextStyle(
                                     fontSize: 18,
-                                    fontWeight: FontWeight.bold
-                                ),
+                                    fontWeight: FontWeight.bold),
                               ),
                               SizedBox(height: 10),
                               Text(
@@ -389,8 +389,6 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
                   ),
                 ),
                 SizedBox(height: 20),
-
-                // Error message if any
                 if (_treatmentResult.isNotEmpty)
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -399,26 +397,26 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
                       style: TextStyle(color: Colors.red),
                     ),
                   ),
-
-                // Treatments grouped by problem
                 if (treatments.isNotEmpty) ...[
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16.0),
                     child: Text(
                       'Recommended Treatments:',
                       style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold
-                      ),
+                          fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
                   SizedBox(height: 10),
+                  ...treatments.asMap().entries.map((entry) {
+                    int index = entry.key;
+                    var treatment = entry.value;
+                    var problem = treatment['problem']?.toString() ?? 'Unknown Problem';
+                    String uniqueKey = '$problem-$index';
+                    var products = treatment['productIds'] as Map<String, dynamic>? ?? {};
 
-                  // Group treatments by problem
-                  ...treatments.map((treatment) {
-                    var products = treatment['productIds'] as Map<String, dynamic>;
                     return Card(
-                      margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      margin: EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 8.0),
                       elevation: 2,
                       child: Padding(
                         padding: EdgeInsets.all(12.0),
@@ -426,7 +424,7 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Problem: ${treatment['problem']}',
+                              'Problem: $problem',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -435,55 +433,44 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
                             ),
                             SizedBox(height: 8),
                             Text(
-                              treatment['description'],
+                              treatment['description']?.toString() ?? 'No description available',
                               style: TextStyle(fontSize: 14),
                             ),
                             SizedBox(height: 10),
                             Text(
-                              'Recommended Products:',
+                              'Recommended Products: (Choose one)',
                               style: TextStyle(
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            ...products.entries.map((entry) {
-                              String productId = entry.key;
-                              String productName = entry.value;
-                              return InkWell(
-                                onTap: () {
-                                  _fetchProductDetails(productId);
-                                },
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                                  child: Row(
-                                    children: [
-                                      Checkbox(
-                                        value: selectedProducts[productName],
-                                        onChanged: (bool? value) {
-                                          setState(() {
-                                            selectedProducts[productName] = value!;
-                                          });
-                                        },
-                                      ),
-                                      SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          productName,
-                                          style: TextStyle(fontSize: 16),
-                                        ),
-                                      ),
-                                      Icon(Icons.info_outline, color: Colors.blue),
-                                    ],
+                            Column(
+                              children: products.entries.map((entry) {
+                                String productId = entry.key;
+                                String productName = entry.value.toString();
+
+                                return RadioListTile<String>(
+                                  title: Text(productName),
+                                  value: productName,
+                                  groupValue: selectedProductsPerProblem[uniqueKey],
+                                  onChanged: (String? value) {
+                                    setState(() {
+                                      selectedProductsPerProblem[uniqueKey] = value;
+                                    });
+                                  },
+                                  secondary: IconButton(
+                                    icon: Icon(Icons.info_outline, color: Colors.blue),
+                                    onPressed: () {
+                                      _fetchProductDetails(productId);
+                                    },
                                   ),
-                                ),
-                              );
-                            }).toList(),
+                                );
+                              }).toList(),
+                            ),
                           ],
                         ),
                       ),
                     );
                   }).toList(),
-
-                  // Confirm button
                   Padding(
                     padding: EdgeInsets.all(16.0),
                     child: Center(
@@ -491,8 +478,8 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
                         onPressed: _confirmSelection,
                         child: Padding(
                           padding: EdgeInsets.symmetric(
-                              horizontal: 24.0,
-                              vertical: 12.0
+                            horizontal: 24.0,
+                            vertical: 12.0,
                           ),
                           child: Text(
                             'Confirm Selection',
@@ -507,8 +494,6 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
                       ),
                     ),
                   ),
-
-                  // Selected products
                   if (confirmedProducts.isNotEmpty) ...[
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -549,8 +534,6 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
               ],
             ),
           ),
-
-          // Product details overlay
           if (_showProductDetails && _productDetails != null)
             Positioned.fill(
               child: Container(
@@ -575,7 +558,7 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      _productDetails!['name'],
+                                      _productDetails?['name']?.toString() ?? 'No name available',
                                       style: TextStyle(
                                         fontSize: 22,
                                         fontWeight: FontWeight.bold,
@@ -590,7 +573,6 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
                                 ],
                               ),
                               SizedBox(height: 15),
-
                               if (_productDetails!['photos'] != null &&
                                   _productDetails!['photos'].isNotEmpty)
                                 Container(
@@ -604,7 +586,6 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
                                   ),
                                 ),
                               SizedBox(height: 20),
-
                               Text(
                                 'Description:',
                                 style: TextStyle(
@@ -618,7 +599,6 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
                                 style: TextStyle(fontSize: 16),
                               ),
                               SizedBox(height: 15),
-
                               if (_productDetails!['ingredients'] != null &&
                                   _productDetails!['ingredients'].isNotEmpty)
                                 Column(
@@ -643,7 +623,6 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
                                   ],
                                 ),
                               SizedBox(height: 15),
-
                               if (_productDetails!['usageTime'] != null &&
                                   _productDetails!['usageTime'].isNotEmpty)
                                 Column(
@@ -669,7 +648,6 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
                                   ],
                                 ),
                               SizedBox(height: 15),
-
                               if (_productDetails!['skinType'] != null &&
                                   _productDetails!['skinType'].isNotEmpty)
                                 Column(
