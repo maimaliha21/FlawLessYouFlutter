@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart'; // Added for date formatting
 
 import '../../CustomBottomNavigationBar.dart';
 
@@ -16,6 +17,7 @@ class _MessageCardState extends State<chatexpert> {
   List<dynamic> cards = [];
   final TextEditingController replyController = TextEditingController();
   String? token;
+  final DateFormat _dateFormatter = DateFormat('yyyy-MM-dd HH:mm'); // Date formatter
 
   Future<String> getBaseUrl() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -109,6 +111,16 @@ class _MessageCardState extends State<chatexpert> {
     );
   }
 
+  // Helper method to format date/time
+  String _formatDateTime(String dateTimeString) {
+    try {
+      final dateTime = DateTime.parse(dateTimeString);
+      return _dateFormatter.format(dateTime.toLocal());
+    } catch (e) {
+      return dateTimeString;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -148,7 +160,7 @@ class _MessageCardState extends State<chatexpert> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     subtitle: Text(
-                      'Sent by: ${card['senderName']}',
+                      'Sent by: ${card['senderName']} • ${_formatDateTime(card['sentDate'])}',
                       style: const TextStyle(color: Colors.black54),
                     ),
                     children: [
@@ -185,6 +197,14 @@ class _MessageCardState extends State<chatexpert> {
                                   Text(
                                     card['expertReply'].join('\n'),
                                     style: const TextStyle(color: Colors.black87),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Replied on: ${_formatDateTime(card['replyDate'])}',
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -269,8 +289,34 @@ class _MessageCardState extends State<chatexpert> {
 
 class SkinAnalysisDetailsPage extends StatelessWidget {
   final Map<String, dynamic> skinAnalysis;
+  late final DateFormat _dateFormatter;
 
-  const SkinAnalysisDetailsPage({super.key, required this.skinAnalysis});
+  SkinAnalysisDetailsPage({super.key, required this.skinAnalysis}) {
+    _dateFormatter = DateFormat('yyyy-MM-dd HH:mm'); // Initialize in constructor
+  }
+  String _formatDateTime(String dateTimeString) {
+    try {
+      final dateTime = DateTime.parse(dateTimeString);
+      return _dateFormatter.format(dateTime.toLocal());
+    } catch (e) {
+      return dateTimeString;
+    }
+  }
+
+  Color _getProblemColor(String problem) {
+    switch (problem) {
+      case 'ACNE':
+        return Colors.red;
+      case 'WRINKLES':
+        return Colors.blue;
+      case 'PIGMENTATION':
+        return Colors.brown;
+      case 'NORMAL':
+        return Colors.green;
+      default:
+        return Colors.teal;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -311,7 +357,7 @@ class SkinAnalysisDetailsPage extends StatelessWidget {
                     const Divider(),
                     const SizedBox(height: 8),
 
-                    RowInfo(label: 'Created At:', value: skinAnalysis['createdAt']),
+                    RowInfo(label: 'Created At:', value: _formatDateTime(skinAnalysis['createdAt'])),
                     RowInfo(label: 'Skin Type:', value: skinAnalysis['skintype']),
                   ],
                 ),
@@ -421,21 +467,6 @@ class SkinAnalysisDetailsPage extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Color _getProblemColor(String problem) {
-    switch (problem) {
-      case 'ACNE':
-        return Colors.red;
-      case 'WRINKLES':
-        return Colors.blue;
-      case 'PIGMENTATION':
-        return Colors.brown;
-      case 'NORMAL':
-        return Colors.green;
-      default:
-        return Colors.teal;
-    }
   }
 }
 
