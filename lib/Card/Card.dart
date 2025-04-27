@@ -5,14 +5,14 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import 'dart:ui';
-import 'package:shared_preferences/shared_preferences.dart'; // أضف هذه المكتبة
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../CustomBottomNavigationBar.dart';
 import '../FaceAnalysisManager.dart';
 import '../Home_Section/home.dart';
 import '../Product/productPage.dart';
 import '../ProfileSection/profile.dart';
-import '../model/SkinDetailsScreen.dart'; // للوصول إلى ImageFilter
+import '../model/SkinDetailsScreen.dart';
 
 class MessageCard extends StatefulWidget {
   final String token;
@@ -29,10 +29,9 @@ class _MessageCardState extends State<MessageCard> {
   List<dynamic> cards = [];
   final TextEditingController messageController = TextEditingController();
 
-  // دالة لاسترجاع الرابط من SharedPreferences
   Future<String> getBaseUrl() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getString('baseUrl') ?? 'http://localhost:8080'; // قيمة افتراضية إذا لم يتم العثور على الرابط
+    return prefs.getString('baseUrl') ?? 'http://localhost:8080';
   }
 
   @override
@@ -44,9 +43,9 @@ class _MessageCardState extends State<MessageCard> {
 
   Future<void> fetchExperts() async {
     try {
-      final baseUrl = await getBaseUrl(); // استرجاع الرابط من SharedPreferences
+      final baseUrl = await getBaseUrl();
       final response = await http.get(
-        Uri.parse('$baseUrl/api/users/experts'), // استخدام الرابط المسترجع
+        Uri.parse('$baseUrl/api/users/experts'),
         headers: {
           'accept': '*/*',
           'Authorization': 'Bearer ${widget.token}',
@@ -70,9 +69,9 @@ class _MessageCardState extends State<MessageCard> {
 
   Future<void> fetchCards() async {
     try {
-      final baseUrl = await getBaseUrl(); // استرجاع الرابط من SharedPreferences
+      final baseUrl = await getBaseUrl();
       final response = await http.get(
-        Uri.parse('$baseUrl/cards/user'), // استخدام الرابط المسترجع
+        Uri.parse('$baseUrl/cards/user'),
         headers: {
           'accept': '*/*',
           'Authorization': 'Bearer ${widget.token}',
@@ -103,9 +102,9 @@ class _MessageCardState extends State<MessageCard> {
     }
 
     try {
-      final baseUrl = await getBaseUrl(); // استرجاع الرابط من SharedPreferences
+      final baseUrl = await getBaseUrl();
       final response = await http.post(
-        Uri.parse('$baseUrl/cards/send?message=${Uri.encodeComponent(messageController.text)}&name=${Uri.encodeComponent(selectedExpert!)}'), // استخدام الرابط المسترجع
+        Uri.parse('$baseUrl/cards/send?message=${Uri.encodeComponent(messageController.text)}&name=${Uri.encodeComponent(selectedExpert!)}'),
         headers: {
           'accept': '*/*',
           'Authorization': 'Bearer ${widget.token}',
@@ -129,12 +128,47 @@ class _MessageCardState extends State<MessageCard> {
     }
   }
 
+  Future<void> sendMessageWithAnalysis() async {
+    if (selectedExpert == null || messageController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please select an expert and enter a message')),
+      );
+      return;
+    }
+
+    try {
+      final baseUrl = await getBaseUrl();
+      final response = await http.post(
+        Uri.parse('$baseUrl/cards/sendWithAnalysis?message=${Uri.encodeComponent(messageController.text)}&name=${Uri.encodeComponent(selectedExpert!)}'),
+        headers: {
+          'accept': '*/*',
+          'Authorization': 'Bearer ${widget.token}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Message sent successfully with skin analysis')),
+        );
+        fetchCards();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send message with analysis')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error sending message with analysis: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Send Message to Expert', style: TextStyle(color: Colors.black87)), // لون النص أسود
-        backgroundColor: const Color(0xFFC7C7BB), // لون خلفية AppBar أبيض
+        title: Text('Send Message to Expert', style: TextStyle(color: Colors.black87)),
+        backgroundColor: const Color(0xFFC7C7BB),
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -149,12 +183,12 @@ class _MessageCardState extends State<MessageCard> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              // الكارد الأول
+              // First Card
               Card(
-                color: Colors.white.withOpacity(0.5), // جعل البوكس شفافًا قليلاً
+                color: Colors.white.withOpacity(0.5),
                 elevation: 4,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20), // جعل الحواف دائرية أكثر
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -182,22 +216,37 @@ class _MessageCardState extends State<MessageCard> {
                         style: TextStyle(color: Colors.black87),
                         decoration: InputDecoration(
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12), // جعل حواف TextField دائرية
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           labelText: 'Message',
                           labelStyle: TextStyle(color: Colors.black87),
                         ),
                       ),
                       SizedBox(height: 16),
+                      // Button for sending message without analysis
                       ElevatedButton(
                         onPressed: sendMessage,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF88A383), // لون أخضر ضبابي
+                          backgroundColor: const Color(0xFF88A383),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12), // جعل حواف الزر دائرية
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: Text('Send a message without skinAnalysis', style: TextStyle(color: Colors.white)),
+                        child: Text('Send a message without skinAnalysis',
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                      SizedBox(height: 10),
+                      // New button for sending message with analysis
+                      ElevatedButton(
+                        onPressed: sendMessageWithAnalysis,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6A8D73), // Different color
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text('Send with skin analysis',
+                            style: TextStyle(color: Colors.white)),
                       ),
                     ],
                   ),
@@ -210,30 +259,28 @@ class _MessageCardState extends State<MessageCard> {
                   itemBuilder: (context, index) {
                     final card = cards[index];
                     return Padding(
-                      padding: const EdgeInsets.only(top: 10), // إنزال الكارد لأسفل قليلاً
+                      padding: const EdgeInsets.only(top: 10),
                       child: GestureDetector(
                         onTap: () {
                           setState(() {
-                            // تغيير لون الكارد عند الضغط
                             card['isPressed'] = !(card['isPressed'] ?? false);
                           });
                         },
                         child: Card(
                           color: (card['isPressed'] ?? false)
-                              ? Colors.grey[300] // لون أغمق عند الضغط
-                              : Colors.white.withOpacity(0.5), // لون عادي
+                              ? Colors.grey[300]
+                              : Colors.white.withOpacity(0.5),
                           elevation: 4,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20), // جعل الحواف دائرية أكثر
+                            borderRadius: BorderRadius.circular(20),
                           ),
                           child: ExpansionTile(
-                            leading: Icon(Icons.message, color: const Color(0xFF88A383))
-                            , // أيقونة زيتية
+                            leading: Icon(Icons.message, color: const Color(0xFF88A383)),
                             title: Text(
                               card['message'],
                               style: TextStyle(color: Colors.black87),
-                              maxLines: 2, // عدد الأسطر القصوى قبل التوسيع
-                              overflow: TextOverflow.ellipsis, // اختصار النص إذا كان طويلاً
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             subtitle: Text(
                               'Sent to: ${card['expertName'] ?? 'Unknown'}',
@@ -265,6 +312,16 @@ class _MessageCardState extends State<MessageCard> {
                                         color: Colors.black87,
                                       ),
                                     ),
+                                    if (card['analysisDate'] != null) ...[
+                                      SizedBox(height: 16),
+                                      Text(
+                                        'Includes skin analysis from: ${card['analysisDate']}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.green[700],
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
@@ -281,8 +338,6 @@ class _MessageCardState extends State<MessageCard> {
         ),
       ),
       bottomNavigationBar: CustomBottomNavigationBar2(),
-
     );
   }
 }
-
