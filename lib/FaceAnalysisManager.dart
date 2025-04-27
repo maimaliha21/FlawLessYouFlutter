@@ -21,7 +21,7 @@ class FaceAnalysisManager {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://192.168.118.164:8000/analyze/'),
+        Uri.parse('http://192.168.0.106:8000/analyze/'),
       );
 
       request.files.add(
@@ -48,6 +48,40 @@ class FaceAnalysisManager {
     }
   }
 
+  void _showInstructionsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Instructions Before Skin Analysis'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Text('For an accurate skin analysis, please follow the instructions below:'),
+              SizedBox(height: 10),
+              Text('1.Ensure good and uniform lighting.', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('2. Focus on capturing the affected area .', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('3.Remove glasses, hair, or any obstacles from the face.', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('4.Make sure the photo is clear and of high quality.', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('5.Avoid makeup to achieve more accurate results.', style: TextStyle(fontWeight: FontWeight.bold)),
+              SizedBox(height: 20),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showImagePickerOptions();
+            },
+            child: const Text('Understood', style: TextStyle(color: Colors.blue)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showImagePickerOptions() async {
     final ImagePicker _picker = ImagePicker();
     final XFile? image = await showModalBottomSheet<XFile>(
@@ -59,7 +93,7 @@ class FaceAnalysisManager {
             children: <Widget>[
               ListTile(
                 leading: Icon(Icons.camera),
-                title: Text('التقاط صورة من الكاميرا'),
+                title: Text('Capture a photo from the camera'),
                 onTap: () async {
                   final XFile? image = await _picker.pickImage(source: ImageSource.camera);
                   Navigator.pop(context, image);
@@ -67,7 +101,7 @@ class FaceAnalysisManager {
               ),
               ListTile(
                 leading: Icon(Icons.photo_library),
-                title: Text('تحميل صورة من المعرض'),
+                title: Text('Upload a photo from the gallery'),
                 onTap: () async {
                   final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
                   Navigator.pop(context, image);
@@ -80,12 +114,31 @@ class FaceAnalysisManager {
     );
 
     if (image != null) {
-      _showImagePreviewDialog(File(image.path));
+      _processSelectedImage(File(image.path));
     }
   }
 
-  void _showImagePreviewDialog(File imageFile) async {
-    final skinType = await _analyzeSkinType(imageFile);
+  void _processSelectedImage(File imageFile) async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final skinType = await _analyzeSkinType(imageFile);
+      Navigator.pop(context); // Close loading dialog
+      _showAnalysisResult(imageFile, skinType);
+    } catch (e) {
+      Navigator.pop(context); // Close loading dialog
+      _showErrorDialog(e.toString());
+    }
+  }
+
+  void _showAnalysisResult(File imageFile, String skinType) {
     List<String> skinTypes = [skinType, 'Normal', 'Dry', 'Oily'];
     String selectedSkinType = skinType;
 
@@ -98,7 +151,7 @@ class FaceAnalysisManager {
             Image.file(imageFile),
             const SizedBox(height: 20),
             Text(
-              'نوع بشرتك هو: $skinType',
+              'Your skin type is: $skinType',
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
@@ -128,7 +181,7 @@ class FaceAnalysisManager {
                   ),
                 );
               },
-              child: const Text('التالي'),
+              child: const Text('Next'),
             ),
           ],
         ),
@@ -136,7 +189,23 @@ class FaceAnalysisManager {
     );
   }
 
+  void _showErrorDialog(String errorMessage) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Error'),
+        content: Text('Failed to analyze skin type: $errorMessage'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void analyzeFace() {
-    _showImagePickerOptions();
+    _showInstructionsDialog();
   }
 }
