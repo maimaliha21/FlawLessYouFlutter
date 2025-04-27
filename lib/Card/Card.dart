@@ -197,7 +197,7 @@ class _MessageCardState extends State<MessageCard> {
                             borderRadius: BorderRadius.circular(12), // جعل حواف الزر دائرية
                           ),
                         ),
-                        child: Text('Send', style: TextStyle(color: Colors.white)),
+                        child: Text('Send a message without skinAnalysis', style: TextStyle(color: Colors.white)),
                       ),
                     ],
                   ),
