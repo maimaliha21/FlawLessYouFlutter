@@ -7,7 +7,7 @@ import 'dart:async';
 
 import '../CustomBottomNavigationBar.dart';
 import '../ProfileSection/profile.dart';
-import '../SharedPreferences.dart'; // تأكد من أن هذا الملف موجود ويحتوي على دالة getBaseUrl
+import '../SharedPreferences.dart';
 
 class RoutineScreen extends StatelessWidget {
   @override
@@ -17,7 +17,6 @@ class RoutineScreen extends StatelessWidget {
       home: HomeScreen(),
       routes: {
         '/home': (context) => HomeScreen(),
-        // '/profile': (context) => ProfileScreen(), // قم بتعريف ProfileScreen هنا
       },
     );
   }
@@ -57,12 +56,9 @@ class _HomeScreenState extends State<HomeScreen> {
       _selectedIndex = index;
     });
 
-    // Handle navigation based on the selected index
     if (index == 0) {
-      // Navigate to Home Screen
       Navigator.pushNamed(context, '/home');
     } else if (index == 2) {
-      // Navigate to Profile Screen
       Navigator.pushNamed(context, '/profile');
     }
   }
@@ -94,25 +90,32 @@ class _RoutineTabScreenState extends State<RoutineTabScreen> {
     "NIGHT": [],
   };
 
-  final List<String> backgroundImages = [
-    "https://res.cloudinary.com/davwgirjs/image/upload/v1738924453/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.28.05%20PM.jpeg_20250207123410.jpg",
-    "https://res.cloudinary.com/davwgirjs/image/upload/v1738924475/nhndev/product/WhatsApp%20Image%202025-02-07%20at%2012.27.29%20PM.jpeg_20250207123434.jpg",
+  final List<String> morningBackgroundImages = [
+    "https://res.cloudinary.com/davwgirjs/image/upload/v1746352809/nhndev/product/NWE2SFwq86zEmb03694l_1746352809636_WhatsApp%20Image%202025-05-04%20at%2012.59.16_2f7b005b.jpg.jpg",
+    "https://res.cloudinary.com/davwgirjs/image/upload/v1746354105/nhndev/product/NWE2SFwq86zEmb03694l_1746354106058_WhatsApp%20Image%202025-05-04%20at%2013.20.37_dea70b38.jpg.jpg"
+  ];
+
+  final List<String> afternoonBackgroundImages = [
+    "https://res.cloudinary.com/davwgirjs/image/upload/v1746354581/nhndev/product/NWE2SFwq86zEmb03694l_1746354581240_WhatsApp%20Image%202025-05-04%20at%2013.29.10_b523eab1.jpg.jpg",
+    "https://res.cloudinary.com/davwgirjs/image/upload/v1746354357/nhndev/product/NWE2SFwq86zEmb03694l_1746354357364_WhatsApp%20Image%202025-05-04%20at%2013.25.21_d1b5d2bc.jpg.jpg"
+  ];
+
+  final List<String> eveningBackgroundImages = [
+    "https://res.cloudinary.com/davwgirjs/image/upload/v1746354751/nhndev/product/NWE2SFwq86zEmb03694l_1746354751028_WhatsApp%20Image%202025-05-04%20at%2013.32.04_04787fe5.jpg.jpg",
+    "https://res.cloudinary.com/davwgirjs/image/upload/v1746354998/nhndev/product/NWE2SFwq86zEmb03694l_1746354999195_WhatsApp%20Image%202025-05-04%20at%2013.36.17_c034e5d9.jpg.jpg"
   ];
 
   Map<String, dynamic>? userRoutine;
-  int _selectedIndex = 1; // Default to the Routine tab
+  int _selectedIndex = 1;
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
 
-    // Handle navigation based on the selected index
     if (index == 0) {
-      // Navigate to Home Screen
       Navigator.pushNamed(context, '/home');
     } else if (index == 2) {
-      // Navigate to Profile Screen
       Navigator.pushNamed(context, '/profile');
     }
   }
@@ -214,19 +217,43 @@ class _RoutineTabScreenState extends State<RoutineTabScreen> {
     }
   }
 
+  Widget _buildTabContent(List<Routine> routines, List<String> backgroundImages) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: routines.map((routine) {
+            String imageUrl = backgroundImages[routines.indexOf(routine) % backgroundImages.length];
+            return RoutineCard(
+              routine: routine,
+              imageUrl: imageUrl,
+              token: widget.token!,
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            if (userRoutine != null) UserRoutineCard(userRoutine: userRoutine, userName: widget.userName),
-            DefaultTabController(
+      body: Column(
+        children: [
+          if (userRoutine != null)
+            UserRoutineCard(
+              userRoutine: userRoutine,
+              userName: widget.userName,
+            ),
+
+          SizedBox(height: 20),
+
+          Expanded(
+            child: DefaultTabController(
               length: 3,
               child: Column(
                 children: [
-                  const SizedBox(height: 20),const SizedBox(height: 20),
                   TabBar(
                     labelColor: Colors.black,
                     unselectedLabelColor: Colors.grey[700],
@@ -237,25 +264,37 @@ class _RoutineTabScreenState extends State<RoutineTabScreen> {
                       Tab(text: "Evening"),
                     ],
                   ),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.7, // Adjust height as needed
+
+                  Expanded(
                     child: TabBarView(
                       children: [
-                        RoutineList(routines: routines["MORNING"]!, backgroundImages: backgroundImages, token: widget.token!),
-                        RoutineList(routines: routines["AFTERNOON"]!, backgroundImages: backgroundImages, token: widget.token!),
-                        RoutineList(routines: routines["NIGHT"]!, backgroundImages: backgroundImages, token: widget.token!),
+                        // Morning Tab
+                        _buildTabContent(
+                          routines["MORNING"]!,
+                          morningBackgroundImages,
+                        ),
+
+                        // Afternoon Tab
+                        _buildTabContent(
+                          routines["AFTERNOON"]!,
+                          afternoonBackgroundImages,
+                        ),
+
+                        // Evening Tab
+                        _buildTabContent(
+                          routines["NIGHT"]!,
+                          eveningBackgroundImages,
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-      bottomNavigationBar: CustomBottomNavigationBar2(
-        // Your custom bottom navigation bar implementation
-      ),
+      bottomNavigationBar: CustomBottomNavigationBar2(),
     );
   }
 }
@@ -294,29 +333,6 @@ class Routine {
       photos: List<String>.from(json['photos']),
       reviews: json['reviews'],
       usageTime: List<String>.from(json['usageTime']),
-    );
-  }
-}
-
-class RoutineList extends StatelessWidget {
-  final List<Routine> routines;
-  final List<String> backgroundImages;
-  final String token;
-
-  RoutineList({required this.routines, required this.backgroundImages, required this.token});
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: routines.map((routine) {
-            String imageUrl = backgroundImages[routines.indexOf(routine) % backgroundImages.length];
-            return RoutineCard(routine: routine, imageUrl: imageUrl, token: token);
-          }).toList(),
-        ),
-      ),
     );
   }
 }

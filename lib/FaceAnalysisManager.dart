@@ -21,7 +21,7 @@ class FaceAnalysisManager {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://192.168.0.106:8000/analyze/'),
+        Uri.parse('http://192.168.0.12:8000/analyze/'),
       );
 
       request.files.add(

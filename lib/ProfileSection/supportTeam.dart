@@ -1,11 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:FlawlessYou/ProfileSection/profile.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import '../SharedPreferences.dart';
 
 class SupportTeam extends StatelessWidget {
@@ -95,160 +91,207 @@ class _SupportTeamScreenState extends State<SupportTeamScreen> {
   @override
   void dispose() {
     _timer.cancel();
+    _pageController.dispose();
     super.dispose();
   }
 
   void _launchEmail(String email) async {
-    final Uri emailUri = Uri(scheme: 'mailto', path: email);
-    if (await canLaunchUrl(emailUri)) {
-      await launchUrl(emailUri);
+    final Uri gmailUri = Uri(
+      scheme: 'https',
+      host: 'mail.google.com',
+      path: '/mail/u/0/',
+      queryParameters: {
+        'view': 'cm',
+        'fs': '1',
+        'to': email,
+        'su': 'Support Request from Flawless You App',
+        'body': 'Dear Support Team,\n\n',
+      },
+    );
+
+    final Uri fallbackUri = Uri(scheme: 'mailto', path: email);
+
+    try {
+      // حاول فتح Gmail أولاً
+      if (await canLaunchUrl(gmailUri)) {
+        await launchUrl(gmailUri, mode: LaunchMode.externalApplication);
+      } else {
+        // إذا فشل، استخدم mailto كبديل
+        if (await canLaunchUrl(fallbackUri)) {
+          await launchUrl(fallbackUri, mode: LaunchMode.externalApplication);
+        }
+      }
+    } catch (e) {
+      print('Error launching email: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not launch email app')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Row(
-          children: [
-            IconButton(
-              icon: Icon(Icons.arrow_back, color: Colors.white, size: 26),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => Profile(token: _token!, userInfo: _userInfo),
-                  ),
-                );
-              },
-            ),
-            SizedBox(width: 8),
-            Text(
-              "Support Team",
-              style: TextStyle(
-                fontSize: 20,
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Stack(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isPortrait = constraints.maxHeight > constraints.maxWidth;
+        final isTablet = constraints.maxWidth > 600;
+        final cardWidth = isTablet
+            ? constraints.maxWidth * 0.6
+            : constraints.maxWidth * 0.85;
+        final cardHeight = isTablet
+            ? constraints.maxHeight * (isPortrait ? 0.55 : 0.7)
+            : constraints.maxHeight * (isPortrait ? 0.6 : 0.8);
+
+        return Scaffold(
+          extendBodyBehindAppBar: true,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            title: Row(
               children: [
-                Image.network(
-                  'https://res.cloudinary.com/davwgirjs/image/upload/v1740417948/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417948735_supbg.jpg.jpg',
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
+                IconButton(
+                  icon: Icon(Icons.arrow_back, color: Colors.white, size: 26),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            Profile(token: _token!, userInfo: _userInfo),
+                      ),
+                    );
+                  },
                 ),
-                Container(
-                  color: Colors.black.withOpacity(0.5), // Adjust opacity here
+                SizedBox(width: 8),
+                Text(
+                  "Support Team",
+                  style: TextStyle(
+                    fontSize: isTablet ? 24 : 20,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
           ),
-          PageView.builder(
-            controller: _pageController,
-            scrollDirection: Axis.horizontal,
-            onPageChanged: (index) {
-              setState(() {
-                _currentIndex = index;
-              });
-            },
-            itemCount: cards.length,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10.0),
-                child: Center(
-                  child: Container(
-                    height: MediaQuery.of(context).size.height * 0.6,
-                    width: MediaQuery.of(context).size.width * 0.85,
-                    child: Card(
-                      elevation: 8,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20.0),
-                      ),
-                      color: Colors.white.withOpacity(0.6),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              if (cards[index]['image'] != null && index != 3) ...[
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(15),
-                                  child: Image.network(
-                                    cards[index]['image'],
-                                    height: 300,
-                                    width: double.infinity,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                                SizedBox(height: 15),
-                              ],
-                              Text(
-                                cards[index]['name'],
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF596D56),
-                                ),
-                                textAlign: TextAlign.center,
+          body: Stack(
+            children: [
+              Positioned.fill(
+                child: Stack(
+                  children: [
+                    Image.network(
+                      'https://res.cloudinary.com/davwgirjs/image/upload/v1740417948/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417948735_supbg.jpg.jpg',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                    ),
+                    Container(
+                      color: Colors.black.withOpacity(0.5),
+                    ),
+                  ],
+                ),
+              ),
+              Center(
+                child: SizedBox(
+                  height: cardHeight,
+                  child: PageView.builder(
+                    controller: _pageController,
+                    scrollDirection: Axis.horizontal,
+                    onPageChanged: (index) {
+                      setState(() {
+                        _currentIndex = index;
+                      });
+                    },
+                    itemCount: cards.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10.0),
+                        child: Center(
+                          child: Container(
+                            width: cardWidth,
+                            child: Card(
+                              elevation: 8,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20.0),
                               ),
-                              SizedBox(height: 10),
-                              Text(
-                                cards[index]['role'],
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.black,
+                              color: Colors.white.withOpacity(0.6),
+                              child: Padding(
+                                padding: EdgeInsets.all(isTablet ? 24.0 : 20.0),
+                                child: SingleChildScrollView(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      if (cards[index]['image'] != null &&
+                                          index != 3) ...[
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(15),
+                                          child: Image.network(
+                                            cards[index]['image'],
+                                            height: constraints.maxHeight / 3,
+                                            width: double.infinity,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                        SizedBox(height: isTablet ? 20 : 15),
+                                      ],
+                                      Text(
+                                        cards[index]['name'],
+                                        style: TextStyle(
+                                          fontSize: isTablet ? 26 : 22,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF596D56),
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      SizedBox(height: isTablet ? 12 : 10),
+                                      Text(
+                                        cards[index]['role'],
+                                        style: TextStyle(
+                                          fontSize: isTablet ? 20 : 18,
+                                          color: Colors.black,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      SizedBox(height: isTablet ? 12 : 10),
+                                      if (cards[index]['description'] != null)
+                                        Text(
+                                          cards[index]['description'],
+                                          style: TextStyle(
+                                            fontSize: isTablet ? 18 : 16,
+                                            color: Colors.black87,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      SizedBox(height: isTablet ? 12 : 10),
+                                      if (cards[index]['email'] != null)
+                                        GestureDetector(
+                                          onTap: () => _launchEmail(cards[index]['email']),
+                                          child: Text(
+                                            cards[index]['email'],
+                                            style: TextStyle(
+                                              fontSize: isTablet ? 18 : 16,
+                                              color: Color(0xFF596D56),
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
                                 ),
-                                textAlign: TextAlign.center,
                               ),
-                              SizedBox(height: 10),
-                              if (cards[index]['description'] != null)
-                                Text(
-                                  cards[index]['description'],
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.black87,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              SizedBox(height: 10),
-                              if (cards[index]['email'] != null)
-                                GestureDetector(
-                                  onTap: () => _launchEmail(cards[index]['email']),
-                                  child: Text(
-                                    cards[index]['email'],
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Color(0xFF596D56),
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                            ],
+                            ),
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 ),
-              );
-            },
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
