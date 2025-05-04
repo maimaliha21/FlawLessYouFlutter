@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import 'dart:ui';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart'; // Added for date formatting
 
 import '../CustomBottomNavigationBar.dart';
 import '../FaceAnalysisManager.dart';
@@ -28,6 +29,7 @@ class _MessageCardState extends State<MessageCard> {
   List<String> experts = [];
   List<dynamic> cards = [];
   final TextEditingController messageController = TextEditingController();
+  final DateFormat _dateFormatter = DateFormat('yyyy-MM-dd HH:mm'); // Date formatter
 
   Future<String> getBaseUrl() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -115,6 +117,7 @@ class _MessageCardState extends State<MessageCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Message sent successfully')),
         );
+        messageController.clear();
         fetchCards();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -150,6 +153,7 @@ class _MessageCardState extends State<MessageCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Message sent successfully with skin analysis')),
         );
+        messageController.clear();
         fetchCards();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -163,12 +167,30 @@ class _MessageCardState extends State<MessageCard> {
     }
   }
 
+  void navigateToSkinAnalysis(Map<String, dynamic> skinAnalysis) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SkinAnalysisDetailsPage(skinAnalysis: skinAnalysis),
+      ),
+    );
+  }
+
+  String _formatDateTime(String dateTimeString) {
+    try {
+      final dateTime = DateTime.parse(dateTimeString);
+      return _dateFormatter.format(dateTime.toLocal());
+    } catch (e) {
+      return dateTimeString;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Send Message to Expert', style: TextStyle(color: Colors.black87)),
-        backgroundColor: const Color(0xFFC7C7BB),
+        backgroundColor: Colors.white,
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -183,9 +205,9 @@ class _MessageCardState extends State<MessageCard> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              // First Card
+              // Message Composition Card
               Card(
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withOpacity(0.8),
                 elevation: 4,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
@@ -208,6 +230,8 @@ class _MessageCardState extends State<MessageCard> {
                             child: Text(value, style: TextStyle(color: Colors.black87)),
                           );
                         }).toList(),
+                        dropdownColor: Colors.white,
+                        icon: Icon(Icons.arrow_drop_down, color: Colors.teal[300]),
                       ),
                       SizedBox(height: 20),
                       TextField(
@@ -220,33 +244,37 @@ class _MessageCardState extends State<MessageCard> {
                           ),
                           labelText: 'Message',
                           labelStyle: TextStyle(color: Colors.black87),
+                          filled: true,
+                          fillColor: Colors.white,
                         ),
                       ),
                       SizedBox(height: 16),
-                      // Button for sending message without analysis
-                      ElevatedButton(
-                        onPressed: sendMessage,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF88A383),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton(
+                            onPressed: sendMessage,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal[300],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text('Send Message',
+                                style: TextStyle(color: Colors.white)),
                           ),
-                        ),
-                        child: Text('Send a message without skinAnalysis',
-                            style: TextStyle(color: Colors.white)),
-                      ),
-                      SizedBox(height: 10),
-                      // New button for sending message with analysis
-                      ElevatedButton(
-                        onPressed: sendMessageWithAnalysis,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6A8D73), // Different color
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                          ElevatedButton(
+                            onPressed: sendMessageWithAnalysis,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal[700],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text('With Analysis',
+                                style: TextStyle(color: Colors.white)),
                           ),
-                        ),
-                        child: Text('Send with skin analysis',
-                            style: TextStyle(color: Colors.white)),
+                        ],
                       ),
                     ],
                   ),
@@ -260,73 +288,97 @@ class _MessageCardState extends State<MessageCard> {
                     final card = cards[index];
                     return Padding(
                       padding: const EdgeInsets.only(top: 10),
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            card['isPressed'] = !(card['isPressed'] ?? false);
-                          });
-                        },
-                        child: Card(
-                          color: (card['isPressed'] ?? false)
-                              ? Colors.grey[300]
-                              : Colors.white.withOpacity(0.5),
-                          elevation: 4,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
+                      child: Card(
+                        color: Colors.white.withOpacity(0.8),
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: ExpansionTile(
+                          leading: Icon(Icons.message, color: Colors.teal[300]),
+                          title: Text(
+                            card['message'],
+                            style: TextStyle(color: Colors.black87),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          child: ExpansionTile(
-                            leading: Icon(Icons.message, color: const Color(0xFF88A383)),
-                            title: Text(
-                              card['message'],
-                              style: TextStyle(color: Colors.black87),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            subtitle: Text(
-                              'Sent to: ${card['expertName'] ?? 'Unknown'}',
-                              style: TextStyle(color: Colors.black54),
-                            ),
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
+                          subtitle: Text(
+                            'Sent to: ${card['expertName'] ?? 'Unknown'} • ${_formatDateTime(card['sentDate'])}',
+                            style: TextStyle(color: Colors.black54),
+                          ),
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Text(
+                                    'Message:',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    card['message'],
+                                    style: TextStyle(color: Colors.black87),
+                                  ),
+                                  SizedBox(height: 16),
+                                  Text(
+                                    'Sent to: ${card['expertName'] ?? 'Unknown'}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  if (card['expertReply'] != null && card['expertReply'].isNotEmpty) ...[
+                                    SizedBox(height: 16),
                                     Text(
-                                      'Message:',
+                                      'Expert Reply:',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    ...card['expertReply'].map<Widget>((reply) {
+                                      return Padding(
+                                        padding: const EdgeInsets.only(top: 8.0),
+                                        child: Text(
+                                          reply.toString(),
+                                          style: TextStyle(color: Colors.black87),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ],
+                                  if (card['skinAnalysis'] != null) ...[
+                                    SizedBox(height: 16),
+                                    Text(
+                                      'Skin Analysis:',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: Colors.black87,
                                       ),
                                     ),
                                     SizedBox(height: 8),
-                                    Text(
-                                      card['message'],
-                                      style: TextStyle(color: Colors.black87),
-                                    ),
-                                    SizedBox(height: 16),
-                                    Text(
-                                      'Sent to: ${card['expertName'] ?? 'Unknown'}',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    if (card['analysisDate'] != null) ...[
-                                      SizedBox(height: 16),
-                                      Text(
-                                        'Includes skin analysis from: ${card['analysisDate']}',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.green[700],
+                                    ElevatedButton(
+                                      onPressed: () => navigateToSkinAnalysis(card['skinAnalysis']),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.teal[300],
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
                                         ),
                                       ),
-                                    ],
+                                      child: Text(
+                                        'View Skin Analysis',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ),
                                   ],
-                                ),
+                                ],
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     );
@@ -338,6 +390,222 @@ class _MessageCardState extends State<MessageCard> {
         ),
       ),
       bottomNavigationBar: CustomBottomNavigationBar2(),
+    );
+  }
+}
+
+class SkinAnalysisDetailsPage extends StatelessWidget {
+  final Map<String, dynamic> skinAnalysis;
+  late final DateFormat _dateFormatter;
+
+  SkinAnalysisDetailsPage({super.key, required this.skinAnalysis}) {
+    _dateFormatter = DateFormat('yyyy-MM-dd HH:mm');
+  }
+
+  String _formatDateTime(String dateTimeString) {
+    try {
+      final dateTime = DateTime.parse(dateTimeString);
+      return _dateFormatter.format(dateTime.toLocal());
+    } catch (e) {
+      return dateTimeString;
+    }
+  }
+
+  Color _getProblemColor(String problem) {
+    switch (problem) {
+      case 'ACNE':
+        return Colors.red;
+      case 'WRINKLES':
+        return Colors.blue;
+      case 'PIGMENTATION':
+        return Colors.brown;
+      case 'NORMAL':
+        return Colors.green;
+      default:
+        return Colors.teal;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Skin Analysis Details'),
+        backgroundColor: Colors.teal[300],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (skinAnalysis['imageUrl'] != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  skinAnalysis['imageUrl'],
+                  height: 250,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            SizedBox(height: 20),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Basic Information',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    Divider(),
+                    SizedBox(height: 8),
+                    RowInfo(label: 'Created At:', value: _formatDateTime(skinAnalysis['createdAt'])),
+                    RowInfo(label: 'Skin Type:', value: skinAnalysis['skintype']),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Skin Problems Analysis',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    Divider(),
+                    SizedBox(height: 8),
+                    if (skinAnalysis['problems'] != null)
+                      ...skinAnalysis['problems'].entries.map((e) =>
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    e.key,
+                                    style: TextStyle(fontWeight: FontWeight.w500),
+                                  ),
+                                ),
+                                Text('${e.value}%'),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  flex: 3,
+                                  child: LinearProgressIndicator(
+                                    value: e.value / 100,
+                                    backgroundColor: Colors.grey[200],
+                                    color: _getProblemColor(e.key),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
+            if (skinAnalysis['treatmentId'] != null && skinAnalysis['treatmentId'].isNotEmpty)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Recommended Treatments',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                      Divider(),
+                      SizedBox(height: 8),
+                      ...skinAnalysis['treatmentId'].map<Widget>((treatment) =>
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (treatment['description'] != null)
+                                  Text(
+                                    treatment['description'],
+                                    style: TextStyle(fontSize: 16),
+                                  ),
+                                if (treatment['productIds'] != null && treatment['productIds'].isNotEmpty)
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SizedBox(height: 8),
+                                      Text(
+                                        'Recommended Products:',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                      ...treatment['productIds'].entries.map((e) =>
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(vertical: 4),
+                                            child: Text('- ${e.value}'),
+                                          ),
+                                      ),
+                                    ],
+                                  ),
+                                Divider(),
+                              ],
+                            ),
+                          ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class RowInfo extends StatelessWidget {
+  final String label;
+  final String? value;
+
+  const RowInfo({super.key, required this.label, this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value ?? 'Not specified',
+              style: TextStyle(color: Colors.black87),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
