@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:FlawlessYou/ProfileSection/profile.dart';
 
-import '../SharedPreferences.dart';  // تأكد من استيراد صفحة البروفايل هنا
+import '../SharedPreferences.dart';
 
-class aboutUs  extends StatelessWidget {
+class aboutUs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -30,7 +30,6 @@ class aboutUs  extends StatelessWidget {
     );
   }
 }
-
 
 class CardScreen extends StatefulWidget {
   @override
@@ -130,119 +129,128 @@ class _CardScreenState extends State<CardScreen> {
           ],
         ),
       ),
-      body: Stack(
-        children: [
-          // **الخلفية كصورة مع تأثير شفاف**
-          Positioned.fill(
-            child: Stack(
-              children: [
-                Image.network(
-                  "https://res.cloudinary.com/davwgirjs/image/upload/v1740423125/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740423126526_aboutusbg.jpg.jpg", // رابط الصورة من Cloudinary
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return Stack(
+            children: [
+              // الخلفية
+              Positioned.fill(
+                child: Stack(
+                  children: [
+                    Image.network(
+                      "https://res.cloudinary.com/davwgirjs/image/upload/v1740423125/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740423126526_aboutusbg.jpg.jpg", // رابط الصورة من Cloudinary
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                    ),
+                    Container(
+                      color: Colors.black.withOpacity(0.4),
+                    ),
+                  ],
                 ),
-                Container(
-                  color: Colors.black.withOpacity(0.4), // طبقة شفافة لجعل النص واضحًا
-                ),
-              ],
-            ),
-          ),
+              ),
 
-          // **بطاقات المعلومات مع التمرير العمودي**
-          PageView.builder(
-            controller: _pageController,
-            scrollDirection: Axis.vertical, // حركة الشرائح من أعلى لأسفل
-            onPageChanged: (index) {
-              setState(() {
-                _currentIndex = index;
-              });
-            },
-            itemCount: cards.length,
-            itemBuilder: (context, index) {
-              double scale = _currentIndex == index ? 1.0 : 0.85;
-              return TweenAnimationBuilder(
-                duration: Duration(milliseconds: 300),
-                tween: Tween<double>(begin: scale, end: scale),
-                builder: (context, value, child) {
-                  return Transform.scale(
-                    scale: value,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10.0),
-                      child: Center(
-                        child: Container(
-                          height: MediaQuery.of(context).size.height * 0.55, // جعل الشرائح أقل ارتفاعًا
-                          width: MediaQuery.of(context).size.width * 0.85,
-                          child: Card(
-                            elevation: 8,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20.0),
-                            ),
-                            color: Colors.white.withOpacity(0.9), // جعل البطاقة شفافة قليلًا
-                            child: Padding(
-                              padding: const EdgeInsets.all(20.0),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Center(
-                                    child: Text(
-                                      cards[index]['title']!,
-                                      style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF596D56),
-                                        letterSpacing: 1.2,
-                                      ),
-                                    ),
+              // بطاقات المعلومات
+              PageView.builder(
+                controller: _pageController,
+                scrollDirection: Axis.vertical,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentIndex = index;
+                  });
+                },
+                itemCount: cards.length,
+                itemBuilder: (context, index) {
+                  double scale = _currentIndex == index ? 1.0 : 0.85;
+                  return TweenAnimationBuilder(
+                    duration: Duration(milliseconds: 300),
+                    tween: Tween<double>(begin: scale, end: scale),
+                    builder: (context, value, child) {
+                      return Transform.scale(
+                        scale: value,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            vertical: constraints.maxHeight * 0.02,
+                          ),
+                          child: Center(
+                            child: Container(
+                              height: constraints.maxHeight * 0.65,
+                              width: constraints.maxWidth * 0.85,
+                              child: Card(
+                                elevation: 8,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20.0),
+                                ),
+                                color: Colors.white.withOpacity(0.9),
+                                child: Padding(
+                                  padding: EdgeInsets.all(
+                                    constraints.maxWidth * 0.05,
                                   ),
-                                  SizedBox(height: 12),
-                                  Text(
-                                    cards[index]['content']!,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      color: Colors.black,
-                                      height: 1.4,
-                                    ),
-                                  ),
-                                  SizedBox(height: 12),
-                                  Column(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: cards[index]['points']!.map<Widget>((point) {
-                                      return Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 4.0),
-                                        child: Row(
-                                          children: [
-                                           // Icon(Icons.check_circle, color: Colors.blue.shade600, size: 20),
-                                            SizedBox(width: 8),
-                                            Expanded(
-                                              child: Text(
-                                                point,
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  color:Color(0xFF596D56)
-                                                ),
-                                              ),
-                                            ),
-                                          ],
+                                    children: [
+                                      Center(
+                                        child: Text(
+                                          cards[index]['title']!,
+                                          style: TextStyle(
+                                            fontSize: constraints.maxWidth * 0.06,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF596D56),
+                                            letterSpacing: 1.2,
+                                          ),
                                         ),
-                                      );
-                                    }).toList(),
+                                      ),
+                                      SizedBox(height: constraints.maxHeight * 0.02),
+                                      Text(
+                                        cards[index]['content']!,
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: constraints.maxWidth * 0.045,
+                                          color: Colors.black,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                      SizedBox(height: constraints.maxHeight * 0.02),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: cards[index]['points']!.map<Widget>((point) {
+                                          return Padding(
+                                            padding: EdgeInsets.symmetric(
+                                              vertical: constraints.maxHeight * 0.01,
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                SizedBox(width: 8),
+                                                Expanded(
+                                                  child: Text(
+                                                    point,
+                                                    style: TextStyle(
+                                                      fontSize: constraints.maxWidth * 0.04,
+                                                      color: Color(0xFF596D56),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   );
                 },
-              );
-            },
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
