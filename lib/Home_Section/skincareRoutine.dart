@@ -126,7 +126,7 @@ class _SkincareRoutineFlowState extends State<SkincareRoutineFlow> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -206,7 +206,7 @@ class _SkincareRoutineFlowState extends State<SkincareRoutineFlow> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color.fromARGB(255, 166, 224, 228),
+                      backgroundColor: Color(0xFF88A383),
                       padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -395,7 +395,7 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
             child: Image.network(
               routine['photos'][0],
               width: double.infinity,
-              height: 120,
+              height: MediaQuery.of(context).size.height * 0.4,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) =>
                   Container(
@@ -437,11 +437,11 @@ class _SkincareRoutineScreenState extends State<SkincareRoutine> {
   Color _getPeriodColor() {
     switch (widget.currentPeriod) {
       case 'MORNING':
-        return Colors.green;
+        return Color(0xFF88A383);
       case 'AFTERNOON':
-        return Colors.orange;
+        return Color(0xFF88A383);
       case 'NIGHT':
-        return Colors.indigo;
+        return Color(0xFF88A383);
       default:
         return Colors.blue;
     }
