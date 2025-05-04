@@ -214,12 +214,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('نتيجة تحليل نوع البشرة'),
-        content: Text('نوع بشرتك هو: $skinType'),
+        title: Text('Skin Type Result'),
+        content: Text('Your skin type is: $skinType'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('حسناً'),
+            child: Text('OK'),
           ),
         ],
       ),
@@ -240,221 +240,290 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isTablet = constraints.maxWidth >= 600;
+        final avatarRadius = isTablet ? constraints.maxWidth * 0.1 : constraints.maxWidth * 0.15;
+        final headerHeight = isTablet ? constraints.maxHeight * 0.15 : constraints.maxHeight * 0.2;
+        final buttonPadding = isTablet ? EdgeInsets.symmetric(horizontal: 20, vertical: 12) :
+        EdgeInsets.symmetric(horizontal: constraints.maxWidth * 0.05, vertical: constraints.maxHeight * 0.015);
+        final buttonTextSize = isTablet ? 16.0 : 14.0;
+        final userNameSize = isTablet ? 24.0 : 20.0;
+        final emailSize = isTablet ? 18.0 : 16.0;
 
-    return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
+        return Scaffold(
+          body: SafeArea(
+            child: Column(
               children: [
-                Container(
-                  height: screenHeight * 0.25,
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: NetworkImage(
-                          'https://res.cloudinary.com/davwgirjs/image/upload/v1740417378/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417378981_bgphoto.jpg.jpg'),
-                      fit: BoxFit.cover,
+                // Header Section with Profile Picture
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      height: headerHeight,
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: NetworkImage(
+                              'https://res.cloudinary.com/davwgirjs/image/upload/v1740417378/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417378981_bgphoto.jpg.jpg'),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                Positioned(
-                  top: 30,
-                  right: 20,
-                  child: PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'logout') {
-                        _handleLogout();
-                      } else if (value == 'support') {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => SupportTeam()),
-                        );
-                      } else if (value == 'about_us') {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => aboutUs()),
-                        );
-                      } else if (value == 'skin_type') {
-                        if (_skinType != null) {
-                          _showSkinTypeResult(context, _skinType!);
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('No skin type analysis available')),
-                          );
-                        }
-                      }
-                    },
-                    itemBuilder: (BuildContext context) => [
-                      const PopupMenuItem(
-                        value: 'support',
-                        child: Text('Support'),
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: PopupMenuButton<String>(
+                        onSelected: (value) {
+                          if (value == 'logout') {
+                            _handleLogout();
+                          } else if (value == 'support') {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => SupportTeam()),
+                            );
+                          } else if (value == 'about_us') {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => aboutUs()),
+                            );
+                          } else if (value == 'skin_type') {
+                            if (_skinType != null) {
+                              _showSkinTypeResult(context, _skinType!);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('No skin type analysis available')),
+                              );
+                            }
+                          }
+                        },
+                        itemBuilder: (BuildContext context) => [
+                          const PopupMenuItem(
+                            value: 'support',
+                            child: Text('Support'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'about_us',
+                            child: Text('About Us'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'skin_type',
+                            child: Text('Skin Type Analysis'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'logout',
+                            child: Text('Log Out'),
+                          ),
+                        ],
+                        child: const Icon(
+                          Icons.more_vert,
+                          color: Colors.white,
+                          size: 30,
+                        ),
                       ),
-                      const PopupMenuItem(
-                        value: 'about_us',
-                        child: Text('About Us'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'skin_type',
-                        child: Text('Skin Type Analysis'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'logout',
-                        child: Text('Log Out'),
-                      ),
-                    ],
-                    child: const Icon(
-                      Icons.more_vert,
-                      color: Colors.white,
-                      size: 30,
                     ),
-                  ),
-                ),
-                Positioned(
-                  top: screenHeight * 0.18,
-                  left: screenWidth / 2 - (screenWidth * 0.15),
-                  child: GestureDetector(
-                    onTap: () => showDialog(
-                      context: context,
-                      builder: (context) => Dialog(
-                        backgroundColor: Colors.transparent,
-                        child: Stack(
-                          children: [
-                            Container(
-                              width: 300,
-                              height: 200,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.8),
-                                borderRadius: BorderRadius.circular(20),
-                                image: DecorationImage(
-                                  image: _getProfileImage(),
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 15,
-                              left: 50,
-                              right: 50,
-                              child: ElevatedButton(
-                                onPressed: _isUploading
-                                    ? null
-                                    : () => _pickImage(ImageSource.gallery),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFB0BEC5),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 50, vertical: 15),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
+                    Positioned(
+                      top: headerHeight - avatarRadius,
+                      left: constraints.maxWidth / 2 - avatarRadius,
+                      child: GestureDetector(
+                        onTap: () => showDialog(
+                          context: context,
+                          builder: (context) => Dialog(
+                            backgroundColor: Colors.transparent,
+                            child: Stack(
+                              children: [
+                                Container(
+                                  width: 300,
+                                  height: 200,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.8),
+                                    borderRadius: BorderRadius.circular(20),
+                                    image: DecorationImage(
+                                      image: _getProfileImage(),
+                                      fit: BoxFit.cover,
+                                    ),
                                   ),
                                 ),
-                                child: _isUploading
-                                    ? const CircularProgressIndicator(color: Colors.white)
-                                    : const Text('Change Picture'),
+                                Positioned(
+                                  bottom: 15,
+                                  left: 50,
+                                  right: 50,
+                                  child: ElevatedButton(
+                                    onPressed: _isUploading
+                                        ? null
+                                        : () => _pickImage(ImageSource.gallery),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFB0BEC5),
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 50, vertical: 15),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    child: _isUploading
+                                        ? const CircularProgressIndicator(color: Colors.white)
+                                        : const Text('Change Picture'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          radius: avatarRadius,
+                          backgroundColor: Colors.white,
+                          child: CircleAvatar(
+                            radius: avatarRadius - 5,
+                            backgroundColor: Colors.white,
+                            child: CircleAvatar(
+                              radius: avatarRadius - 10,
+                              backgroundImage: _getProfileImage(),
+                              child: _isUploading
+                                  ? Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.5),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Center(
+                                  child: CircularProgressIndicator(color: Colors.white),
+                                ),
+                              )
+                                  : null,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                // User Info Section
+                SizedBox(height: avatarRadius * 0.9),
+                Column(
+                  children: [
+                    Text(
+                      widget.userInfo['userName'] ?? 'User',
+                      style: TextStyle(
+                          fontSize: userNameSize,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      widget.userInfo['email'] ?? '',
+                      style: TextStyle(fontSize: emailSize, color: Colors.grey),
+                    ),
+                    if (widget.userInfo['skinType'] != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Skin Type: ${widget.userInfo['skinType']}',
+                        style: const TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                    ],
+                  ],
+                ),
+
+                // Buttons Section
+                SizedBox(height: constraints.maxHeight * 0.03),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: constraints.maxWidth * 0.1),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Flexible(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EditProfile(
+                                token: widget.token,
                               ),
                             ),
-                          ],
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF88A383),
+                            foregroundColor: Colors.white,
+                            padding: buttonPadding,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            minimumSize: Size(constraints.maxWidth * 0.3, 0),
+                          ),
+                          child: Text('Edit profile', style: TextStyle(fontSize: buttonTextSize)),
                         ),
                       ),
-                    ),
-                    child: CircleAvatar(
-                      radius: screenWidth * 0.15,
-                      backgroundColor: Colors.white,
-                      child: CircleAvatar(
-                        radius: screenWidth * 0.14,
-                        backgroundColor: Colors.white,
-                        child: CircleAvatar(
-                          radius: screenWidth * 0.13,
-                          backgroundImage: _getProfileImage(),
-                          child: _isUploading
-                              ? Container(
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.5),
-                              shape: BoxShape.circle,
+                      SizedBox(width: constraints.maxWidth * 0.05),
+                      Flexible(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => RoutineScreen(),
                             ),
-                            child: const Center(
-                              child: CircularProgressIndicator(color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF88A383),
+                            foregroundColor: Colors.white,
+                            padding: buttonPadding,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                          )
-                              : null,
+                            minimumSize: Size(constraints.maxWidth * 0.3, 0),
+                          ),
+                          child: Text('View Routine', style: TextStyle(fontSize: buttonTextSize)),
                         ),
                       ),
-                    ),
+                    ],
+                  ),
+                ),
+
+                // Tab Bar Section at the bottom
+                Expanded(
+                  child: Column(
+                    children: [
+                      SizedBox(height: constraints.maxHeight * 0.03),
+                      Expanded(
+                        child: DefaultTabController(
+                          length: 2,
+                          child: Column(
+                            children: [
+                              TabBar(
+                                labelColor: Color(0xFF88A383),
+                                unselectedLabelColor: Colors.grey,
+                                indicatorColor: Color(0xFF88A383),
+                                indicatorWeight: 3.0,
+                                labelStyle: TextStyle(fontSize: isTablet ? 16 : 14),
+                                tabs: const [
+                                  Tab(text: 'Saved'),
+                                  Tab(text: 'History'),
+                                ],
+                              ),
+                              Expanded(
+                                child: TabBarView(
+                                  children: [
+                                    _baseUrl != null
+                                        ? ProductTabScreen(
+                                      apiUrl: '${_baseUrl}/product/Saved',
+                                      pageName: 'home',
+                                    )
+                                        : Center(child: CircularProgressIndicator()),
+                                    SkinAnalysisHistoryScreen(),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 60),
-            Text(
-              widget.userInfo['userName'] ?? 'User',
-              style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black),
-            ),
-            Text(
-              widget.userInfo['email'] ?? '',
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            if (widget.userInfo['skinType'] != null) ...[
-              const SizedBox(height: 5),
-              Text(
-                'Skin Type: ${widget.userInfo['skinType']}',
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-            ],
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => EditProfile(
-                        token: widget.token,
-                      ),
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF88A383),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 37, vertical: 11),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  child: const Text('Edit profile'),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => RoutineScreen(),
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF88A383),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 11),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  child: const Text('View Routine'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            TabBarSection(token: widget.token, baseUrl: _baseUrl),
-          ],
-        ),
-      ),
-      bottomNavigationBar: CustomBottomNavigationBar2(),
+          ),
+          bottomNavigationBar: CustomBottomNavigationBar2(),
+        );
+      },
     );
   }
 
@@ -464,62 +533,5 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return NetworkImage(widget.userInfo['profilePicture']);
     }
     return const AssetImage('assets/profile.jpg');
-  }
-}
-
-class TabBarSection extends StatefulWidget {
-  final String token;
-  final String? baseUrl;
-
-  const TabBarSection({super.key, required this.token, this.baseUrl});
-
-  @override
-  _TabBarSectionState createState() => _TabBarSectionState();
-}
-
-class _TabBarSectionState extends State<TabBarSection>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        TabBar(
-          controller: _tabController,
-          labelColor: Color(0xFF88A383),
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: Color(0xFF88A383),
-          indicatorWeight: 3.0,
-          tabs: const [
-            Tab(text: 'Saved'),
-            Tab(text: 'History'),
-          ],
-        ),
-        Container(
-          height: MediaQuery.of(context).size.height * 0.40,
-          child:TabBarView(
-            controller: _tabController,
-            children: [
-              widget.baseUrl != null
-                  ? ProductTabScreen(
-                apiUrl: '${widget.baseUrl}/product/Saved',
-                pageName: 'home',
-              )
-                  : Center(child: CircularProgressIndicator()),
-              const Center(
-                child: SkinAnalysisHistoryScreen(),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
   }
 }
