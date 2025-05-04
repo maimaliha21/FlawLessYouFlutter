@@ -1009,11 +1009,13 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
       } else {
         _currentPage = 0;
       }
-      _pageController.animateToPage(
-        _currentPage,
-        duration: Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
+      if (mounted) {
+        _pageController.animateToPage(
+          _currentPage,
+          duration: Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
     });
   }
 
@@ -1034,19 +1036,15 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
           _isLoading = false;
         });
       } else {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to fetch user rating')),
+          SnackBar(content: Text('Failed to load rating')),
         );
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Connection error')),
+        SnackBar(content: Text('Connection error')),
       );
     }
   }
@@ -1081,103 +1079,110 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            height: 300,
-            child: PageView.builder(
-              controller: _pageController,
-              itemCount: widget.product.photos?.length ?? 1,
-              itemBuilder: (context, index) {
-                return Image.network(
-                  widget.product.photos?[index] ?? widget.product.photos?.first ?? '',
-                  fit: BoxFit.cover,
-                );
-              },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Increased image height here to 300
+            SizedBox(
+              height: 500,
+              width: double.infinity,
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: widget.product.photos?.length ?? 1,
+                itemBuilder: (context, index) {
+                  return Image.network(
+                    widget.product.photos?[index] ?? widget.product.photos?.first ?? '',
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                  );
+                },
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.product.name ?? 'No Name',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  widget.product.description ?? 'No description available',
-                  style: TextStyle(fontSize: 16),
-                ),
-                SizedBox(height: 16),
-                if (widget.treatmentId != null)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    'Treatment ID: ${widget.treatmentId}',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    widget.product.name ?? 'No name',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                SizedBox(height: 16),
-                if (widget.product.skinType.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Skin Type:',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        widget.product.skinType.join(', '),
-                        style: TextStyle(fontSize: 14),
-                      ),
-                      SizedBox(height: 16),
-                    ],
+                  SizedBox(height: 8),
+                  Text(
+                    widget.product.description ?? 'No description available',
+                    style: TextStyle(fontSize: 16),
                   ),
-                if (widget.product.ingredients.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Ingredients:',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        widget.product.ingredients.join(', '),
-                        style: TextStyle(fontSize: 14),
-                      ),
-                      SizedBox(height: 16),
-                    ],
+                  SizedBox(height: 16),
+                  if (widget.treatmentId != null)
+                    Text(
+                      'Treatment ID: ${widget.treatmentId}',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  SizedBox(height: 16),
+                  if (widget.product.skinType.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Skin Type:',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          widget.product.skinType.join(', '),
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        SizedBox(height: 16),
+                      ],
+                    ),
+                  if (widget.product.ingredients.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Ingredients:',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          widget.product.ingredients.join(', '),
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        SizedBox(height: 16),
+                      ],
+                    ),
+                  _isLoading
+                      ? Center(child: CircularProgressIndicator())
+                      : RatingBar.builder(
+                    initialRating: _userRating,
+                    minRating: 1,
+                    direction: Axis.horizontal,
+                    allowHalfRating: true,
+                    itemCount: 5,
+                    itemPadding: EdgeInsets.symmetric(horizontal: 4.0),
+                    itemBuilder: (context, _) => Icon(
+                      Icons.star,
+                      color: Colors.amber,
+                    ),
+                    onRatingUpdate: (rating) {
+                      setState(() {
+                        _userRating = rating;
+                      });
+                      _submitRating(rating);
+                    },
                   ),
-                _isLoading
-                    ? CircularProgressIndicator()
-                    : RatingBar.builder(
-                  initialRating: _userRating,
-                  minRating: 1,
-                  direction: Axis.horizontal,
-                  allowHalfRating: true,
-                  itemCount: 5,
-                  itemPadding: EdgeInsets.symmetric(horizontal: 4.0),
-                  itemBuilder: (context, _) => Icon(
-                    Icons.star,
-                    color: Colors.amber,
-                  ),
-                  onRatingUpdate: (rating) {
-                    setState(() {
-                      _userRating = rating;
-                    });
-                    _submitRating(rating);
-                  },
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
+
   class EditProductPopup extends StatefulWidget {
     final Product product;
     final String token;
