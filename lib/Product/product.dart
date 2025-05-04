@@ -362,7 +362,7 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
   
     Future<void> _uploadImages(String productId) async {
       if (_selectedImages.isEmpty) return;
-  
+
       setState(() => _isUploading = true);
   
       try {
@@ -968,216 +968,216 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
       );
     }
   }
-  
-  class ProductDetailsPopup extends StatefulWidget {
-    final Product product;
-    final String token;
-    final String baseUrl;
-    final String? treatmentId;
-  
-    const ProductDetailsPopup({
-      Key? key,
-      required this.product,
-      required this.token,
-      required this.baseUrl,
-      this.treatmentId,
-    }) : super(key: key);
-  
-    @override
-    _ProductDetailsPopupState createState() => _ProductDetailsPopupState();
+
+
+class ProductDetailsPopup extends StatefulWidget {
+  final Product product;
+  final String token;
+  final String baseUrl;
+  final String? treatmentId;
+
+  const ProductDetailsPopup({
+    Key? key,
+    required this.product,
+    required this.token,
+    required this.baseUrl,
+    this.treatmentId,
+  }) : super(key: key);
+
+  @override
+  _ProductDetailsPopupState createState() => _ProductDetailsPopupState();
+}
+
+class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
+  late PageController _pageController;
+  int _currentPage = 0;
+  double _userRating = 0;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    _startAutoSlide();
+    _fetchUserRating();
   }
-  
-  class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
-    late PageController _pageController;
-    int _currentPage = 0;
-    double _userRating = 0;
-    bool _isLoading = true;
-  
-    @override
-    void initState() {
-      super.initState();
-      _pageController = PageController();
-      _startAutoSlide();
-      _fetchUserRating();
-    }
-  
-    void _startAutoSlide() {
-      Timer.periodic(Duration(seconds: 8), (timer) {
-        if (_currentPage < (widget.product.photos?.length ?? 1) - 1) {
-          _currentPage++;
-        } else {
-          _currentPage = 0;
-        }
-        _pageController.animateToPage(
-          _currentPage,
-          duration: Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        );
-      });
-    }
-  
-    Future<void> _fetchUserRating() async {
-      try {
-        final response = await http.get(
-          Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/userReview'),
-          headers: {
-            'Authorization': 'Bearer ${widget.token}',
-            'Content-Type': 'application/json',
-          },
-        );
-  
-        if (response.statusCode == 200) {
-          final rating = jsonDecode(response.body);
-          setState(() {
-            _userRating = rating.toDouble();
-            _isLoading = false;
-          });
-        } else {
-          setState(() {
-            _isLoading = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to fetch user rating')),
-          );
-        }
-      } catch (e) {
+
+  void _startAutoSlide() {
+    Timer.periodic(Duration(seconds: 8), (timer) {
+      if (_currentPage < (widget.product.photos?.length ?? 1) - 1) {
+        _currentPage++;
+      } else {
+        _currentPage = 0;
+      }
+      _pageController.animateToPage(
+        _currentPage,
+        duration: Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  Future<void> _fetchUserRating() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/userReview'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final rating = jsonDecode(response.body);
+        setState(() {
+          _userRating = rating.toDouble();
+          _isLoading = false;
+        });
+      } else {
         setState(() {
           _isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Connection error')),
+          SnackBar(content: Text('Failed to fetch user rating')),
         );
       }
-    }
-  
-    Future<void> _submitRating(double rating) async {
-      try {
-        final response = await http.put(
-          Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/reviews'),
-          headers: {
-            'Authorization': 'Bearer ${widget.token}',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode({'rating': rating.toInt()}),
-        );
-  
-        if (response.statusCode == 200) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Rating submitted successfully')),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to submit rating')),
-          );
-        }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Connection error')),
-        );
-      }
-    }
-  
-    @override
-    Widget build(BuildContext context) {
-      return SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              height: 300,
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: widget.product.photos?.length ?? 1,
-                itemBuilder: (context, index) {
-                  return Image.network(
-                    widget.product.photos?[index] ?? widget.product.photos?.first ?? '',
-                    fit: BoxFit.cover,
-                  );
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.product.name ?? 'No Name',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    widget.product.description ?? 'No description available',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  SizedBox(height: 16),
-                  if (widget.treatmentId != null)
-                    Text(
-                      'Treatment ID: ${widget.treatmentId}',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  SizedBox(height: 16),
-                  if (widget.product.skinType.isNotEmpty)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Skin Type:',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          widget.product.skinType.join(', '),
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        SizedBox(height: 16),
-                      ],
-                    ),
-                  if (widget.product.ingredients.isNotEmpty)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Ingredients:',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          widget.product.ingredients.join(', '),
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        SizedBox(height: 16),
-                      ],
-                    ),
-                  _isLoading
-                      ? CircularProgressIndicator()
-                      : RatingBar.builder(
-                    initialRating: _userRating,
-                    minRating: 1,
-                    direction: Axis.horizontal,
-                    allowHalfRating: true,
-                    itemCount: 5,
-                    itemPadding: EdgeInsets.symmetric(horizontal: 4.0),
-                    itemBuilder: (context, _) => Icon(
-                      Icons.star,
-                      color: Colors.amber,
-                    ),
-                    onRatingUpdate: (rating) {
-                      setState(() {
-                        _userRating = rating;
-                      });
-                      _submitRating(rating);
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Connection error')),
       );
     }
   }
-  
+
+  Future<void> _submitRating(double rating) async {
+    try {
+      final response = await http.put(
+        Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/reviews'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'rating': rating.toInt()}),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Rating submitted successfully')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to submit rating')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Connection error')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            height: 300,
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: widget.product.photos?.length ?? 1,
+              itemBuilder: (context, index) {
+                return Image.network(
+                  widget.product.photos?[index] ?? widget.product.photos?.first ?? '',
+                  fit: BoxFit.cover,
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.product.name ?? 'No Name',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  widget.product.description ?? 'No description available',
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(height: 16),
+                if (widget.treatmentId != null)
+                  Text(
+                    'Treatment ID: ${widget.treatmentId}',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                SizedBox(height: 16),
+                if (widget.product.skinType.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Skin Type:',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        widget.product.skinType.join(', '),
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      SizedBox(height: 16),
+                    ],
+                  ),
+                if (widget.product.ingredients.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Ingredients:',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        widget.product.ingredients.join(', '),
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      SizedBox(height: 16),
+                    ],
+                  ),
+                _isLoading
+                    ? CircularProgressIndicator()
+                    : RatingBar.builder(
+                  initialRating: _userRating,
+                  minRating: 1,
+                  direction: Axis.horizontal,
+                  allowHalfRating: true,
+                  itemCount: 5,
+                  itemPadding: EdgeInsets.symmetric(horizontal: 4.0),
+                  itemBuilder: (context, _) => Icon(
+                    Icons.star,
+                    color: Colors.amber,
+                  ),
+                  onRatingUpdate: (rating) {
+                    setState(() {
+                      _userRating = rating;
+                    });
+                    _submitRating(rating);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
   class EditProductPopup extends StatefulWidget {
     final Product product;
     final String token;
@@ -1440,25 +1440,26 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
         );
       }
     }
-  
-    Future<void> _addNewImages() async {
+
+    Future<void> _addNewImages(BuildContext context) async {
       final pickedFiles = await ImagePicker().pickMultiImage(
         maxWidth: 800,
         maxHeight: 800,
         imageQuality: 85,
       );
-  
+
       if (pickedFiles != null && pickedFiles.isNotEmpty) {
+        if (!mounted) return;
         setState(() => _isLoading = true);
-  
+
         try {
           var request = http.MultipartRequest(
             'POST',
             Uri.parse('${widget.baseUrl}/product/${widget.product.productId}/photos'),
           );
-  
+
           request.headers['Authorization'] = 'Bearer ${widget.token}';
-  
+
           for (var pickedFile in pickedFiles) {
             final file = File(pickedFile.path);
             request.files.add(
@@ -1469,15 +1470,20 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
               ),
             );
           }
-  
+
           var response = await request.send();
           final responseBody = await response.stream.bytesToString();
-  
+
           if (response.statusCode == 200) {
+            // Parse the updated product data
             final updatedProduct = Product.fromJson(json.decode(responseBody));
+
+            // Update the product photos in the widget
+            if (!mounted) return;
             setState(() {
-              widget.product.photos = updatedProduct.photos;
+              widget.product.photos = updatedProduct.photos ?? widget.product.photos;
             });
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Images added successfully')),
             );
@@ -1485,15 +1491,17 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
             throw Exception('Failed to upload images: ${response.statusCode}');
           }
         } catch (e) {
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error adding images: $e')),
           );
         } finally {
-          setState(() => _isLoading = false);
+          if (mounted) {
+            setState(() => _isLoading = false);
+          }
         }
       }
     }
-  
     @override
     Widget build(BuildContext context) {
       return Dialog(
@@ -1576,16 +1584,21 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
                   ),
   
                 SizedBox(height: 16),
-  
-                ElevatedButton.icon(
-                  onPressed: _isLoading ? null : _addNewImages,
-                  icon: Icon(Icons.add_photo_alternate),
-                  label: Text('Add Images'),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size(double.infinity, 50),
-                  ),
+
+                Builder(
+                  builder: (innerContext) {
+                    return ElevatedButton.icon(
+                      onPressed: () => _addNewImages(innerContext),
+                      icon: Icon(Icons.add_photo_alternate),
+                      label: Text('Add Images'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: Size(double.infinity, 50),
+                      ),
+                    );
+                  },
                 ),
-  
+
+
                 SizedBox(height: 24),
   
                 // Product Details Section
