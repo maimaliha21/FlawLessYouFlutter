@@ -11,16 +11,12 @@ import '../CustomBottomNavigationBarAdmin.dart';
 class Home extends StatelessWidget {
   final String token;
 
-  const Home({
-    Key? key,
-    required this.token,
-  }) : super(key: key);
+  const Home({Key? key, required this.token}) : super(key: key);
 
-  // Fetch user info from SharedPreferences
   Future<Map<String, dynamic>> _getUserInfo() async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? userInfoJson = prefs.getString('userInfo');
+      final prefs = await SharedPreferences.getInstance();
+      final userInfoJson = prefs.getString('userInfo');
       if (userInfoJson != null) {
         return jsonDecode(userInfoJson);
       }
@@ -30,33 +26,27 @@ class Home extends StatelessWidget {
     return {};
   }
 
-  // Fetch base URL from SharedPreferences
   Future<String> getBaseUrl() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
     return prefs.getString('baseUrl') ?? '';
   }
 
   @override
   Widget build(BuildContext context) {
-    TextEditingController searchController = TextEditingController();
+    final TextEditingController searchController = TextEditingController();
 
     return FutureBuilder<Map<String, dynamic>>(
       future: _getUserInfo(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: SizedBox(
-                width: 50,
-                height: 50,
-                child: CircularProgressIndicator()),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
         if (snapshot.hasError) {
           return const Center(child: Text('Error loading user data'));
         }
 
-        Map<String, dynamic> userInfo = snapshot.data ?? {};
+        final userInfo = snapshot.data ?? {};
 
         return FutureBuilder<String>(
           future: getBaseUrl(),
@@ -72,10 +62,10 @@ class Home extends StatelessWidget {
             final baseUrl = baseUrlSnapshot.data!;
 
             return DefaultTabController(
-              length: 1, // Update to match the number of tabs
+              length: 1,
               child: Scaffold(
                 appBar: AppBar(
-                  automaticallyImplyLeading: false, // هذا يخفي السهم
+                  automaticallyImplyLeading: false,
                   title: const Text(
                     'Flawless You',
                     style: TextStyle(
@@ -88,187 +78,180 @@ class Home extends StatelessWidget {
                   elevation: 0,
                   centerTitle: true,
                 ),
-                body: Stack(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                body: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Hello, ${userInfo['userName'] ?? 'User'}!',
+                        style: const TextStyle(
+                          fontStyle: FontStyle.italic,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
                         children: [
-                          // Greeting
-                          Text(
-                            'Hello, ${userInfo['userName'] ?? 'User'}!',
-                            style: const TextStyle(
-                              fontStyle: FontStyle.italic,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-
-                          // Search bar
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: searchController,
-                                  decoration: InputDecoration(
-                                    hintText: 'Search products',
-                                    contentPadding: const EdgeInsets.symmetric(
-                                        vertical: 10, horizontal: 16),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              IconButton(
-                                icon: const Icon(Icons.search,
-                                    color: Color(0xFF88A383)),
-                                onPressed: () {
-                                  if (searchController.text.isNotEmpty) {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => search(
-                                          token: token,
-                                          searchQuery: searchController.text,
-                                          pageName: 'home',
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                },
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-
-                          // Skincare routine card
-                          Stack(
-                            children: [
-                              Container(
-                                height: 120,
-                                decoration: BoxDecoration(
-                                  image: const DecorationImage(
-                                    image: AssetImage('assets/HI.png'),
-                                    fit: BoxFit.cover,
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              Container(
-                                height: 120,
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(10),
-                                  color: Colors.black.withOpacity(0.3),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Text(
-                                      'Don’t forget your daily skin routine, we care about you and your skin!',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                SkincareRoutineFlow(token: token),
-                                          ),
-                                        );
-                                      },
-                                      child: const Text(
-                                        'Start Skincare Routine',
-                                        style: TextStyle(color: Colors.white),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // Tips section
-                          const Text(
-                            'Tips',
-                            style: TextStyle(
-                              fontStyle: FontStyle.italic,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: const [
-                                TipCard(
-                                  icon: Icons.local_drink,
-                                  text: 'Stay hydrated and moisturize regularly',
-                                ),
-                                TipCard(
-                                  icon: Icons.wb_sunny,
-                                  text: 'Use sunscreen daily',
-                                ),
-                                TipCard(
-                                  icon: Icons.favorite,
-                                  text: 'Skin-related advice and reminders',
-                                ),
-                                TipCard(
-                                  icon: Icons.access_alarm,
-                                  text: 'Avoid touching your face frequently',
-                                ),
-                                TipCard(
-                                  icon: Icons.eco,
-                                  text: 'Use eco-friendly skincare products',
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-
-                          // Product collections
-                          const Text(
-                            'Product Collections',
-                            style: TextStyle(
-                              fontStyle: FontStyle.italic,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
                           Expanded(
-                            child: TabBarView(
-                              children: [
-                                ProductTabScreen(
-                                  apiUrl: "$baseUrl/product/random?limit=6",
-                                  pageName: 'home',
-
+                            child: TextField(
+                              controller: searchController,
+                              decoration: InputDecoration(
+                                hintText: 'Search products',
+                                contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 10, horizontal: 16),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
-                              ],
+                                filled: true,
+                                fillColor: Colors.white,
+                              ),
                             ),
+                          ),
+                          const SizedBox(width: 10),
+                          IconButton(
+                            icon: const Icon(Icons.search,
+                                color: Color(0xFF88A383)),
+                            onPressed: () {
+                              if (searchController.text.isNotEmpty) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => search(
+                                      token: token,
+                                      searchQuery: searchController.text,
+                                      pageName: 'home',
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
+                      const SizedBox(height: 20),
 
-                // Bottom navigation bar based on user role
+                      // 👇 العرض الكامل للصورة + الطبقة السوداء بنفس الحجم (90%)
+                      Center(
+                        child: Stack(
+                          children: [
+                            // صورة الخلفية
+                            Container(
+                              width: MediaQuery.of(context).size.width * 0.9,
+                              height: 150,
+                              decoration: BoxDecoration(
+                                image: const DecorationImage(
+                                  image: AssetImage('assets/HI.png'),
+                                  fit: BoxFit.cover,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+
+                            // الطبقة السوداء الشفافة
+                            Container(
+                              width: MediaQuery.of(context).size.width * 0.9,
+                              height: 150,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                color: Colors.black.withOpacity(0.4),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Text(
+                                    'Don’t forget your daily skin routine, we care about you and your skin!',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              SkincareRoutineFlow(token: token),
+                                        ),
+                                      );
+                                    },
+                                    child: const Text(
+                                      'Start Skincare Routine',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Tips',
+                        style: TextStyle(
+                          fontStyle: FontStyle.italic,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: const [
+                            TipCard(
+                              icon: Icons.local_drink,
+                              text: 'Stay hydrated and moisturize regularly',
+                            ),
+                            TipCard(
+                              icon: Icons.wb_sunny,
+                              text: 'Use sunscreen daily',
+                            ),
+                            TipCard(
+                              icon: Icons.favorite,
+                              text: 'Skin-related advice and reminders',
+                            ),
+                            TipCard(
+                              icon: Icons.access_alarm,
+                              text: 'Avoid touching your face frequently',
+                            ),
+                            TipCard(
+                              icon: Icons.eco,
+                              text: 'Use eco-friendly skincare products',
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Product Collections',
+                        style: TextStyle(
+                          fontStyle: FontStyle.italic,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Expanded(
+                        child: TabBarView(
+                          children: [
+                            ProductTabScreen(
+                              apiUrl: "$baseUrl/product/random?limit=6",
+                              pageName: 'home',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 bottomNavigationBar: FutureBuilder<Map<String, dynamic>>(
                   future: _getUserInfo(),
                   builder: (context, snapshot) {
@@ -290,7 +273,6 @@ class Home extends StatelessWidget {
   }
 }
 
-// Tip card widget
 class TipCard extends StatelessWidget {
   final String text;
   final IconData icon;

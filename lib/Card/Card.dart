@@ -231,7 +231,7 @@ class _MessageCardState extends State<MessageCard> {
                           );
                         }).toList(),
                         dropdownColor: Colors.white,
-                        icon: Icon(Icons.arrow_drop_down, color: Colors.teal[300]),
+                        icon: Icon(Icons.arrow_drop_down, color: Color(0xFF88A383)),
                       ),
                       SizedBox(height: 20),
                       TextField(
@@ -255,7 +255,7 @@ class _MessageCardState extends State<MessageCard> {
                           ElevatedButton(
                             onPressed: sendMessage,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal[300],
+                              backgroundColor: Color(0xFF88A383),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -266,7 +266,7 @@ class _MessageCardState extends State<MessageCard> {
                           ElevatedButton(
                             onPressed: sendMessageWithAnalysis,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal[700],
+                              backgroundColor: Color(0xFF4A6F4A),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -295,7 +295,7 @@ class _MessageCardState extends State<MessageCard> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: ExpansionTile(
-                          leading: Icon(Icons.message, color: Colors.teal[300]),
+                          leading: Icon(Icons.message, color:Color(0xFF4A6F4A)),
                           title: Text(
                             card['message'],
                             style: TextStyle(color: Colors.black87),
@@ -364,7 +364,7 @@ class _MessageCardState extends State<MessageCard> {
                                     ElevatedButton(
                                       onPressed: () => navigateToSkinAnalysis(card['skinAnalysis']),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.teal[300],
+                                        backgroundColor: Color(0xFF4A6F4A),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(12),
                                         ),
@@ -431,7 +431,7 @@ class SkinAnalysisDetailsPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Skin Analysis Details'),
-        backgroundColor: Colors.teal[300],
+        backgroundColor:Color(0xFF88A383),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
