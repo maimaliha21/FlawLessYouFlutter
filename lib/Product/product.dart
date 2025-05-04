@@ -1103,7 +1103,7 @@ class _ProductDetailsPopupState extends State<ProductDetailsPopup> {
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
                     widget.product.name ?? 'No name',
