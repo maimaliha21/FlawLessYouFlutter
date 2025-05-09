@@ -114,7 +114,7 @@ class _TreatmentPageState extends State<TreatmentPage> {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('treatment created successfully')),
+          SnackBar(content: Text('Treatment created successfully')),
         );
         await fetchTreatments();
       } else {
@@ -122,7 +122,7 @@ class _TreatmentPageState extends State<TreatmentPage> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل في إنشاء العلاج: ${e.toString()}')),
+        SnackBar(content: Text('Failed to create treatment: ${e.toString()}')),
       );
       print('Error creating treatment: $e');
     }
@@ -152,23 +152,28 @@ class _TreatmentPageState extends State<TreatmentPage> {
           backgroundColor: Color(0xFF88A383),
           title: Text(
             'Skin Treatments',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
+            style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white
+            ),
           ),
           bottom: TabBar(
-            indicatorColor: Color(0xFF596D56),
-            labelStyle: TextStyle(color: Color(0xFF596D56)),
+            indicatorColor: Colors.white,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white.withOpacity(0.7),
             tabs: [
               Tab(
                 text: 'Oily',
-                icon: Icon(Icons.opacity, color: Colors.white),
+                icon: Icon(Icons.opacity),
               ),
               Tab(
                 text: 'Normal',
-                icon: Icon(Icons.balance, color: Colors.white),
+                icon: Icon(Icons.balance),
               ),
               Tab(
                 text: 'Dry',
-                icon: Icon(Icons.water_drop, color: Colors.white),
+                icon: Icon(Icons.water_drop),
               ),
             ],
           ),
@@ -192,8 +197,9 @@ class _TreatmentPageState extends State<TreatmentPage> {
               ),
             );
           },
-          child: Icon(Icons.add, color: Colors.black),
-          backgroundColor: Color(0xFFFFFDA),
+          child: Icon(Icons.add, color: Colors.white),
+          backgroundColor: Color(0xFF88A383),
+          elevation: 4,
         ),
       ),
     );
@@ -227,7 +233,7 @@ class _CreateTreatmentPageState extends State<CreateTreatmentPage> {
     final selectedProducts = await Navigator.push<List<dynamic>>(
       context,
       MaterialPageRoute(
-        builder: (context) =>  ProductSearchPage(
+        builder: (context) => ProductSearchPage(
           onProductsSelected: (products) => products,
         ),
       ),
@@ -263,8 +269,9 @@ class _CreateTreatmentPageState extends State<CreateTreatmentPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Create New Treatment'),
+        title: Text('Create New Treatment', style: TextStyle(color: Colors.white)),
         backgroundColor: Color(0xFF88A383),
+        iconTheme: IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -272,112 +279,184 @@ class _CreateTreatmentPageState extends State<CreateTreatmentPage> {
           key: _formKey,
           child: ListView(
             children: [
-              TextFormField(
-                controller: _descriptionController,
-                decoration: InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a description';
-                  }
-                  return null;
-                },
-                maxLines: 3,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Treatment Information',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF596D56),
+                        ),
+                      ),
+                      SizedBox(height: 20),
+
+                      TextFormField(
+                        controller: _descriptionController,
+                        decoration: InputDecoration(
+                          labelText: 'Description',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.all(12),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a description';
+                          }
+                          return null;
+                        },
+                        maxLines: 3,
+                      ),
+                      SizedBox(height: 20),
+
+                      DropdownButtonFormField<String>(
+                        value: _selectedSkinType,
+                        decoration: InputDecoration(
+                          labelText: 'Skin Type',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                        ),
+                        items: _skinTypes.map((type) {
+                          return DropdownMenuItem<String>(
+                            value: type,
+                            child: Text(type),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedSkinType = value;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Please select skin type';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 20),
+
+                      DropdownButtonFormField<String>(
+                        value: _selectedProblem,
+                        decoration: InputDecoration(
+                          labelText: 'Problem',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                        ),
+                        items: _problems.map((problem) {
+                          return DropdownMenuItem<String>(
+                            value: problem,
+                            child: Text(problem),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedProblem = value;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Please select problem';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
               ),
+
               SizedBox(height: 20),
 
-              DropdownButtonFormField<String>(
-                value: _selectedSkinType,
-                decoration: InputDecoration(
-                  labelText: 'Skin Type',
-                  border: OutlineInputBorder(),
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
                 ),
-                items: _skinTypes.map((type) {
-                  return DropdownMenuItem<String>(
-                    value: type,
-                    child: Text(type),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedSkinType = value;
-                  });
-                },
-                validator: (value) {
-                  if (value == null) {
-                    return 'Please select skin type';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 20),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Selected Products',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF596D56),
+                        ),
+                      ),
+                      SizedBox(height: 10),
 
-              DropdownButtonFormField<String>(
-                value: _selectedProblem,
-                decoration: InputDecoration(
-                  labelText: 'Problem',
-                  border: OutlineInputBorder(),
-                ),
-                items: _problems.map((problem) {
-                  return DropdownMenuItem<String>(
-                    value: problem,
-                    child: Text(problem),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedProblem = value;
-                  });
-                },
-                validator: (value) {
-                  if (value == null) {
-                    return 'Please select problem';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 20),
+                      _selectedProducts.isEmpty
+                          ? Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        child: Text(
+                          'No products selected',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      )
+                          : Column(
+                        children: _selectedProducts.map((product) {
+                          return ListTile(
+                            leading: product['photos'] != null && product['photos'].isNotEmpty
+                                ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                product['photos'][0],
+                                width: 50,
+                                height: 50,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                                : Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(Icons.image, size: 30, color: Colors.grey),
+                            ),
+                            title: Text(product['name'] ?? 'Unknown Product'),
+                            subtitle: Text(product['productId']?.toString() ?? ''),
+                            trailing: IconButton(
+                              icon: Icon(Icons.delete, color: Colors.red),
+                              onPressed: () {
+                                setState(() {
+                                  _selectedProducts.removeWhere(
+                                          (p) => p['productId'] == product['productId']);
+                                });
+                              },
+                            ),
+                          );
+                        }).toList(),
+                      ),
 
-              Text('Selected Products:', style: TextStyle(fontWeight: FontWeight.bold)),
-              SizedBox(height: 8),
+                      SizedBox(height: 10),
 
-              _selectedProducts.isEmpty
-                  ? Text('No products selected')
-                  : Column(
-                children: _selectedProducts.map((product) {
-                  return ListTile(
-                    leading: product['photos'] != null && product['photos'].isNotEmpty
-                        ? Image.network(
-                      product['photos'][0],
-                      width: 50,
-                      height: 50,
-                      fit: BoxFit.cover,
-                    )
-                        : Icon(Icons.image, size: 50),
-                    title: Text(product['name'] ?? 'Unknown Product'),
-                    subtitle: Text(product['productId']?.toString() ?? ''),
-                    trailing: IconButton(
-                      icon: Icon(Icons.delete),
-                      onPressed: () {
-                        setState(() {
-                          _selectedProducts.removeWhere(
-                                  (p) => p['productId'] == product['productId']);
-                        });
-                      },
-                    ),
-                  );
-                }).toList(),
-              ),
-
-              SizedBox(height: 16),
-
-              ElevatedButton(
-                onPressed: _addProducts,
-                child: Text('Add Products'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF88A383),
+                      Center(
+                        child: ElevatedButton(
+                          onPressed: _addProducts,
+                          child: Text('Add Products'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF88A383),
+                            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
@@ -386,14 +465,18 @@ class _CreateTreatmentPageState extends State<CreateTreatmentPage> {
               ElevatedButton(
                 onPressed: _submitForm,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Text('Create Treatment', style: TextStyle(fontSize: 18)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Text(
+                    'Create Treatment',
+                    style: TextStyle(fontSize: 18, color: Colors.white),
+                  ),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF596D56),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
+                  elevation: 4,
                 ),
               ),
             ],
@@ -507,52 +590,94 @@ class _ProductSearchPageState extends State<ProductSearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Search Products'),
+        title: Text('Search Products', style: TextStyle(color: Colors.white)),
         backgroundColor: Color(0xFF88A383),
+        iconTheme: IconThemeData(color: Colors.white),
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: 'Search products',
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.search),
-                  onPressed: () => _searchProducts(_searchController.text),
-                ),
-                border: OutlineInputBorder(),
+            padding: const EdgeInsets.all(16.0),
+            child: Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
               ),
-              onSubmitted: (value) => _searchProducts(value),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search products...',
+                    border: InputBorder.none,
+                    suffixIcon: IconButton(
+                      icon: Icon(Icons.search, color: Color(0xFF88A383)),
+                      onPressed: () => _searchProducts(_searchController.text),
+                    ),
+                  ),
+                  onSubmitted: (value) => _searchProducts(value),
+                ),
+              ),
             ),
           ),
+
           _isLoading
               ? Center(child: CircularProgressIndicator())
               : Expanded(
-            child: ListView.builder(
+            child: _searchResults.isEmpty
+                ? Center(
+              child: Text(
+                'No products found',
+                style: TextStyle(color: Colors.grey, fontSize: 16),
+              ),
+            )
+                : ListView.builder(
               itemCount: _searchResults.length,
               itemBuilder: (context, index) {
                 final product = _searchResults[index];
                 final productId = product['productId'];
-                final isSelected = _selectedProducts.any((p) => p['productId'] == productId);
+                final isSelected = _selectedProducts.any(
+                        (p) => p['productId'] == productId);
 
-                return ListTile(
-                  leading: product['photos'] != null && product['photos'].isNotEmpty
-                      ? Image.network(
-                    product['photos'][0],
-                    width: 50,
-                    height: 50,
-                    fit: BoxFit.cover,
-                  )
-                      : Icon(Icons.image, size: 50),
-                  title: Text(product['name'] ?? 'Unknown Product'),
-                  subtitle: Text(productId?.toString() ?? ''),
-                  trailing: Icon(
-                    isSelected ? Icons.check_circle : Icons.check_circle_outline,
-                    color: isSelected ? Colors.green : null,
+                return Card(
+                  margin: EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 8),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  onTap: () => _toggleProductSelection(product),
+                  child: ListTile(
+                    leading: product['photos'] != null &&
+                        product['photos'].isNotEmpty
+                        ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        product['photos'][0],
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                        : Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.image,
+                          size: 30, color: Colors.grey),
+                    ),
+                    title: Text(product['name'] ?? 'Unknown Product'),
+                    subtitle: Text(productId?.toString() ?? ''),
+                    trailing: Icon(
+                      isSelected
+                          ? Icons.check_circle
+                          : Icons.check_circle_outline,
+                      color: isSelected ? Color(0xFF88A383) : null,
+                    ),
+                    onTap: () => _toggleProductSelection(product),
+                  ),
                 );
               },
             ),
@@ -561,8 +686,9 @@ class _ProductSearchPageState extends State<ProductSearchPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _submitSelectedProducts,
-        child: Icon(Icons.check),
-        backgroundColor: Colors.green,
+        child: Icon(Icons.check, color: Colors.white),
+        backgroundColor: Color(0xFF88A383),
+        elevation: 4,
       ),
     );
   }
@@ -597,29 +723,28 @@ class TreatmentCategoryList extends StatelessWidget {
     return ListView(
       padding: EdgeInsets.all(12),
       children: categorizedTreatments.entries.map((entry) {
-        return ExpansionTile(
-          title: Text(
-            entry.key,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF596D56)),
-          ),
-          children: [
-            Container(
-              height: MediaQuery.of(context).size.height * 0.6,
-              child: ListView(
-                padding: EdgeInsets.all(8),
-                children: entry.value.length > 4
-                    ? [
-                  ...entry.value.take(4).map((treatment) {
-                    return _buildTreatmentCard(context, treatment);
-                  }).toList(),
-                  _buildViewMoreCard(context, entry.value[4]),
-                ]
-                    : entry.value.map((treatment) {
-                  return _buildTreatmentCard(context, treatment);
-                }).toList(),
-              ),
-            ),
-          ],
+        if (entry.value.isEmpty) return SizedBox();
+
+        return Card(
+            elevation: 4,
+            margin: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+        ),
+        child: ExpansionTile(
+        title: Text(
+        entry.key,
+        style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Color(0xFF596D56),
+        ),
+        ),
+        children: entry.value.map((treatment) {
+        return _buildTreatmentCard(context, treatment);
+        }).toList(),
+        ),
+
         );
       }).toList(),
     );
@@ -636,70 +761,51 @@ class TreatmentCategoryList extends StatelessWidget {
         );
       },
       child: Container(
-        margin: EdgeInsets.symmetric(vertical: 6),
+        margin: EdgeInsets.symmetric(vertical: 6, horizontal: 16),
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              spreadRadius: 2,
-              blurRadius: 5,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              treatment['description'] ?? 'No Description',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF596D56)),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Problem: ${treatment['problem']}',
-              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+        BoxShadow(
+        color: Colors.grey.withOpacity(0.2),
+        spreadRadius: 1,
+        blurRadius: 3,
+        offset: Offset(0, 2),
+        ),  ],
 
-  Widget _buildViewMoreCard(BuildContext context, dynamic treatment) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => TreatmentDetailsPage(treatment: treatment),
-          ),
-        );
-      },
-      child: Container(
-        margin: EdgeInsets.symmetric(vertical: 6),
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              spreadRadius: 2,
-              blurRadius: 5,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            'View More',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF596D56)),
-          ),
-        ),
       ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            treatment['description'] ?? 'No Description',
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87),
+          ),
+          SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.face_retouching_natural, size: 16, color: Colors.grey),
+              SizedBox(width: 4),
+              Text(
+                'Skin: ${treatment['skinType']}',
+                style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+              ),
+              SizedBox(width: 16),
+              Icon(Icons.medical_services, size: 16, color: Colors.grey),
+              SizedBox(width: 4),
+              Text(
+                'Problem: ${treatment['problem']}',
+                style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
     );
   }
 }
@@ -713,7 +819,8 @@ class TreatmentDetailsPage extends StatefulWidget {
   _TreatmentDetailsPageState createState() => _TreatmentDetailsPageState();
 }
 
-class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with SingleTickerProviderStateMixin {
+class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController searchController = TextEditingController();
   late Future<String> _baseUrlFuture;
@@ -757,15 +864,11 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
         throw Exception('User data or base URL is missing');
       }
 
-      // تحضير بيانات الطلب
       final requestBody = {
         'skinType': _selectedSkinType,
         'description': _descriptionController.text,
         'problem': _selectedProblem,
       };
-
-      print('Sending PUT request to: $baseUrl/api/treatments/${widget.treatment['treatmentId']}');
-      print('Request body: $requestBody');
 
       final response = await http.put(
         Uri.parse('$baseUrl/api/treatments/${widget.treatment['treatmentId']}'),
@@ -777,29 +880,24 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
         body: json.encode(requestBody),
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('treatment updated successfully')),
+          SnackBar(content: Text('Treatment updated successfully')),
         );
 
         setState(() {
           _isEditing = false;
-          // تحديث بيانات العلاج المحلية
           widget.treatment['description'] = _descriptionController.text;
           widget.treatment['skinType'] = _selectedSkinType;
           widget.treatment['problem'] = _selectedProblem;
         });
       } else {
-        throw Exception('فشل تحديث العلاج: ${response.statusCode} ${response.body}');
+        throw Exception('Failed to update treatment: ${response.statusCode} ${response.body}');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ في تحديث العلاج: ${e.toString()}')),
+        SnackBar(content: Text('Error updating treatment: ${e.toString()}')),
       );
-      // استعادة القيم الأصلية في حالة الخطأ
       setState(() {
         _descriptionController.text = widget.treatment['description'];
         _selectedSkinType = widget.treatment['skinType'];
@@ -811,6 +909,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
       });
     }
   }
+
   Future<void> _deleteTreatment() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -856,7 +955,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Treatment deleted successfully')),
         );
-        Navigator.pop(context); // Go back to previous page after deletion
+        Navigator.pop(context);
       } else {
         throw Exception('Failed to delete treatment: ${response.statusCode}');
       }
@@ -875,38 +974,33 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Treatment Details', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        title: Text('Treatment Details', style: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        )),
         backgroundColor: Color(0xFF88A383),
-        iconTheme: IconThemeData(color: Colors.black),
+        iconTheme: IconThemeData(color: Colors.white),
         actions: [
           if (!_isEditing) ...[
             IconButton(
-              icon: Icon(Icons.edit),
-              onPressed: () {
-                setState(() {
-                  _isEditing = true;
-                });
-              },
+              icon: Icon(Icons.edit, color: Colors.white),
+              onPressed: () => setState(() => _isEditing = true),
             ),
             IconButton(
-              icon: Icon(Icons.delete, color: Colors.red),
+              icon: Icon(Icons.delete, color: Colors.red[200]),
               onPressed: _isLoading ? null : _deleteTreatment,
             ),
           ],
           if (_isEditing) ...[
             IconButton(
-              icon: Icon(Icons.close),
-              onPressed: () {
-                setState(() {
-                  _isEditing = false;
-                  _descriptionController.text = widget.treatment['description'];
-                  _selectedSkinType = widget.treatment['skinType'];
-                  _selectedProblem = widget.treatment['problem'];
-                });
-              },
+              icon: Icon(Icons.close, color: Colors.white),
+              onPressed: _resetEditing,
             ),
             IconButton(
-              icon: _isLoading ? CircularProgressIndicator() : Icon(Icons.check),
+              icon: _isLoading
+                  ? CircularProgressIndicator(color: Colors.white)
+                  : Icon(Icons.check, color: Colors.white),
               onPressed: _isLoading ? null : _updateTreatment,
             ),
           ],
@@ -925,100 +1019,95 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
 
           final baseUrl = snapshot.data!;
 
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
+          return SingleChildScrollView(
+            padding: EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (!_isEditing)
-                  Text(
-                    widget.treatment['description'] ?? 'No Description',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF596D56)),
-                  ),
-                if (_isEditing)
-                  TextFormField(
-                    controller: _descriptionController,
-                    decoration: InputDecoration(
-                      labelText: 'Description',
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLines: 3,
-                  ),
-                SizedBox(height: 16),
-
-                if (!_isEditing)
-                  Text(
-                    'Problem: ${widget.treatment['problem']}',
-                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-                  ),
-                if (_isEditing)
-                  DropdownButtonFormField<String>(
-                    value: _selectedProblem,
-                    decoration: InputDecoration(
-                      labelText: 'Problem',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: _problems.map((problem) {
-                      return DropdownMenuItem<String>(
-                        value: problem,
-                        child: Text(problem),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedProblem = value!;
-                      });
-                    },
-                  ),
-
-                SizedBox(height: 16),
-
-                if (!_isEditing)
-                  Text(
-                    'Skin Type: ${widget.treatment['skinType']}',
-                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-                  ),
-                if (_isEditing)
-                  DropdownButtonFormField<String>(
-                    value: _selectedSkinType,
-                    decoration: InputDecoration(
-                      labelText: 'Skin Type',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: _skinTypes.map((type) {
-                      return DropdownMenuItem<String>(
-                        value: type,
-                        child: Text(type),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedSkinType = value!;
-                      });
-                    },
-                  ),
-
-                SizedBox(height: 20),
-                Text(
-                  'Treatment Products',
-                  style: TextStyle(
-                    fontStyle: FontStyle.italic,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      ProductTabScreen(
-                        apiUrl: "$baseUrl/api/treatments/${widget.treatment['treatmentId']}/products",
-                        pageName: 'treatment',
-                        treatmentId: widget.treatment['treatmentId'],
+              Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Treatment Information',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF596D56),
                       ),
-                    ],
+                    ),
+                    SizedBox(height: 20),
+
+                    _buildInfoField(
+                      label: 'Description',
+                      value: widget.treatment['description'],
+                      isEditing: _isEditing,
+                      controller: _descriptionController,
+                      isMultiline: true,
+                    ),
+
+                    SizedBox(height: 15),
+
+                    _buildInfoField(
+                      label: 'Problem',
+                      value: widget.treatment['problem'],
+                      isEditing: _isEditing,
+                      isDropdown: true,
+                      items: _problems,
+                      selectedValue: _selectedProblem,
+                      onChanged: (value) => setState(() => _selectedProblem = value!),
+                    ),
+
+                    SizedBox(height: 15),
+
+                    _buildInfoField(
+                      label: 'Skin Type',
+                      value: widget.treatment['skinType'],
+                      isEditing: _isEditing,
+                      isDropdown: true,
+                      items: _skinTypes,
+                      selectedValue: _selectedSkinType,
+                      onChanged: (value) => setState(() => _selectedSkinType = value!),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            SizedBox(height: 25),
+
+            Text(
+              'Treatment Products',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF596D56),
+              ),
+              ),
+              SizedBox(height: 10),
+
+              Container(
+                height: MediaQuery.of(context).size.height * 0.5,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: ProductTabScreen(
+                    apiUrl: "$baseUrl/api/treatments/${widget.treatment['treatmentId']}/products",
+                    pageName: 'treatment',
+                    treatmentId: widget.treatment['treatmentId'],
                   ),
                 ),
+                ),
+
               ],
             ),
           );
@@ -1026,10 +1115,103 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage> with Single
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openSearchPage(context),
-        child: Icon(Icons.add, color: Colors.black),
-        backgroundColor: Color(0xFFFFFDA),
+        child: Icon(Icons.add, color: Colors.white),
+        backgroundColor: Color(0xFF88A383),
+        elevation: 4,
       ),
     );
+  }
+
+  Widget _buildInfoField({
+    required String label,
+    required String value,
+    required bool isEditing,
+    TextEditingController? controller,
+    bool isMultiline = false,
+    bool isDropdown = false,
+    List<String>? items,
+    String? selectedValue,
+    ValueChanged<String?>? onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[700],
+          ),
+        ),
+        SizedBox(height: 5),
+
+        if (!isEditing && !isDropdown)
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              value,
+              style: TextStyle(fontSize: 16),
+            ),
+          ),
+
+        if (!isEditing && isDropdown)
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              selectedValue ?? value,
+              style: TextStyle(fontSize: 16),
+            ),
+          ),
+
+        if (isEditing && !isDropdown)
+          TextFormField(
+            controller: controller,
+            maxLines: isMultiline ? 3 : 1,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              contentPadding: EdgeInsets.all(12),
+            ),
+          ),
+
+        if (isEditing && isDropdown)
+          DropdownButtonFormField<String>(
+            value: selectedValue,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12),
+            ),
+            items: items!.map((item) {
+              return DropdownMenuItem<String>(
+                value: item,
+                child: Text(item),
+              );
+            }).toList(),
+            onChanged: onChanged,
+          ),
+      ],
+    );
+  }
+
+  void _resetEditing() {
+    setState(() {
+      _isEditing = false;
+      _descriptionController.text = widget.treatment['description'];
+      _selectedSkinType = widget.treatment['skinType'];
+      _selectedProblem = widget.treatment['problem'];
+    });
   }
 
   void _openSearchPage(BuildContext context) {
