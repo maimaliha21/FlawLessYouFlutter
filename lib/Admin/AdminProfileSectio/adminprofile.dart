@@ -12,6 +12,7 @@ import '../../Product/productPage.dart';
 import '../../Routinebar/routinescreen.dart';
 import '../../ProfileSection/editProfile.dart';
 import '../../Treatment/treatment.dart';
+import '../../model/SkinAnalysisHistoryScreen.dart';
 import 'editRole.dart';
 
 class AdminProfile extends StatefulWidget {
@@ -314,8 +315,7 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                             },
                           ),
                           Center(
-                            child: Text('No history available',
-                                style: TextStyle(color: Colors.black)),
+                            child: SkinAnalysisHistoryScreen(),
                           ),
                         ],
                       ),
