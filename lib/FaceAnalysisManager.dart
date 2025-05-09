@@ -21,7 +21,7 @@ class FaceAnalysisManager {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://192.168.0.100:8000/analyze/'),
+        Uri.parse('http://192.168.1.30:8000/analyze/'),
       );
 
       request.files.add(
@@ -290,7 +290,7 @@ class FaceAnalysisManager {
                   },
                   child: Text(
                     'View Detailed Analysis',
-                    style: TextStyle(fontSize: 16,color: Color(0xFFFFFFFF)),
+                    style: TextStyle(fontSize: 16,color: Color(0xFF88A383)),
                   ),
                 ),
               ],

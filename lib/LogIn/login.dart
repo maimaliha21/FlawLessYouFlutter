@@ -24,8 +24,17 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  bool _obscureText = true;
+  final usernameController = TextEditingController();
+  final passwordController = TextEditingController();
 
   // دالة لجلب معلومات المستخدم
   Future<Map<String, dynamic>?> fetchUserInfo(String token) async {
@@ -59,8 +68,7 @@ class LoginScreen extends StatelessWidget {
   }
 
   // دالة لتسجيل الدخول باستخدام اسم المستخدم وكلمة المرور
-  Future<void> loginWithCredentials(
-      BuildContext context, String username, String password) async {
+  Future<void> loginWithCredentials(String username, String password) async {
     final baseUrl = await getBaseUrl();
 
     print('Using baseUrl for login: $baseUrl');
@@ -94,7 +102,6 @@ class LoginScreen extends StatelessWidget {
                 builder: (context) => AdminProfile(),
               ),
             );
-
           }
           else if (userInfo['role'] == 'SKIN_EXPERT') {
             Navigator.pushReplacement(
@@ -104,11 +111,9 @@ class LoginScreen extends StatelessWidget {
                   token: token,
                   userInfo: userInfo,
                 ),
-                ),
+              ),
             );
           }
-
-
           else {
             Navigator.pushReplacement(
               context,
@@ -141,7 +146,7 @@ class LoginScreen extends StatelessWidget {
   }
 
   // دالة لتسجيل الدخول باستخدام Google
-  Future<void> loginWithGoogle(BuildContext context) async {
+  Future<void> loginWithGoogle() async {
     try {
       print('Starting Google Sign-In process');
       final idToken = await GoogleSignInApi.login();
@@ -217,9 +222,6 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final usernameController = TextEditingController();
-    final passwordController = TextEditingController();
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: RefreshIndicator(
@@ -234,7 +236,7 @@ class LoginScreen extends StatelessWidget {
               left: -60,
               child: CircleAvatar(
                 radius: 100,
-                backgroundColor: Colors.green.withOpacity(0.3), // تم التعديل هنا
+                backgroundColor: Colors.green.withOpacity(0.3),
               ),
             ),
             Positioned(
@@ -242,7 +244,7 @@ class LoginScreen extends StatelessWidget {
               left: 50,
               child: CircleAvatar(
                 radius: 80,
-                backgroundColor: Colors.green.withOpacity(0.4), // تم التعديل هنا
+                backgroundColor: Colors.green.withOpacity(0.4),
               ),
             ),
             Center(
@@ -252,13 +254,12 @@ class LoginScreen extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 40), // أضف مسافة من الأعلى لخفض اللوجو
+                      const SizedBox(height: 40),
                       Image.asset(
                         'assets/logo.png',
-                        height: 180, // كبر الحجم من 100 إلى 140 (أو الحجم الذي يناسبك)
+                        height: 180,
                       ),
-                      const SizedBox(height: 10), // مسافة بين اللوجو والعناصر اللي بعده
-
+                      const SizedBox(height: 10),
                       const Text(
                         'Login to Your Account',
                         style: TextStyle(
@@ -280,10 +281,20 @@ class LoginScreen extends StatelessWidget {
                       const SizedBox(height: 15),
                       TextField(
                         controller: passwordController,
-                        obscureText: true,
+                        obscureText: _obscureText,
                         decoration: InputDecoration(
                           labelText: 'Password',
-                          suffixIcon: Icon(Icons.visibility_off),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscureText ? Icons.visibility_off : Icons.visibility,
+                              color: Colors.grey,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscureText = !_obscureText;
+                              });
+                            },
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -305,7 +316,7 @@ class LoginScreen extends StatelessWidget {
                               );
                               return;
                             }
-                            loginWithCredentials(context, username, password);
+                            loginWithCredentials(username, password);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF88A383),
@@ -324,7 +335,7 @@ class LoginScreen extends StatelessWidget {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
-                          onPressed: () => loginWithGoogle(context),
+                          onPressed: loginWithGoogle,
                           icon: Image.asset(
                             'assets/google_logo.png',
                             height: 24,
@@ -354,12 +365,12 @@ class LoginScreen extends StatelessWidget {
                             text: "Don't have an account? ",
                             style: TextStyle(color: Colors.black),
                             children: [
-                              TextSpan(
-                                text: 'Sign Up',
-                                style: TextStyle(
-                                  color: Color(0xFF88A383),
-                                ),
-                              )
+                            TextSpan(
+                            text: 'Sign Up',
+                            style: TextStyle(
+                              color: Color(0xFF88A383),
+                            )
+                            )
                             ],
                           ),
                         ),

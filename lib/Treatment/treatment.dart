@@ -726,31 +726,32 @@ class TreatmentCategoryList extends StatelessWidget {
         if (entry.value.isEmpty) return SizedBox();
 
         return Card(
-            elevation: 4,
-            margin: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-        shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-        ),
-        child: ExpansionTile(
-        title: Text(
-        entry.key,
-        style: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: Color(0xFF596D56),
-        ),
-        ),
-        children: entry.value.map((treatment) {
-        return _buildTreatmentCard(context, treatment);
-        }).toList(),
-        ),
-
+          elevation: 4,
+          margin: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: ExpansionTile(
+            title: Text(
+              entry.key,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF596D56),
+              ),
+            ),
+            children: entry.value.map((treatment) {
+              return _buildTreatmentCard(context, treatment);
+            }).toList(),
+          ),
         );
       }).toList(),
     );
   }
 
   Widget _buildTreatmentCard(BuildContext context, dynamic treatment) {
+    final isTablet = MediaQuery.of(context).size.width > 600;
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -764,52 +765,78 @@ class TreatmentCategoryList extends StatelessWidget {
         margin: EdgeInsets.symmetric(vertical: 6, horizontal: 16),
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-        BoxShadow(
-        color: Colors.grey.withOpacity(0.2),
-        spreadRadius: 1,
-        blurRadius: 3,
-        offset: Offset(0, 2),
-        ),  ],
-
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 1,
+              blurRadius: 3,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              treatment['description'] ?? 'No Description',
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87),
+            ),
+            SizedBox(height: 8),
+            isTablet
+                ? Row(
+              children: [
+                Icon(Icons.face_retouching_natural, size: 16, color: Colors.grey),
+                SizedBox(width: 3),
+                Text(
+                  'Skin: ${treatment['skinType']}',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                ),
+                SizedBox(width: 16),
+                Icon(Icons.medical_services, size: 16, color: Colors.grey),
+                SizedBox(width: 4),
+                Text(
+                  'Problem: ${treatment['problem']}',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                ),
+              ],
+            )
+                : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.face_retouching_natural, size: 16, color: Colors.grey),
+                    SizedBox(width: 3),
+                    Text(
+                      'Skin: ${treatment['skinType']}',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.medical_services, size: 16, color: Colors.grey),
+                    SizedBox(width: 4),
+                    Text(
+                      'Problem: ${treatment['problem']}',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            treatment['description'] ?? 'No Description',
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.black87),
-          ),
-          SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.face_retouching_natural, size: 16, color: Colors.grey),
-              SizedBox(width: 3),
-              Text(
-                'Skin: ${treatment['skinType']}',
-                style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-              ),
-              SizedBox(width: 16),
-              Icon(Icons.medical_services, size: 16, color: Colors.grey),
-              SizedBox(width: 4),
-              Text(
-                'Problem: ${treatment['problem']}',
-                style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
     );
   }
 }
-
 class TreatmentDetailsPage extends StatefulWidget {
   final dynamic treatment;
 
