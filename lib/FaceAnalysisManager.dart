@@ -21,7 +21,7 @@ class FaceAnalysisManager {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://192.168.60.112:8000/analyze/'),
+        Uri.parse('http://192.168.0.100:8000/analyze/'),
       );
 
       request.files.add(
@@ -51,31 +51,95 @@ class FaceAnalysisManager {
   void _showInstructionsDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Instructions Before Skin Analysis'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Text('For an accurate skin analysis, please follow the instructions below:'),
-              SizedBox(height: 10),
-              Text('1.Ensure good and uniform lighting.', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text('2. Focus on capturing the affected area .', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text('3.Remove glasses, hair, or any obstacles from the face.', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text('4.Make sure the photo is clear and of high quality.', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text('5.Avoid makeup to achieve more accurate results.', style: TextStyle(fontWeight: FontWeight.bold)),
-              SizedBox(height: 20),
-            ],
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showImagePickerOptions();
-            },
-            child: const Text('Understood', style: TextStyle(color: Colors.blue)),
+          elevation: 10,
+          child: Container(
+            padding: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFF818181)!, Colors.white],
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.face_retouching_natural,
+                  size: 50,
+                  color: Color(0xFF3F3F3F),
+                ),
+                SizedBox(height: 15),
+                Text(
+                  'Skin Analysis Preparation',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF3F3F3F),
+                  ),
+                ),
+                SizedBox(height: 15),
+                Divider(color: Color(0xFF88A383), thickness: 1),
+                SizedBox(height: 15),
+                _buildInstructionItem(Icons.lightbulb_outline, 'Ensure good, uniform lighting'),
+                _buildInstructionItem(Icons.zoom_in, 'Focus on the area of interest'),
+                _buildInstructionItem(Icons.face, 'Remove glasses/hair from face'),
+                _buildInstructionItem(Icons.high_quality, 'Use clear, high-quality images'),
+                _buildInstructionItem(Icons.palette, 'Avoid makeup for accurate results'),
+                SizedBox(height: 20),
+                Container(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF88A383),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showImagePickerOptions();
+                    },
+                    child: Text(
+                      'I Understand, Continue',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInstructionItem(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 22, color: Color(0xFF88A383)),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[800],
+              ),
+            ),
           ),
         ],
       ),
@@ -92,18 +156,22 @@ class FaceAnalysisManager {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               ListTile(
-                leading: Icon(Icons.camera),
-                title: Text('Capture a photo from the camera'),
+                leading: Icon(Icons.camera, color: Color(0xFF00000C)),
+                title: Text('Take Photo',
+                    style: TextStyle(color: Color(0xFF00000C))),
                 onTap: () async {
-                  final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+                  final XFile? image = await _picker.pickImage(
+                      source: ImageSource.camera);
                   Navigator.pop(context, image);
                 },
               ),
               ListTile(
-                leading: Icon(Icons.photo_library),
-                title: Text('Upload a photo from the gallery'),
+                leading: Icon(Icons.photo_library, color: Color(0xFF00000C)),
+                title: Text('Choose from Gallery',
+                    style: TextStyle(color: Color(0xFF00000C))),
                 onTap: () async {
-                  final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+                  final XFile? image = await _picker.pickImage(
+                      source: ImageSource.gallery);
                   Navigator.pop(context, image);
                 },
               ),
@@ -119,21 +187,22 @@ class FaceAnalysisManager {
   }
 
   void _processSelectedImage(File imageFile) async {
-    // Show loading dialog
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => Center(
-        child: CircularProgressIndicator(),
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF88A383)),
+        ),
       ),
     );
 
     try {
       final skinType = await _analyzeSkinType(imageFile);
-      Navigator.pop(context); // Close loading dialog
+      Navigator.pop(context);
       _showAnalysisResult(imageFile, skinType);
     } catch (e) {
-      Navigator.pop(context); // Close loading dialog
+      Navigator.pop(context);
       _showErrorDialog(e.toString());
     }
   }
@@ -144,64 +213,121 @@ class FaceAnalysisManager {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.file(imageFile),
-            const SizedBox(height: 20),
-            Text(
-              'Your skin type is: $skinType',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            DropdownButton<String>(
-              value: selectedSkinType,
-              onChanged: (String? newValue) {
-                selectedSkinType = newValue!;
-              },
-              items: skinTypes.map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SkinDetailsScreen(
-                      imageFile: imageFile,
-                      skinType: selectedSkinType,
-                    ),
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: Image.file(imageFile),
+                ),
+                SizedBox(height: 20),
+                Text(
+                  'Analysis Result:',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF88A383),
                   ),
-                );
-              },
-              child: const Text('Next'),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'Detected Skin Type: $skinType',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                SizedBox(height: 20),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Color(0xFF88A383)!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: DropdownButton<String>(
+                    value: selectedSkinType,
+                    icon: Icon(Icons.arrow_drop_down, color: Color(0xFF88A383)),
+                    isExpanded: true,
+                    underline: SizedBox(),
+                    onChanged: (String? newValue) {
+                      selectedSkinType = newValue!;
+                    },
+                    items: skinTypes.map<DropdownMenuItem<String>>((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF88A383),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    minimumSize: Size(double.infinity, 45),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SkinDetailsScreen(
+                          imageFile: imageFile,
+                          skinType: selectedSkinType,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    'View Detailed Analysis',
+                    style: TextStyle(fontSize: 16,color: Color(0xFFFFFFFF)),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
   void _showErrorDialog(String errorMessage) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Error'),
-        content: Text('Failed to analyze skin type: $errorMessage'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-        ],
-      ),
+          title: Text(
+            'Analysis Error',
+            style: TextStyle(color: Colors.red),
+          ),
+          content: Text(
+            'Unable to analyze skin type:\n$errorMessage',
+            style: TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'OK',
+                style: TextStyle(color: Color(0xFF88A383)),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

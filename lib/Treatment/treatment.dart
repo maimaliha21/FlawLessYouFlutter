@@ -789,7 +789,7 @@ class TreatmentCategoryList extends StatelessWidget {
           Row(
             children: [
               Icon(Icons.face_retouching_natural, size: 16, color: Colors.grey),
-              SizedBox(width: 4),
+              SizedBox(width: 3),
               Text(
                 'Skin: ${treatment['skinType']}',
                 style: TextStyle(fontSize: 14, color: Colors.grey[700]),
