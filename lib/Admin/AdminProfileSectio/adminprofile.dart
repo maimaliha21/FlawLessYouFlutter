@@ -116,8 +116,9 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final bool isTablet = MediaQuery.of(context).size.shortestSide > 600;
     final screenHeight = MediaQuery.of(context).size.height;
-    final tabHeight = screenHeight * 0.4; // 40% من ارتفاع الشاشة
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -127,7 +128,7 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
               clipBehavior: Clip.none,
               children: [
                 Container(
-                  height: screenHeight * 0.25, // 30% من ارتفاع الشاشة
+                  height: isTablet ? screenHeight * 0.3 : screenHeight * 0.25,
                   decoration: BoxDecoration(
                     image: DecorationImage(
                       image: NetworkImage(
@@ -137,8 +138,8 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                   ),
                 ),
                 Positioned(
-                  top: 30,
-                  right: 20,
+                  top: isTablet ? 50 : 30,
+                  right: isTablet ? 40 : 20,
                   child: PopupMenuButton<String>(
                     onSelected: (value) {
                       if (value == 'logout') _logout();
@@ -157,24 +158,24 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                         child: Text('Log Out'),
                       ),
                     ],
-                    child: const Icon(
+                    child: Icon(
                       Icons.more_vert,
                       color: Colors.white,
-                      size: 30,
+                      size: isTablet ? 35 : 30,
                     ),
                   ),
                 ),
                 Positioned(
-                  top: 150,
-                  left: MediaQuery.of(context).size.width / 2 - 75,
+                  top: isTablet ? 180 : 150,
+                  left: screenWidth / 2 - (isTablet ? 90 : 75),
                   child: CircleAvatar(
-                    radius: 75,
+                    radius: isTablet ? 90 : 75,
                     backgroundColor: Colors.white,
                     child: CircleAvatar(
-                      radius: 70,
+                      radius: isTablet ? 85 : 70,
                       backgroundColor: Colors.white,
                       child: CircleAvatar(
-                        radius: 65,
+                        radius: isTablet ? 80 : 65,
                         backgroundImage: NetworkImage(userInfo?['profilePicture'] ?? 'assets/profile.jpg'),
                       ),
                     ),
@@ -182,26 +183,31 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                 ),
               ],
             ),
-            const SizedBox(height: 90),
+            SizedBox(height: isTablet ? 110 : 90),
             Text(
               userInfo?['userName'] ?? 'Admin',
-              style: const TextStyle(
-                  fontSize: 20,
+              style: TextStyle(
+                  fontSize: isTablet ? 24 : 20,
                   fontWeight: FontWeight.bold,
                   color: Colors.black),
             ),
+            SizedBox(height: 5),
             Text(
               userInfo?['email'] ?? '',
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
+              style: TextStyle(
+                  fontSize: isTablet ? 18 : 16,
+                  color: Colors.grey),
             ),
             if (userInfo?['skinType'] != null) ...[
-              const SizedBox(height: 5),
+              SizedBox(height: 5),
               Text(
                 'Skin Type: ${userInfo?['skinType']}',
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
+                style: TextStyle(
+                    fontSize: isTablet ? 16 : 14,
+                    color: Colors.grey),
               ),
             ],
-            const SizedBox(height: 20),
+            SizedBox(height: isTablet ? 30 : 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -215,14 +221,19 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF88A383),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 37, vertical: 11),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: isTablet ? 50 : 37,
+                        vertical: isTablet ? 15 : 11),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text('Edit profile'),
+                  child: Text(
+                    'Edit profile',
+                    style: TextStyle(fontSize: isTablet ? 18 : 16),
+                  ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: isTablet ? 20 : 10),
                 ElevatedButton(
                   onPressed: () => Navigator.push(
                     context,
@@ -233,25 +244,37 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF88A383),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 37, vertical: 11),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: isTablet ? 50 : 37,
+                        vertical: isTablet ? 15 : 11),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text('manage Role'),
+                  child: Text(
+                    'manage Role',
+                    style: TextStyle(fontSize: isTablet ? 18 : 16),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            TabBar(
-              controller: _tabController,
-              labelColor: Color(0xFF88A383),
-              indicatorColor: Color(0xFF88A383),
-              indicatorWeight: 3.0,
-              unselectedLabelColor: Colors.grey,
-              tabs: const [
-                Tab(text: 'Saved'),
-              ],
+            SizedBox(height: isTablet ? 30 : 20),
+            SizedBox(
+              width: isTablet ? screenWidth * 0.8 : screenWidth,
+              child: TabBar(
+                controller: _tabController,
+                labelColor: Color(0xFF88A383),
+                indicatorColor: Color(0xFF88A383),
+                indicatorWeight: 3.0,
+                unselectedLabelColor: Colors.grey,
+                labelStyle: TextStyle(
+                  fontSize: isTablet ? 18 : 16,
+                  fontWeight: FontWeight.bold,
+                ),
+                tabs: const [
+                  Tab(text: 'Saved'),
+                ],
+              ),
             ),
             FutureBuilder<String>(
               future: getBaseUrl(),
@@ -263,16 +286,20 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                 } else {
                   final baseUrl = snapshot.data!;
                   return Container(
-                    height: tabHeight, // استخدام الارتفاع المحسوب
+                    height: isTablet ? screenHeight * 0.5 : screenHeight * 0.4,
                     child: TabBarView(
                       controller: _tabController,
                       children: [
                         ProductTabScreen(
-                          apiUrl: '$baseUrl/product/Saved', pageName: 'home',
+                          apiUrl: '$baseUrl/product/Saved',
+                          pageName: 'home',
                         ),
-                        const Center(
+                        Center(
                           child: Text('No history available',
-                              style: TextStyle(color: Colors.black)),
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: isTablet ? 18 : 16,
+                              )),
                         ),
                       ],
                     ),
