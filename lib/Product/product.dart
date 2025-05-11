@@ -254,7 +254,7 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
           ? FloatingActionButton(
         onPressed: () => _showAddProductDialog(context),
         child: Icon(Icons.add),
-        backgroundColor: Colors.blue,
+        backgroundColor: Color(0xFF818181),
       )
           : null,
       body: _isLoading && _products.isEmpty
@@ -955,7 +955,7 @@ class _ProductTabScreenState extends State<ProductTabScreen> {
                       isSaved ? Icons.bookmark : Icons.bookmark_border,
                       color: widget.pageName == 'treatment' ? Colors.red :
                       widget.pageName == 'add' ? Colors.green :
-                      isSaved ? Colors.yellow : Colors.white,
+                      isSaved ? Colors.yellow : Colors.black,
                     ),
                     onPressed: widget.pageName == 'treatment' ? _deleteProduct :
                     widget.pageName == 'add' ? _addProductToTreatment : toggleSave,

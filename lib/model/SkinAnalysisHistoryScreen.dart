@@ -349,7 +349,7 @@ class _SkinAnalysisHistoryScreenState extends State<SkinAnalysisHistoryScreen> {
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.blue[800],
+                              color: Color(0xFF818181),
                             ),
                           ),
                           IconButton(
@@ -536,14 +536,18 @@ class _SkinAnalysisHistoryScreenState extends State<SkinAnalysisHistoryScreen> {
                             ),
                             child: Text(
                               _routineCreated ? 'Routine Created!' : 'Confirm Selection',
-                              style: const TextStyle(fontSize: 18),
+                              style:const TextStyle(
+                                fontSize: 18,
+                                color: Color(0xFFFFFFFF),
+                              ),
+
                             ),
                           ),
                           style: ElevatedButton.styleFrom(
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
-                              backgroundColor: _routineCreated ? Colors.grey : Colors.blue,                          ),
+                              backgroundColor: _routineCreated ? Colors.grey : Color(0xFF818181),                          ),
                         ),
                       ),
                     ],

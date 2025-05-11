@@ -21,7 +21,7 @@ class FaceAnalysisManager {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://192.168.1.30:8000/analyze/'),
+        Uri.parse('http://192.168.60.110:8000/analyze/'),
       );
 
       request.files.add(
@@ -270,7 +270,7 @@ class FaceAnalysisManager {
                 SizedBox(height: 20),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF88A383),
+                    backgroundColor: Color(0xFFFFFFFF),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
