@@ -12,6 +12,7 @@ import '../../Product/productPage.dart';
 import '../../Routinebar/routinescreen.dart';
 import '../../ProfileSection/editProfile.dart';
 import '../../Treatment/treatment.dart';
+import '../../model/SkinAnalysisHistoryScreen.dart';
 import 'editRole.dart';
 
 class AdminProfile extends StatefulWidget {
@@ -116,198 +117,214 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    final bool isTablet = MediaQuery.of(context).size.shortestSide > 600;
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
+    final bool isTablet = screenWidth >= 600;
+    final profileImageRadius = isTablet ? 90.0 : 75.0;
+    final backgroundHeight =(screenHeight * 0.2)-15;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  height: isTablet ? screenHeight * 0.3 : screenHeight * 0.25,
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: NetworkImage(
-                          'https://res.cloudinary.com/davwgirjs/image/upload/v1740417378/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417378981_bgphoto.jpg.jpg'),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: isTablet ? 50 : 30,
-                  right: isTablet ? 40 : 20,
-                  child: PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'logout') _logout();
-                    },
-                    itemBuilder: (BuildContext context) => [
-                      const PopupMenuItem(
-                        value: 'support',
-                        child: Text('Support'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'about_us',
-                        child: Text('About Us'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'logout',
-                        child: Text('Log Out'),
-                      ),
-                    ],
-                    child: Icon(
-                      Icons.more_vert,
-                      color: Colors.white,
-                      size: isTablet ? 35 : 30,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: isTablet ? 180 : 150,
-                  left: screenWidth / 2 - (isTablet ? 90 : 75),
-                  child: CircleAvatar(
-                    radius: isTablet ? 90 : 75,
-                    backgroundColor: Colors.white,
-                    child: CircleAvatar(
-                      radius: isTablet ? 85 : 70,
-                      backgroundColor: Colors.white,
-                      child: CircleAvatar(
-                        radius: isTablet ? 80 : 65,
-                        backgroundImage: NetworkImage(userInfo?['profilePicture'] ?? 'assets/profile.jpg'),
+      body: Container(
+        height: screenHeight, // تأخذ ارتفاع الشاشة بالكامل
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // الخلفية العلوية
+                  Container(
+                    height: backgroundHeight,
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: NetworkImage(
+                            'https://res.cloudinary.com/davwgirjs/image/upload/v1740417378/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740417378981_bgphoto.jpg.jpg'),
+                        fit: BoxFit.cover,
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: isTablet ? 110 : 90),
-            Text(
-              userInfo?['userName'] ?? 'Admin',
-              style: TextStyle(
-                  fontSize: isTablet ? 24 : 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black),
-            ),
-            SizedBox(height: 5),
-            Text(
-              userInfo?['email'] ?? '',
-              style: TextStyle(
-                  fontSize: isTablet ? 18 : 16,
-                  color: Colors.grey),
-            ),
-            if (userInfo?['skinType'] != null) ...[
-              SizedBox(height: 5),
-              Text(
-                'Skin Type: ${userInfo?['skinType']}',
-                style: TextStyle(
-                    fontSize: isTablet ? 16 : 14,
-                    color: Colors.grey),
-              ),
-            ],
-            SizedBox(height: isTablet ? 30 : 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => EditProfile(token: token!),
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF88A383),
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(
-                        horizontal: isTablet ? 50 : 37,
-                        vertical: isTablet ? 15 : 11),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text(
-                    'Edit profile',
-                    style: TextStyle(fontSize: isTablet ? 18 : 16),
-                  ),
-                ),
-                SizedBox(width: isTablet ? 20 : 10),
-                ElevatedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => UserFilterPage(),
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF88A383),
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(
-                        horizontal: isTablet ? 50 : 37,
-                        vertical: isTablet ? 15 : 11),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text(
-                    'manage Role',
-                    style: TextStyle(fontSize: isTablet ? 18 : 16),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: isTablet ? 30 : 20),
-            SizedBox(
-              width: isTablet ? screenWidth * 0.8 : screenWidth,
-              child: TabBar(
-                controller: _tabController,
-                labelColor: Color(0xFF88A383),
-                indicatorColor: Color(0xFF88A383),
-                indicatorWeight: 3.0,
-                unselectedLabelColor: Colors.grey,
-                labelStyle: TextStyle(
-                  fontSize: isTablet ? 18 : 16,
-                  fontWeight: FontWeight.bold,
-                ),
-                tabs: const [
-                  Tab(text: 'Saved'),
-                ],
-              ),
-            ),
-            FutureBuilder<String>(
-              future: getBaseUrl(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                } else {
-                  final baseUrl = snapshot.data!;
-                  return Container(
-                    height: isTablet ? screenHeight * 0.5 : screenHeight * 0.4,
-                    child: TabBarView(
-                      controller: _tabController,
-                      children: [
-                        ProductTabScreen(
-                          apiUrl: '$baseUrl/product/Saved',
-                          pageName: 'home',
+
+                  // زر القائمة
+                  Positioned(
+                    top: 40,
+                    right: 20,
+                    child: PopupMenuButton<String>(
+                      onSelected: (value) {
+                        if (value == 'logout') _logout();
+                      },
+                      itemBuilder: (BuildContext context) => [
+                        const PopupMenuItem(
+                          value: 'support',
+                          child: Text('Support'),
                         ),
-                        Center(
-                          child: Text('No history available',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: isTablet ? 18 : 16,
-                              )),
+                        const PopupMenuItem(
+                          value: 'about_us',
+                          child: Text('About Us'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'logout',
+                          child: Text('Log Out'),
                         ),
                       ],
+                      child: const Icon(
+                        Icons.more_vert,
+                        color: Colors.white,
+                        size: 30,
+                      ),
                     ),
-                  );
-                }
-              },
-            ),
-          ],
+                  ),
+
+                  // صورة البروفايل (نصفها داخل الخلفية والنصف الآخر خارجها)
+                  Positioned(
+                    top: backgroundHeight - profileImageRadius, // تبدأ من نهاية الخلفية
+                    left: screenWidth / 2 - profileImageRadius,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white,
+                          width: 4,
+                        ),
+                      ),
+                      child: CircleAvatar(
+                        radius: profileImageRadius,
+                        backgroundColor: Colors.white,
+                        backgroundImage: NetworkImage(
+                            userInfo?['profilePicture'] ?? 'assets/profile.jpg'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              // المساحة تحت صورة البروفايل
+              SizedBox(height: profileImageRadius),
+
+              // معلومات المستخدم
+              Text(
+                userInfo?['userName'] ?? 'Admin',
+                style: TextStyle(
+                    fontSize: isTablet ? 28 : 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black),
+              ),
+              SizedBox(height: 8),
+              Text(
+                userInfo?['email'] ?? '',
+                style: TextStyle(
+                    fontSize: isTablet ? 18 : 14, color: Colors.grey),
+              ),
+
+              // نوع البشرة إذا كان متوفراً
+              if (userInfo?['skinType'] != null) ...[
+                SizedBox(height: 8),
+                Text(
+                  'Skin Type: ${userInfo?['skinType']}',
+                  style: TextStyle(
+                      fontSize: isTablet ? 16 : 12, color: Colors.grey),
+                ),
+              ],
+
+              // الأزرار
+              SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EditProfile(token: token!),
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF88A383),
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                            horizontal: isTablet ? 40 : 30,
+                            vertical: isTablet ? 16 : 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text('Edit profile',
+                          style: TextStyle(fontSize: isTablet ? 16 : 14)),
+                    ),
+                    SizedBox(width: isTablet ? 20 : 10),
+                    ElevatedButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UserFilterPage(),
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF88A383),
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                            horizontal: isTablet ? 40 : 30,
+                            vertical: isTablet ? 16 : 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text('Manage Role',
+                          style: TextStyle(fontSize: isTablet ? 16 : 14)),
+                    ),
+                  ],
+                ),
+              ),
+
+              // تبويبات المحتوى
+              SizedBox(height: 20),
+              DefaultTabController(
+                length: 2,
+                child: Column(
+                  children: [
+                    TabBar(
+                      controller: _tabController,
+                      labelColor: Color(0xFF88A383),
+                      indicatorColor: Color(0xFF88A383),
+                      indicatorWeight: 3.0,
+                      unselectedLabelColor: Colors.grey,
+                      tabs: [
+                        Tab(text: 'Saved'),
+                        Tab(text: 'History'),
+                      ],
+                    ),
+                    Container(
+                      height: screenHeight * 0.51, // ارتفاع مناسب للمحتوى
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          FutureBuilder<String>(
+                            future: getBaseUrl(),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return Center(child: CircularProgressIndicator());
+                              } else if (snapshot.hasError) {
+                                return Center(child: Text('Error: ${snapshot.error}'));
+                              } else {
+                                return ProductTabScreen(
+                                  apiUrl: '${snapshot.data!}/product/Saved',
+                                  pageName: 'home',
+                                );
+                              }
+                            },
+                          ),
+                          Center(
+                            child: SkinAnalysisHistoryScreen(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: CustomBottomNavigationBarAdmin(),

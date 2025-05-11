@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../CustomBottomNavigationBar.dart';
+import '../CustomBottomNavigationBarAdmin.dart';
 
 class SkinDetailsScreen extends StatefulWidget {
   final File imageFile;
@@ -23,7 +24,7 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
   String _detailsResult = "";
   String _treatmentResult = "";
   bool _isLoading = false;
-  final String apiDetailsUrl = 'http://192.168.0.12:8000/analyze_details/';
+  final String apiDetailsUrl = 'http://192.168.1.30:8000/analyze_details/';
   String apiTreatmentUrl = '';
   List<dynamic> treatments = [];
   Map<String, String?> selectedProductsPerProblem = {};
@@ -33,6 +34,25 @@ class _SkinDetailsScreenState extends State<SkinDetailsScreen> {
   Map<String, dynamic>? _productDetails;
   bool _showProductDetails = false;
   String? _analysisId;
+  Map<String, dynamic>? _userInfo;
+  String _userRole = 'USER';
+
+  Future<Map<String, dynamic>?> _getUserInfo() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userInfoJson = prefs.getString('userInfo');
+    if (userInfoJson != null) {
+      return jsonDecode(userInfoJson);
+    }
+    return null;
+  }
+
+  Future<void> _loadUserRole() async {
+    final userInfo = await _getUserInfo();
+    setState(() {
+      _userInfo = userInfo;
+      _userRole = userInfo?['role'] ?? 'USER';
+    });
+  }
 
   Future<void> _analyzeDetails() async {
     setState(() {
@@ -321,6 +341,7 @@ Normal: ${data['NORMAL']?.toString() ?? '0'}%
   @override
   void initState() {
     super.initState();
+    _loadUserRole();
     _analyzeDetails();
   }
 
@@ -683,7 +704,9 @@ Normal: ${data['NORMAL']?.toString() ?? '0'}%
             ),
         ],
       ),
-      bottomNavigationBar: CustomBottomNavigationBar2(),
+      bottomNavigationBar: _userRole == "ADMIN"
+          ? CustomBottomNavigationBarAdmin()
+          : CustomBottomNavigationBar2(),
     );
   }
 }
