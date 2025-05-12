@@ -1,32 +1,32 @@
-import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:FlawlessYou/ProfileSection/profile.dart';
-
+import '../Admin/AdminProfileSectio/adminprofile.dart';
 import '../SharedPreferences.dart';
 
 class aboutUs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'About Us',
-      theme: ThemeData(
+        debugShowCheckedModeBanner: false,
+        title: 'About Us',
+        theme: ThemeData(
         primarySwatch: MaterialColor(
-          0xFF596D56, {
-          50: Color(0xFFE2E7D8),
-          100: Color(0xFFB5C2A5),
-          200: Color(0xFF8A9D72),
-          300: Color(0xFF5F7840),
-          400: Color(0xFF436C2E),
-          500: Color(0xFF2F6023),
-          600: Color(0xFF275220),
-          700: Color(0xFF1F4420),
-          800: Color(0xFF17362D),
-          900: Color(0xFF0E2B1B),
+        0xFF596D56, {
+        50: Color(0xFFE2E7D8),
+        100: Color(0xFFB5C2A5),
+        200: Color(0xFF8A9D72),
+        300: Color(0xFF5F7840),
+        400: Color(0xFF436C2E),
+        500: Color(0xFF2F6023),
+        600: Color(0xFF275220),
+        700: Color(0xFF1F4420),
+        800: Color(0xFF17362D),
+        900: Color(0xFF0E2B1B),
         },
-        ),
-      ),
-      home: CardScreen(),
+    ),
+    ),
+    home: CardScreen(),
     );
   }
 }
@@ -41,6 +41,7 @@ class _CardScreenState extends State<CardScreen> {
   int _currentIndex = 0;
   String? _token;
   Map<String, dynamic> _userInfo = {};
+  bool _isAdmin = false;
 
   @override
   void initState() {
@@ -49,12 +50,46 @@ class _CardScreenState extends State<CardScreen> {
   }
 
   Future<void> _loadUserInfo() async {
-    final userData = await getUserData();
-    if (userData != null) {
-      setState(() {
-        _token = userData['token'];
-        _userInfo = userData['userInfo'];
+    try {
+      final userData = await getUserData();
+      if (userData != null) {
+        setState(() {
+          _token = userData['token'];
+          _userInfo = userData['userInfo'];
+          _isAdmin = _userInfo['role']?.toString().toUpperCase() == 'ADMIN';
+        });
+      }
+    } catch (e) {
+      print('Error loading user info: $e');
+    }
+  }
+
+  void _navigateToProfile() {
+    if (_token == null || _userInfo.isEmpty) {
+      // إذا لم يتم تحميل بيانات المستخدم بعد، نعيد تحميلها
+      _loadUserInfo().then((_) {
+        _redirectToProfile();
       });
+    } else {
+      _redirectToProfile();
+    }
+  }
+
+  void _redirectToProfile() {
+    if (_isAdmin) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AdminProfile(),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Profile(token: _token!, userInfo: _userInfo),
+        ),
+      );
     }
   }
 
@@ -108,14 +143,7 @@ class _CardScreenState extends State<CardScreen> {
           children: [
             IconButton(
               icon: Icon(Icons.arrow_back, color: Colors.white, size: 26),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => Profile(token: _token!, userInfo: _userInfo),
-                  ),
-                );
-              },
+              onPressed: _navigateToProfile,
             ),
             SizedBox(width: 8),
             Text(
@@ -138,7 +166,7 @@ class _CardScreenState extends State<CardScreen> {
                 child: Stack(
                   children: [
                     Image.network(
-                      "https://res.cloudinary.com/davwgirjs/image/upload/v1740423125/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740423126526_aboutusbg.jpg.jpg", // رابط الصورة من Cloudinary
+                      "https://res.cloudinary.com/davwgirjs/image/upload/v1740423125/nhndev/product/320aee5f-ac8b-48be-94c7-e9296259cf99_1740423126526_aboutusbg.jpg.jpg",
                       fit: BoxFit.cover,
                       width: double.infinity,
                       height: double.infinity,

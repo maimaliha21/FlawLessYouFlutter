@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -938,29 +940,29 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
   }
 
   Future<void> _deleteTreatment() async {
-    final confirmed = await showDialog<bool>(
+    final bool? confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Confirm Delete'),
-        content: Text('Are you sure you want to delete this treatment?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirm Delete'),
+          content: Text('Are you sure you want to delete this treatment? This action cannot be undone.'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirmed != true) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final userData = await getUserData();
@@ -971,7 +973,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
       }
 
       final response = await http.delete(
-        Uri.parse('$baseUrl/api/treatments/${widget.treatment['treatmentId']}'),
+        Uri.parse('$baseUrl/api/treatments/${widget.treatment['treatmentId']}'), // تأكد من هذا المسار
         headers: {
           'accept': '*/*',
           'Authorization': 'Bearer ${userData['token']}',
@@ -982,7 +984,7 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Treatment deleted successfully')),
         );
-        Navigator.pop(context);
+        Navigator.of(context).pop(true); // العودة مع إشارة أن الحذف تم
       } else {
         throw Exception('Failed to delete treatment: ${response.statusCode}');
       }
@@ -991,11 +993,10 @@ class _TreatmentDetailsPageState extends State<TreatmentDetailsPage>
         SnackBar(content: Text('Error deleting treatment: ${e.toString()}')),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) setState(() => _isLoading = false);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

@@ -11,6 +11,8 @@ import '../../Product/product.dart';
 import '../../Product/productPage.dart';
 import '../../Routinebar/routinescreen.dart';
 import '../../ProfileSection/editProfile.dart';
+import '../../ProfileSection/supportTeam.dart';
+import '../../ProfileSection/aboutUs.dart';
 import '../../Treatment/treatment.dart';
 import '../../model/SkinAnalysisHistoryScreen.dart';
 import 'editRole.dart';
@@ -80,38 +82,23 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
     );
   }
 
-  void _showEditPopup() {
-    if (userInfo != null && userInfo!['role'] == 'ADMIN') {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Edit Product'),
-            content: Text('You are an ADMIN. You can edit this product.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: Text('Close'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Product updated successfully!')),
-                  );
-                },
-                child: Text('Save'),
-              ),
-            ],
-          );
-        },
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('You do not have permission to edit.')),
-      );
+  void _handleMenuSelection(String value) {
+    switch (value) {
+      case 'support':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => SupportTeamScreen()),
+        );
+        break;
+      case 'about_us':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => aboutUs()),
+        );
+        break;
+      case 'logout':
+        _logout();
+        break;
     }
   }
 
@@ -121,18 +108,17 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
     final screenWidth = MediaQuery.of(context).size.width;
     final bool isTablet = screenWidth >= 600;
     final profileImageRadius = isTablet ? 90.0 : 75.0;
-    final backgroundHeight =(screenHeight * 0.2)-15;
+    final backgroundHeight = (screenHeight * 0.2) - 15;
 
     return Scaffold(
       body: Container(
-        height: screenHeight, // تأخذ ارتفاع الشاشة بالكامل
+        height: screenHeight,
         child: SingleChildScrollView(
           child: Column(
             children: [
               Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  // الخلفية العلوية
                   Container(
                     height: backgroundHeight,
                     decoration: BoxDecoration(
@@ -144,14 +130,11 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                     ),
                   ),
 
-                  // زر القائمة
                   Positioned(
                     top: 40,
                     right: 20,
                     child: PopupMenuButton<String>(
-                      onSelected: (value) {
-                        if (value == 'logout') _logout();
-                      },
+                      onSelected: _handleMenuSelection,
                       itemBuilder: (BuildContext context) => [
                         const PopupMenuItem(
                           value: 'support',
@@ -174,9 +157,8 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                     ),
                   ),
 
-                  // صورة البروفايل (نصفها داخل الخلفية والنصف الآخر خارجها)
                   Positioned(
-                    top: backgroundHeight - profileImageRadius, // تبدأ من نهاية الخلفية
+                    top: backgroundHeight - profileImageRadius,
                     left: screenWidth / 2 - profileImageRadius,
                     child: Container(
                       decoration: BoxDecoration(
@@ -197,10 +179,8 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                 ],
               ),
 
-              // المساحة تحت صورة البروفايل
               SizedBox(height: profileImageRadius),
 
-              // معلومات المستخدم
               Text(
                 userInfo?['userName'] ?? 'Admin',
                 style: TextStyle(
@@ -215,7 +195,6 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                     fontSize: isTablet ? 18 : 14, color: Colors.grey),
               ),
 
-              // نوع البشرة إذا كان متوفراً
               if (userInfo?['skinType'] != null) ...[
                 SizedBox(height: 8),
                 Text(
@@ -225,7 +204,6 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                 ),
               ],
 
-              // الأزرار
               SizedBox(height: 20),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -277,7 +255,6 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                 ),
               ),
 
-              // تبويبات المحتوى
               SizedBox(height: 20),
               DefaultTabController(
                 length: 2,
@@ -295,7 +272,7 @@ class _AdminProfileState extends State<AdminProfile> with SingleTickerProviderSt
                       ],
                     ),
                     Container(
-                      height: screenHeight * 0.51, // ارتفاع مناسب للمحتوى
+                      height: screenHeight * 0.51,
                       child: TabBarView(
                         controller: _tabController,
                         children: [
